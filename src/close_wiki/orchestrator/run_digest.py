@@ -174,7 +174,23 @@ def run_digest(
         combined_for_build.evidence["pre_built_dependency_graph"] = combined.evidence["pre_built_dependency_graph"]
 
         planner = PlannerAgent(llm_config)
-        wiki_plan = planner.plan(combined_for_build, diagrams=diagrams)
+
+        # Live spinner for planner — shows thinking phases while LLM call blocks
+        plan_bar = tqdm(
+            bar_format="  {desc}",
+            dynamic_ncols=True,
+            leave=False,
+        )
+
+        def _plan_progress(msg: str) -> None:
+            plan_bar.set_description_str(msg)
+            plan_bar.refresh()
+
+        wiki_plan = planner.plan(combined_for_build, diagrams=diagrams, progress_cb=_plan_progress)
+        plan_bar.set_description_str(f"✅ {wiki_plan}")
+        plan_bar.refresh()
+        plan_bar.close()
+        _log(f"  Wiki plan: {wiki_plan}")
         _vlog(f"  Wiki plan: {wiki_plan}")
 
         page_bar = tqdm(

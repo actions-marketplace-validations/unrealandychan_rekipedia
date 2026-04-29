@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from collections.abc import Callable
 from pathlib import Path
 
 from close_wiki.llm.client import LLMClient
@@ -125,26 +126,92 @@ class PlannerAgent:
     def __init__(self, llm_config: LLMConfig) -> None:
         self._client = LLMClient(llm_config)
 
-    def plan(self, combined: AnalysisResult, diagrams: dict | None = None) -> WikiPlan:
+    def plan(
+        self,
+        combined: AnalysisResult,
+        diagrams: dict | None = None,
+        progress_cb: "Callable[[str], None] | None" = None,
+    ) -> WikiPlan:
         """Analyse *combined* and return a WikiPlan.
 
-        Falls back to a sensible default plan if the LLM call fails.
+        *progress_cb* is called with status strings during the (blocking) LLM
+        call so callers can animate a spinner.  Falls back to a sensible
+        default plan if the LLM call fails.
         """
+        import threading  # noqa: PLC0415
+
         summary = _build_planning_summary(combined, diagrams)
+        n_files = summary["file_count"]
+        n_symbols = summary["symbol_count"]
         prompt = f"Repository analysis data:\n{json.dumps(summary, ensure_ascii=False)}"
+
+        # Spin up a heartbeat thread that fires progress_cb every 0.5s
+        _done = threading.Event()
+        if progress_cb:
+            progress_cb(
+                f"🧠 PlannerAgent analysing {n_files} files, "
+                f"{n_symbols} symbols…"
+            )
+
+            def _heartbeat() -> None:
+                elapsed = 0.0
+                phases = [
+                    (5,  "📂 Reviewing repository structure…"),
+                    (12, "🔍 Identifying key components…"),
+                    (20, "🗂  Deciding page sections…"),
+                    (35, "✍️  Writing page focus instructions…"),
+                    (50, "📐 Finalising navigation order…"),
+                    (999, "⏳ Almost there…"),
+                ]
+                phase_idx = 0
+                while not _done.wait(0.5):
+                    elapsed += 0.5
+                    # Advance phase label when time threshold passed
+                    while phase_idx < len(phases) - 1 and elapsed >= phases[phase_idx][0]:
+                        phase_idx += 1
+                    label = phases[phase_idx][1]
+                    progress_cb(f"{label} ({elapsed:.0f}s)")
+
+            t = threading.Thread(target=_heartbeat, daemon=True)
+            t.start()
+        else:
+            t = None
 
         try:
             raw = self._client.call(prompt, system=_SYSTEM_PROMPT)
-            raw = raw.strip()
-            raw = re.sub(r"^```(?:json)?\s*\n?", "", raw)
-            raw = re.sub(r"\n?```\s*$", "", raw)
+        except Exception as exc:
+            _done.set()
+            if t:
+                t.join(timeout=1)
+            logger.warning("PlannerAgent failed (%s) — using default plan", exc)
+            if progress_cb:
+                progress_cb(f"⚠️  Planner failed ({type(exc).__name__}), using default plan")
+            return _default_plan(combined)
+        finally:
+            _done.set()
+            if t:
+                t.join(timeout=1)
+
+        raw = raw.strip()
+        raw = re.sub(r"^```(?:json)?\s*\n?", "", raw)
+        raw = re.sub(r"\n?```\s*$", "", raw)
+        try:
             data = json.loads(raw)
             plan = WikiPlan(data)
-            logger.debug("PlannerAgent designed %d pages: %s", len(plan.pages), [p["slug"] for p in plan.pages])
-            return plan
         except Exception as exc:
-            logger.warning("PlannerAgent failed (%s) — using default plan", exc)
+            logger.warning("PlannerAgent JSON parse failed (%s) — using default plan", exc)
+            if progress_cb:
+                progress_cb("⚠️  Planner response unparseable, using default plan")
             return _default_plan(combined)
+
+        logger.debug("PlannerAgent designed %d pages: %s", len(plan.pages), [p["slug"] for p in plan.pages])
+        if progress_cb:
+            section_names = ", ".join(s["title"] for s in plan.sections) or "—"
+            progress_cb(
+                f"✅ Plan ready: {len(plan.pages)} pages in {len(plan.sections)} sections "
+                f"({section_names})"
+            )
+        return plan
 
 
 def _build_planning_summary(combined: AnalysisResult, diagrams: dict | None) -> dict:
