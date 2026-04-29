@@ -88,7 +88,8 @@ class DockerSandboxRunner(BaseRunner):
                 "-v", f"{repo_root}:/repo:ro",
                 "-v", f"{tmp}:/work",
                 self._image,
-                "python3", "/app/analyze_shard.py",
+                # Dockerfile.sandbox sets ENTRYPOINT to analyze_shard.py,
+                # so only pass the two file-path arguments here.
                 "/work/shard.json", "/work/result.json",
             ]
 
