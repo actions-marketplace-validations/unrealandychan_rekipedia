@@ -10,6 +10,7 @@ Flow:
 """
 from __future__ import annotations
 
+import json
 import logging
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -163,35 +164,47 @@ def run_digest(
         combined.evidence["pre_built_module_graph"] = diagrams.get("module-graph", (None, ""))[1]
         combined.evidence["pre_built_dependency_graph"] = diagrams.get("class-hierarchy", (None, ""))[1]
 
-        # ── 5. Synthesise wiki pages in parallel ──────────────────────
-        from close_wiki.synthesis.page_builder import CANONICAL_PAGES, PageBuilder  # noqa: PLC0415
+        # ── 5. Plan wiki structure then generate pages ────────────────
+        _log("Planning wiki structure…")
+        from close_wiki.synthesis.planner import PlannerAgent  # noqa: PLC0415
+        from close_wiki.synthesis.page_builder import PageBuilder  # noqa: PLC0415
 
         combined_for_build = _combine_results([r for r in merged_results if r])
         combined_for_build.evidence["pre_built_module_graph"] = combined.evidence["pre_built_module_graph"]
         combined_for_build.evidence["pre_built_dependency_graph"] = combined.evidence["pre_built_dependency_graph"]
 
-        builder = PageBuilder(llm_config)
-        pages: dict[str, tuple[str, str]] = {}
-
-        # Pre-build payload once — same for all pages (avoids 9x redundant computation)
-        from close_wiki.synthesis.page_builder import _build_payload  # noqa: PLC0415
-        shared_payload = _build_payload(combined_for_build)
+        planner = PlannerAgent(llm_config)
+        wiki_plan = planner.plan(combined_for_build, diagrams=diagrams)
+        _vlog(f"  Wiki plan: {wiki_plan}")
 
         page_bar = tqdm(
-            total=len(CANONICAL_PAGES),
+            total=len(wiki_plan.pages),
             desc="📝 Generating wiki pages",
             unit="page",
             dynamic_ncols=True,
             leave=True,
         )
 
+        builder = PageBuilder(llm_config)
+
+        # Pre-build full payload once, then slice per page spec
+        from close_wiki.synthesis.page_builder import _build_payload, _slice_payload  # noqa: PLC0415
+        full_payload = _build_payload(combined_for_build, diagrams=diagrams)
+
+        pages: dict[str, tuple[str, str]] = {}
+
         with ThreadPoolExecutor(max_workers=_MAX_PAGE_WORKERS) as executor:
-            future_to_slug = {
-                executor.submit(builder.build_one, slug, combined_for_build, shared_payload): slug
-                for slug in CANONICAL_PAGES
+            future_to_spec = {
+                executor.submit(
+                    builder._build_page_from_spec,
+                    spec,
+                    _slice_payload(full_payload, spec.get("required_data")),
+                ): spec
+                for spec in wiki_plan.pages
             }
-            for future in as_completed(future_to_slug):
-                slug = future_to_slug[future]
+            for future in as_completed(future_to_spec):
+                spec = future_to_spec[future]
+                slug = spec["slug"]
                 page_bar.set_postfix(page=slug)
                 try:
                     result = future.result()
@@ -200,12 +213,16 @@ def run_digest(
                         _vlog(f"  ✓ {slug}: {len(result[1])} chars")
                 except Exception as exc:
                     logger.error("Page %s failed: %s", slug, exc, exc_info=verbose)
-                    title = slug.replace("-", " ").title()
+                    title = spec.get("title", slug.replace("-", " ").title())
                     pages[slug] = (title, f"# {title}\n\n> *Generation failed: {exc}*\n")
                 finally:
                     page_bar.update(1)
 
         page_bar.close()
+
+        # Store nav order in evidence for web UI
+        combined_for_build.evidence["nav_order"] = json.dumps(wiki_plan.nav_order)
+        combined_for_build.evidence["index_slug"] = wiki_plan.index_slug
 
         for slug, (title, content) in pages.items():
             store.upsert_page(run_id, slug, title, content)

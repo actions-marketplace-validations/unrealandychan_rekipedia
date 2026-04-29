@@ -195,6 +195,80 @@ class PageBuilder:
                 results[slug] = page
         return results
 
+    def build_from_plan(
+        self,
+        plan: "WikiPlan",
+        combined: AnalysisResult,
+        diagrams: dict | None = None,
+    ) -> dict[str, tuple[str, str]]:
+        """Build wiki pages according to a WikiPlan.
+
+        Each page only receives the data fields it declared in required_data.
+        Pages are built in parallel via ThreadPoolExecutor.
+        """
+        from concurrent.futures import ThreadPoolExecutor, as_completed  # noqa: PLC0415
+
+        # Pre-build full payload once, then slice per page
+        full_payload = _build_payload(combined, diagrams=diagrams)
+
+        results: dict[str, tuple[str, str]] = {}
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            future_to_spec = {
+                executor.submit(
+                    self._build_page_from_spec,
+                    spec,
+                    _slice_payload(full_payload, spec.get("required_data")),
+                ): spec
+                for spec in plan.pages
+                if spec["slug"] not in self._exclude
+            }
+            for future in as_completed(future_to_spec):
+                spec = future_to_spec[future]
+                slug = spec["slug"]
+                try:
+                    result = future.result()
+                    if result:
+                        results[slug] = result
+                except Exception as exc:  # noqa: BLE001
+                    title = spec.get("title", slug.replace("-", " ").title())
+                    results[slug] = (title, f"# {title}\n\n> *Generation failed: {exc}*\n")
+
+        return results
+
+    def _build_page_from_spec(
+        self,
+        spec: dict,
+        payload_slice: dict,
+    ) -> tuple[str, str] | None:
+        """Build one page from a PageSpec dict with a pre-sliced payload."""
+        slug = spec["slug"]
+        title_hint = spec.get("title", slug.replace("-", " ").title())
+
+        if self._wiki_dir and _is_pinned(self._wiki_dir / f"{slug}.md"):
+            existing = (self._wiki_dir / f"{slug}.md").read_text()
+            title = _extract_title(existing) or title_hint
+            return (title, existing)
+
+        focus = self._overrides.get(slug) or spec.get("focus", f"Write a wiki page about {slug}.")
+        nav_hint = ""
+        if spec.get("tags"):
+            nav_hint = f"\nTags for this page: {', '.join(spec['tags'])}"
+
+        user_prompt = (
+            f"Task: {focus}{nav_hint}\n\n"
+            f"Analysis data (JSON):\n{json.dumps(payload_slice, ensure_ascii=False)}"
+        )
+
+        try:
+            raw = self._client.call(user_prompt, system=self._system)
+            title, content = _parse_llm_response(raw, slug)
+        except Exception as exc:  # noqa: BLE001
+            title = title_hint
+            content = f"# {title}\n\n> *LLM synthesis failed: {exc}*\n"
+
+        content = _ensure_frontmatter(slug, title, content, tags=spec.get("tags", []))
+        return (title, content)
+
     def build_one(self, slug: str, combined: AnalysisResult, _payload: dict | None = None) -> tuple[str, str] | None:
         """Build a single wiki page. Returns (title, content) or None if skipped.
 
@@ -230,7 +304,7 @@ class PageBuilder:
 
 # ── helpers ──────────────────────────────────────────────────────────
 
-def _build_payload(combined: AnalysisResult) -> dict:
+def _build_payload(combined: AnalysisResult, diagrams: dict | None = None) -> dict:
     # Build a compact symbol index: name -> {file, line_start, line_end, kind}
     symbol_index = {
         s.name: {
@@ -241,7 +315,7 @@ def _build_payload(combined: AnalysisResult) -> dict:
         }
         for s in combined.symbols[:600]
     }
-    return {
+    payload = {
         "files_seen": combined.files_seen[:500],
         "entry_points": combined.entry_points,
         "symbols": [s.model_dump() for s in combined.symbols[:600]],
@@ -252,6 +326,26 @@ def _build_payload(combined: AnalysisResult) -> dict:
         "risks": combined.risks,
         "evidence": combined.evidence,
     }
+    if diagrams:
+        payload["pre_built_module_graph"] = diagrams.get("module-graph", ("", ""))[1]
+        payload["pre_built_dependency_graph"] = diagrams.get("class-hierarchy", ("", ""))[1]
+    else:
+        payload["pre_built_module_graph"] = combined.evidence.get("pre_built_module_graph", "")
+        payload["pre_built_dependency_graph"] = combined.evidence.get("pre_built_dependency_graph", "")
+    return payload
+
+
+def _slice_payload(full: dict, required_keys: list[str] | None) -> dict:
+    """Return only the keys the page actually needs.
+
+    If required_keys is None or empty, return the full payload.
+    Always includes 'entry_points' and 'symbol_index' as a minimum.
+    """
+    if not required_keys:
+        return full
+    always = {"entry_points", "symbol_index"}
+    keys = set(required_keys) | always
+    return {k: v for k, v in full.items() if k in keys}
 
 
 def _is_pinned(path: Path) -> bool:
@@ -276,8 +370,9 @@ def _parse_llm_response(raw: str, slug: str) -> tuple[str, str]:
     return title, raw
 
 
-def _ensure_frontmatter(slug: str, title: str, content: str) -> str:
+def _ensure_frontmatter(slug: str, title: str, content: str, tags: list[str] | None = None) -> str:
     if content.startswith("---"):
         return content
-    fm = f"---\nslug: {slug}\ntitle: \"{title}\"\npin: false\n---\n\n"
+    tags_line = f"tags: [{', '.join(tags)}]\n" if tags else ""
+    fm = f"---\nslug: {slug}\ntitle: \"{title}\"\n{tags_line}pin: false\n---\n\n"
     return fm + content
