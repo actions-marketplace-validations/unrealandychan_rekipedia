@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# uv
+.uv/
+
+# Environment
+.env
+
+# npm
+node_modules/
+*.tgz
+
+# macOS
+.DS_Store
+
+# close-wiki store (for if this repo is scanned)
+.close-wiki/store.db

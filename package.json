@@ -1,0 +1,30 @@
+{
+  "name": "close-wiki",
+  "version": "0.1.0",
+  "description": "Agentic repo-to-wiki: scan any repository into a portable SQLite knowledge store with wiki pages, diagrams, and grounded Q&A.",
+  "bin": {
+    "close-wiki": "./bin/close-wiki.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin/"
+  ],
+  "keywords": [
+    "wiki",
+    "documentation",
+    "llm",
+    "knowledge-base",
+    "agent",
+    "sqlite"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/close-wiki.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/close-wiki/issues"
+  }
+}

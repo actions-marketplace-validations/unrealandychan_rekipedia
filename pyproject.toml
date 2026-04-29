@@ -1,0 +1,87 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "close-wiki"
+version = "0.1.0"
+description = "Agentic repo-to-wiki: scan any repository into a knowledge store with wiki pages, diagrams, and grounded Q&A."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["wiki", "documentation", "llm", "knowledge-base", "agent"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+]
+dependencies = [
+    "click>=8.1",
+    "pydantic>=2.0",
+    # pyturso provides a modern MVCC storage engine.
+    # Falls back to stdlib sqlite3 automatically on platforms without a wheel.
+    "pyturso>=0.5; platform_machine != 'aarch64'",
+    "rich>=13.0",
+    "litellm>=1.30",
+    "pyyaml>=6.0",
+    "pathspec>=0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+]
+
+[project.scripts]
+close-wiki = "close_wiki.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/your-org/close-wiki"
+Repository = "https://github.com/your-org/close-wiki"
+Issues = "https://github.com/your-org/close-wiki/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/close_wiki"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"
+
+[tool.coverage.run]
+source = ["close_wiki"]
+branch = true
+omit = [
+    "src/close_wiki/sandbox/tasks/analyze_shard.py",  # Docker entrypoint, not importable in tests
+    "src/close_wiki/__main__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+fail_under = 77
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"

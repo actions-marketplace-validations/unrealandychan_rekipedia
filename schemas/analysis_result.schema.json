@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/your-org/close-wiki/schemas/analysis_result.schema.json",
+  "title": "AnalysisResult",
+  "description": "JSON contract returned by every Docker sandbox shard run. Must never contain prose — always structured data.",
+  "type": "object",
+  "required": [
+    "shard_id",
+    "files_seen",
+    "entry_points",
+    "symbols",
+    "relationships",
+    "build_commands",
+    "test_commands",
+    "risks",
+    "unknowns",
+    "evidence"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "shard_id": {
+      "type": "string",
+      "description": "Opaque identifier for this shard (e.g. directory path relative to repo root)."
+    },
+    "files_seen": {
+      "type": "array",
+      "description": "Relative paths of every file inspected in this shard.",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "entry_points": {
+      "type": "array",
+      "description": "Files / symbols identified as primary entry points (main modules, CLI scripts, server bootstraps).",
+      "items": { "type": "string" }
+    },
+    "symbols": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "kind", "file"],
+        "additionalProperties": false,
+        "properties": {
+          "name":       { "type": "string" },
+          "kind":       { "type": "string", "enum": ["function", "class", "type", "variable", "interface", "enum", "module", "other"] },
+          "file":       { "type": "string" },
+          "line_start": { "type": ["integer", "null"] },
+          "line_end":   { "type": ["integer", "null"] },
+          "signature":  { "type": ["string", "null"] },
+          "docstring":  { "type": ["string", "null"] }
+        }
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "kind"],
+        "additionalProperties": false,
+        "properties": {
+          "from": { "type": "string" },
+          "to":   { "type": "string" },
+          "kind": { "type": "string", "enum": ["import", "call", "inherits", "uses", "re-exports"] },
+          "file": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "build_commands": {
+      "type": "array",
+      "description": "Detected build commands (e.g. 'make build', 'npm run build').",
+      "items": { "type": "string" }
+    },
+    "test_commands": {
+      "type": "array",
+      "description": "Detected test commands (e.g. 'pytest', 'npm test').",
+      "items": { "type": "string" }
+    },
+    "risks": {
+      "type": "array",
+      "description": "Potential issues noticed (e.g. missing error handling, hardcoded secrets).",
+      "items": { "type": "string" }
+    },
+    "unknowns": {
+      "type": "array",
+      "description": "Things the analyser could not determine (e.g. external API contracts).",
+      "items": { "type": "string" }
+    },
+    "evidence": {
+      "type": "object",
+      "description": "Freeform key→value map of supporting evidence (file excerpts, line citations).",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+version: 1
+ignore:
+- .git
+- node_modules
+- __pycache__
+- .close-wiki
+languages:
+- python
+- typescript
+llm:
+  model: ollama/llama4
+  api_key: ''
+  base_url: ''
+  temperature: 0.2
