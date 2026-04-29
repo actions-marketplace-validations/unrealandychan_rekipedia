@@ -7,15 +7,29 @@ import threading
 from pathlib import Path
 
 import click
+import pyfiglet
 import yaml
 from rich.console import Console
 from rich.live import Live
+from rich.panel import Panel
+from rich.rule import Rule
 from rich.spinner import Spinner
 from rich.text import Text
 
 from close_wiki.models.contracts import LLMConfig
 
 console = Console()
+
+
+def _print_banner() -> None:
+    """Print the CLOSE-WIKI ASCII art banner."""
+    try:
+        banner_str = pyfiglet.figlet_format("CLOSE-WIKI", font="slant")
+    except pyfiglet.FontNotFound:
+        banner_str = pyfiglet.figlet_format("CLOSE-WIKI", font="standard")
+    banner_text = Text(banner_str, style="bold cyan")
+    console.print(banner_text)
+    console.print("  🔍  [bold cyan]Codebase Intelligence[/bold cyan]  ·  [dim]powered by LLM[/dim]\n")
 
 
 def _load_config(repo: Path) -> dict:
@@ -40,11 +54,12 @@ def _answer_streaming(question: str, repo: Path, output_dir: Path, llm_config: L
     """Run one Q&A turn: spinner while waiting, then stream tokens."""
     from close_wiki.orchestrator.run_ask import stream_ask  # noqa: PLC0415
 
+    # Print question header
+    console.print(Rule(style="dim"))
+    console.print(f"[bold bright_yellow]❯[/bold bright_yellow] {question}\n")
+
     # Phase 1: spinner until first token
-    spinner_done = threading.Event()
-    first_token_event = threading.Event()
     chunks_iter = None
-    error_holder: list[Exception] = []
 
     try:
         chunks_iter = stream_ask(
@@ -58,7 +73,7 @@ def _answer_streaming(question: str, repo: Path, output_dir: Path, llm_config: L
         return
 
     # Show spinner while waiting for first chunk
-    spinner_text = Spinner("dots", text=Text(" Thinking…", style="dim"))
+    spinner_text = Spinner("dots", text=Text(" Searching wiki & reasoning…", style="dim"))
     with Live(spinner_text, console=console, refresh_per_second=12, transient=True):
         try:
             first_chunk = next(chunks_iter)  # type: ignore[arg-type]
@@ -69,7 +84,7 @@ def _answer_streaming(question: str, repo: Path, output_dir: Path, llm_config: L
             return
 
     # Phase 2: stream remaining tokens to stdout
-    console.print("[bold cyan]Assistant:[/bold cyan]")
+    console.print(Rule("[bold bright_green]◆ Answer[/bold bright_green]", style="bright_green"))
     sys.stdout.write(first_chunk)
     sys.stdout.flush()
     try:
@@ -81,6 +96,8 @@ def _answer_streaming(question: str, repo: Path, output_dir: Path, llm_config: L
     finally:
         sys.stdout.write("\n")
         sys.stdout.flush()
+
+    console.rule(style="dim")
 
 
 @click.command("ask")
@@ -110,30 +127,35 @@ def ask_cmd(question: str | None, repo: Path, model: str | None, output_dir: Pat
     llm_config = _build_llm_config(repo, model)
 
     if question:
-        # Single-shot mode (backward compat)
-        console.rule("[bold green]close-wiki ask[/bold green]")
+        # Single-shot mode
+        _print_banner()
         _answer_streaming(question, repo, output_dir, llm_config)
         return
 
     # Interactive REPL
-    console.rule("[bold green]close-wiki ask[/bold green]")
-    console.print(f"  model  : [cyan]{llm_config.model}[/cyan]")
-    console.print(f"  repo   : [cyan]{repo}[/cyan]")
-    console.print("  Type your question and press Enter. [dim]Ctrl+C or 'exit' to quit.[/dim]")
-    console.rule()
+    _print_banner()
+
+    wiki_dir = output_dir / "wiki"
+    panel_content = (
+        f"[bold]Model[/bold]   [cyan]{llm_config.model}[/cyan]\n"
+        f"[bold]Repo[/bold]    [cyan]{repo}[/cyan]\n"
+        f"[bold]Wiki[/bold]    [cyan]{wiki_dir}/[/cyan]\n\n"
+        "[dim]Ask anything about the codebase. Type 'exit' or Ctrl+C to quit.[/dim]"
+    )
+    console.print(Panel(panel_content, title=" close-wiki ask ", border_style="cyan"))
+    console.print()
 
     while True:
         try:
-            user_input = console.input("[bold yellow]You:[/bold yellow] ").strip()
+            user_input = console.input("\n[bold bright_yellow]❯ [/bold bright_yellow]").strip()
         except (KeyboardInterrupt, EOFError):
-            console.print("\n[dim]Goodbye![/dim]")
+            console.print("\n[dim]── session ended ──[/dim]")
             break
 
         if not user_input:
             continue
         if user_input.lower() in ("exit", "quit", "q"):
-            console.print("[dim]Goodbye![/dim]")
+            console.print("\n[dim]── session ended ──[/dim]")
             break
 
         _answer_streaming(user_input, repo, output_dir, llm_config)
-        console.rule(style="dim")

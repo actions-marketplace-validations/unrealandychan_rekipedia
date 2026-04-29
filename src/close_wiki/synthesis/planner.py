@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from collections.abc import Callable
 from pathlib import Path
@@ -156,11 +157,11 @@ class PlannerAgent:
             def _heartbeat() -> None:
                 elapsed = 0.0
                 phases = [
-                    (5,  "📂 Reviewing repository structure…"),
-                    (12, "🔍 Identifying key components…"),
-                    (20, "🗂  Deciding page sections…"),
-                    (35, "✍️  Writing page focus instructions…"),
-                    (50, "📐 Finalising navigation order…"),
+                    (10,  "📂 Reviewing repository structure…"),
+                    (30, "🔍 Identifying key components…"),
+                    (60, "🗂  Deciding page sections…"),
+                    (120, "✍️  Writing page focus instructions…"),
+                    (240, "📐 Finalising navigation order…"),
                     (999, "⏳ Almost there…"),
                 ]
                 phase_idx = 0
@@ -177,8 +178,10 @@ class PlannerAgent:
         else:
             t = None
 
+        # Planner generates a large structured JSON — give it extra time
+        _PLANNER_TIMEOUT = int(os.environ.get("CLOSE_WIKI_PLANNER_TIMEOUT", "600"))
         try:
-            raw = self._client.call(prompt, system=_SYSTEM_PROMPT)
+            raw = self._client.call(prompt, system=_SYSTEM_PROMPT, timeout=_PLANNER_TIMEOUT)
         except Exception as exc:
             _done.set()
             if t:

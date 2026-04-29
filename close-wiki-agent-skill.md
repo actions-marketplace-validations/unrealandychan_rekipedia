@@ -129,6 +129,8 @@ When asked to work on an unfamiliar codebase:
 | `ANTHROPIC_API_KEY` | Use Anthropic models (Claude) |
 | `CLOSE_WIKI_MODEL` | Override default model |
 | `CLOSE_WIKI_BASE_URL` | Custom OpenAI-compatible endpoint |
+| `CLOSE_WIKI_PLANNER_TIMEOUT` | Timeout for PlannerAgent LLM call in seconds (default: 600) |
+| `CLOSE_WIKI_TIMEOUT` | Timeout for page generation LLM calls in seconds (default: 180) |
 
 ## Common options
 

@@ -64,9 +64,10 @@ class LLMClient:
             kwargs["base_url"] = self._base_url
         return kwargs
 
-    def call(self, prompt: str, *, system: str = "") -> str:
+    def call(self, prompt: str, *, system: str = "", timeout: int | None = None) -> str:
         """Send a prompt and return the assistant text.
 
+        *timeout* overrides the default per-call timeout (default: _DEFAULT_TIMEOUT).
         Retries up to ``_MAX_RETRIES`` times on timeout / 5xx errors.
         Raises ``litellm.exceptions.APIError`` on non-retryable upstream errors.
         """
@@ -76,6 +77,8 @@ class LLMClient:
         messages.append({"role": "user", "content": prompt})
 
         kwargs = {**self._base_kwargs(), "messages": messages}
+        if timeout is not None:
+            kwargs["timeout"] = timeout
 
         def _call():
             response = litellm.completion(**kwargs)

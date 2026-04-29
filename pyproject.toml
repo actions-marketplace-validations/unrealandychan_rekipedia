@@ -41,6 +41,7 @@ dependencies = [
     "markdown>=3.6",
     "python-multipart>=0.0.9",
     "tqdm>=4.67.3",
+    "pyfiglet>=1.0.4",
 ]
 
 [project.optional-dependencies]
