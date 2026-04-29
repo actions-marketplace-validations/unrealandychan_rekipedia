@@ -222,6 +222,7 @@ def run_digest(
 
         # Store nav order in evidence for web UI
         combined_for_build.evidence["nav_order"] = json.dumps(wiki_plan.nav_order)
+        combined_for_build.evidence["wiki_sections"] = json.dumps(wiki_plan.sections)
         combined_for_build.evidence["index_slug"] = wiki_plan.index_slug
 
         for slug, (title, content) in pages.items():

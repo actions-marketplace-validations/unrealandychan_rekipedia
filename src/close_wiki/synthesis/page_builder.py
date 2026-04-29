@@ -266,7 +266,7 @@ class PageBuilder:
             title = title_hint
             content = f"# {title}\n\n> *LLM synthesis failed: {exc}*\n"
 
-        content = _ensure_frontmatter(slug, title, content, tags=spec.get("tags", []))
+        content = _ensure_frontmatter(slug, title, content, tags=spec.get("tags", []), section=spec.get("section"))
         return (title, content)
 
     def build_one(self, slug: str, combined: AnalysisResult, _payload: dict | None = None) -> tuple[str, str] | None:
@@ -370,9 +370,10 @@ def _parse_llm_response(raw: str, slug: str) -> tuple[str, str]:
     return title, raw
 
 
-def _ensure_frontmatter(slug: str, title: str, content: str, tags: list[str] | None = None) -> str:
+def _ensure_frontmatter(slug: str, title: str, content: str, tags: list[str] | None = None, section: str | None = None) -> str:
     if content.startswith("---"):
         return content
     tags_line = f"tags: [{', '.join(tags)}]\n" if tags else ""
-    fm = f"---\nslug: {slug}\ntitle: \"{title}\"\n{tags_line}pin: false\n---\n\n"
+    section_line = f"section: {section}\n" if section else ""
+    fm = f"---\nslug: {slug}\ntitle: \"{title}\"\n{section_line}{tags_line}pin: false\n---\n\n"
     return fm + content

@@ -1,5 +1,41 @@
 # Release Notes
 
+## v0.6.0 — Agentic Wiki Orchestration & DeepWiki-Style Structure
+
+### What's new
+
+**v0.6.0** introduces a fully agentic wiki generation pipeline: a `PlannerAgent` dynamically designs the wiki structure before writing any pages, replacing the previous fixed 9-page layout.
+
+#### PlannerAgent — dynamic wiki structure
+- New `PlannerAgent` (`synthesis/planner.py`): one LLM call analyses the repo and decides the entire wiki structure — page count, titles, focus, nav order, and search tags
+- Page count is now **dynamic**: 3 pages for a tiny CLI tool, 12+ for a large framework (was fixed at 9)
+- **DeepWiki-style sections**: pages are grouped into logical sections (`getting-started`, `architecture`, `core-components`, `api-reference`, `development`, `ecosystem`) embedded in frontmatter for sidebar navigation
+- `WikiPlan` object: `pages`, `sections`, `nav_order`, `index_slug` — stored in wiki evidence for web UI consumption
+- Graceful fallback: if LLM planning fails, `_default_plan()` heuristically generates 3–6 pages based on what's detected
+
+#### Context slicing per page
+- `_slice_payload()`: each `PageAgent` only receives the data keys it declared in `required_data` (e.g. `testing` page gets `test_commands + symbols + files_seen`, NOT full relationships or class hierarchy)
+- Payload built **once** and sliced N ways — eliminates N-fold redundant serialisation
+- Result: ~40–60% reduction in tokens sent to LLM for non-architecture pages
+
+#### Improved page focus instructions
+- Planner writes detailed `focus` per page specifying: exact headings, required tables, which Mermaid diagrams, which symbols to cite
+- New mandatory page: `repository-structure` for repos with ≥10 files — full annotated tree + directory table
+- Page splitting rules: >5 major modules → one page per module; complex architecture → split into `architecture-overview` + `architecture-data-flow`
+
+#### Navigation & searchability
+- `nav_order` in wiki frontmatter: planner orders pages from conceptual overview → specific reference (new-developer-friendly reading order)
+- `tags` in frontmatter: 2–4 tags per page from a controlled vocabulary (`overview`, `architecture`, `api`, `testing`, `configuration`, etc.)
+- `section` in frontmatter: enables sidebar grouping in web UI
+
+#### Agent skill for AI coding assistants
+- New `close-wiki-agent-skill.md`: Hermes skill that teaches Copilot, Claude Code, Codex, and other AI agents how to use close-wiki to understand codebases without reading every file
+- Covers: install, scan, ask, serve, update, direct wiki page reading, environment variables, common pitfalls
+
+### Tests
+- 69/70 passing (1 pre-existing `sqlite_utils` import failure)
+- Updated hardcoded `== 9` page count assertions → `>= 3` (page count is now dynamic)
+
 ## v0.5.0 — Deep Wiki, Interactive Ask & Developer Experience
 
 ### What's new

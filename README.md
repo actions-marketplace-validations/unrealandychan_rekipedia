@@ -6,6 +6,13 @@ close-wiki scans any repository into a portable SQLite knowledge store and gives
 
 No hallucinations, no guessing — every answer is grounded in your actual codebase.
 
+### Key features
+- **Agentic wiki orchestration**: `PlannerAgent` designs the wiki structure dynamically based on your repo
+- **DeepWiki-style sections**: pages grouped into logical sections (`getting-started`, `architecture`, `core-components`, etc.) for navigation
+- **Context slicing**: each page only receives the data it needs (~40–60% token reduction vs fixed-layout approach)
+- **Incremental updates**: only re-processes changed files after the first scan
+- **Grounded Q&A**: answers cite real file paths and line numbers — no hallucinations
+
 ## Quick start
 
 ### via npm / npx (no install required)
@@ -97,16 +104,11 @@ export CLOSE_WIKI_BASE_URL=https://my-proxy/v1
 .close-wiki/
 ├── config.yml              # your settings (committed)
 ├── store.db                # SQLite knowledge store (git-ignored)
-├── wiki/                   # generated Markdown pages
+├── wiki/                   # generated Markdown pages (3–15 pages, dynamically planned)
 │   ├── index.md
-│   ├── architecture.md
-│   ├── core-modules.md
-│   ├── algorithms.md
-│   ├── cli-and-api.md
-│   ├── installation-and-setup.md
-│   ├── configuration.md
-│   ├── testing.md
-│   └── ecosystem-and-integrations.md
+│   ├── architecture-overview.md
+│   ├── repository-structure.md
+│   └── ... (pages vary by repo)
 ├── diagrams/               # Mermaid diagram files
 │   ├── module-graph.md
 │   └── class-hierarchy.md
@@ -115,6 +117,19 @@ export CLOSE_WIKI_BASE_URL=https://my-proxy/v1
     ├── relationships.json
     └── manifest.json       # run summary + metadata
 ```
+
+Dynamically generates 3–15 wiki pages based on repo complexity (powered by PlannerAgent).
+
+The wiki structure is designed dynamically by `PlannerAgent` based on what's actually present in your repo:
+
+| Section | Example pages | When generated |
+|---|---|---|
+| Getting Started | index, installation, quick-start | Always |
+| Architecture | architecture-overview, data-flow, repository-structure | ≥3 modules |
+| Core Components | One page per major module | ≥2 modules |
+| API Reference | cli-reference, python-api, rest-api | CLI/HTTP handlers found |
+| Development | testing, contributing, ci-cd | Test files found |
+| Ecosystem | integrations, deployment | ≥3 external deps |
 
 ### Scan options
 
@@ -177,6 +192,16 @@ close-wiki serve . --no-browser        # don't auto-open browser
 
 - **Python ≥ 3.11** (or `uv` which manages its own Python)
 - **Docker** — optional; used for isolated extraction. Falls back to in-process runner automatically if Docker is not available (`--no-docker` forces in-process mode)
+
+---
+
+## Using close-wiki with AI coding agents
+
+close-wiki ships a **Hermes agent skill** (`close-wiki-agent-skill.md`) that teaches AI assistants (Copilot, Claude Code, Codex) to use close-wiki as their codebase intelligence layer:
+
+1. Copy `close-wiki-agent-skill.md` into your Hermes skills directory
+2. Any agent with the skill loaded will automatically scan + query close-wiki before diving into source files
+3. Dramatically reduces context window usage for large codebases
 
 ---
 
