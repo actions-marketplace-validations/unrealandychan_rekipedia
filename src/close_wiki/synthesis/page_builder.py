@@ -187,41 +187,41 @@ class PageBuilder:
         self._system = _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
 
     def build(self, combined: AnalysisResult) -> dict[str, tuple[str, str]]:
-        """Return {slug: (title, markdown_content)} for each page.
-
-        Pages that are pinned on disk or excluded in config are skipped.
-        """
-        payload = _build_payload(combined)
+        """Return {slug: (title, markdown_content)} for each page."""
         results: dict[str, tuple[str, str]] = {}
-
         for slug in CANONICAL_PAGES:
-            if slug in self._exclude:
-                continue
-            if self._wiki_dir and _is_pinned(self._wiki_dir / f"{slug}.md"):
-                # Keep existing content
-                existing = (self._wiki_dir / f"{slug}.md").read_text()
-                title = _extract_title(existing) or slug
-                results[slug] = (title, existing)
-                continue
-
-            focus = self._overrides.get(slug) or _PAGE_FOCUS[slug]
-            user_prompt = (
-                f"Task: {focus}\n\n"
-                f"Analysis data (JSON):\n{json.dumps(payload, ensure_ascii=False)}"
-            )
-
-            try:
-                raw = self._client.call(user_prompt, system=self._system)
-                title, content = _parse_llm_response(raw, slug)
-            except Exception as exc:  # noqa: BLE001
-                title = slug.replace("-", " ").title()
-                content = f"# {title}\n\n> *LLM synthesis failed: {exc}*\n"
-
-            # Add YAML frontmatter
-            content = _ensure_frontmatter(slug, title, content)
-            results[slug] = (title, content)
-
+            page = self.build_one(slug, combined)
+            if page:
+                results[slug] = page
         return results
+
+    def build_one(self, slug: str, combined: AnalysisResult) -> tuple[str, str] | None:
+        """Build a single wiki page. Returns (title, content) or None if skipped."""
+        if slug not in _PAGE_FOCUS and slug not in self._overrides:
+            return None
+        if slug in self._exclude:
+            return None
+        if self._wiki_dir and _is_pinned(self._wiki_dir / f"{slug}.md"):
+            existing = (self._wiki_dir / f"{slug}.md").read_text()
+            title = _extract_title(existing) or slug
+            return (title, existing)
+
+        payload = _build_payload(combined)
+        focus = self._overrides.get(slug) or _PAGE_FOCUS[slug]
+        user_prompt = (
+            f"Task: {focus}\n\n"
+            f"Analysis data (JSON):\n{json.dumps(payload, ensure_ascii=False)}"
+        )
+
+        try:
+            raw = self._client.call(user_prompt, system=self._system)
+            title, content = _parse_llm_response(raw, slug)
+        except Exception as exc:  # noqa: BLE001
+            title = slug.replace("-", " ").title()
+            content = f"# {title}\n\n> *LLM synthesis failed: {exc}*\n"
+
+        content = _ensure_frontmatter(slug, title, content)
+        return (title, content)
 
 
 # ── helpers ──────────────────────────────────────────────────────────

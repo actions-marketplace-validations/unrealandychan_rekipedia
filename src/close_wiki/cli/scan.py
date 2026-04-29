@@ -8,7 +8,6 @@ from pathlib import Path
 import click
 import yaml
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from close_wiki.models.contracts import LLMConfig
 
@@ -31,7 +30,8 @@ def _load_config(repo: Path) -> dict:
 @click.option("--model", default=None, envvar="CLOSE_WIKI_MODEL", help="LLM model override.")
 @click.option("--no-docker", is_flag=True, default=False, help="Skip Docker, run extractors in-process.")
 @click.option("--output-dir", default=None, type=click.Path(path_type=Path), help="Output directory (default: REPO/.close-wiki).")
-def scan_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path | None) -> None:
+@click.option("--verbose", "-v", is_flag=True, default=False, help="Enable debug logging (litellm, HTTP, full tracebacks).")
+def scan_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path | None, verbose: bool) -> None:
     """Scan REPO and (re)build the close-wiki knowledge store.
 
     Produces wiki pages in OUTPUT_DIR/wiki/, diagrams in OUTPUT_DIR/diagrams/,
@@ -41,6 +41,7 @@ def scan_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path | 
     Examples:
         close-wiki scan .
         close-wiki scan ./my-project --no-docker
+        close-wiki scan . --verbose
         CLOSE_WIKI_MODEL=gpt-4o close-wiki scan .
     """
     repo = repo.resolve()
@@ -60,35 +61,37 @@ def scan_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path | 
     console.print(f"  model    : [cyan]{llm_config.model}[/cyan]")
     console.print(f"  output   : [cyan]{output_dir}[/cyan]")
     console.print(f"  runner   : [cyan]{'local (--no-docker)' if no_docker else 'auto'}[/cyan]")
+    if verbose:
+        console.print("  mode     : [yellow]verbose (debug logging ON)[/yellow]")
+    console.rule()
 
     from close_wiki.orchestrator.run_digest import run_digest  # noqa: PLC0415
 
-    messages: list[str] = []
+    # In verbose mode: print each log line directly so tqdm + log interleave cleanly
+    # In normal mode: suppress the text progress callback (tqdm bars handle display)
+    def _log(msg: str) -> None:
+        if verbose:
+            console.print(f"  [dim]{msg}[/dim]")
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-        transient=True,
-    ) as progress:
-        task = progress.add_task("Starting…", total=None)
-
-        def _log(msg: str) -> None:
-            progress.update(task, description=msg)
-            messages.append(msg)
-
-        try:
-            run_digest(
-                repo_root=repo,
-                output_dir=output_dir,
-                llm_config=llm_config,
-                force_local=no_docker,
-                progress=_log,
-            )
-        except Exception as exc:
+    try:
+        run_digest(
+            repo_root=repo,
+            output_dir=output_dir,
+            llm_config=llm_config,
+            force_local=no_docker,
+            verbose=verbose,
+            progress=_log,
+        )
+    except Exception as exc:
+        if verbose:
+            import traceback
+            console.print_exception(show_locals=True)
+        else:
             console.print(f"[bold red]Error:[/bold red] {exc}")
-            sys.exit(1)
+            console.print("[dim]Tip: run with --verbose for full debug output[/dim]")
+        sys.exit(1)
 
+    console.rule()
     console.print("[bold green]✓ Scan complete[/bold green]")
     console.print(f"  Wiki pages  : {output_dir / 'wiki'}")
     console.print(f"  Diagrams    : {output_dir / 'diagrams'}")
