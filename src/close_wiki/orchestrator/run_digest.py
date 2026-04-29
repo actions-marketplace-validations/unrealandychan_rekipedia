@@ -3,15 +3,16 @@
 Flow:
     1. Snapshot repo → list[FileManifest]
     2. Shard files → list[Shard]
-    3. For each shard → run extractor (Docker or local) → AnalysisResult
+    3. Extract shards in parallel (ThreadPoolExecutor)
     4. Build diagrams (used by architecture page)
-    5. Synthesise wiki pages via LLM (host-side)
+    5. Synthesise wiki pages in parallel (ThreadPoolExecutor)
     6. Export markdown + JSON
 """
 from __future__ import annotations
 
 import logging
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable
 
@@ -22,6 +23,10 @@ from close_wiki.sandbox.runner import BaseRunner, get_runner
 from close_wiki.storage.sqlite_store import SqliteStore
 
 logger = logging.getLogger("close_wiki")
+
+# Max parallel workers for shard extraction and wiki page generation
+_MAX_SHARD_WORKERS = 4
+_MAX_PAGE_WORKERS = 4
 
 
 def run_digest(
@@ -63,7 +68,6 @@ def run_digest(
     _log = progress or (lambda _: None)
 
     def _vlog(msg: str) -> None:
-        """Log to both progress callback and verbose logger."""
         _log(msg)
         logger.debug(msg)
 
@@ -93,38 +97,56 @@ def run_digest(
         shards = planner.plan(files, llm_config)
         _vlog(f"  {len(shards)} shards planned")
 
-        # ── 3. Extract ───────────────────────────────────────────────
+        # ── 3. Extract shards in parallel ────────────────────────────
         runner: BaseRunner = get_runner(force_local=force_local)
         runner_name = type(runner).__name__
-        _vlog(f"Using {runner_name}")
+        _vlog(f"Using {runner_name} with up to {_MAX_SHARD_WORKERS} parallel workers")
 
-        merged_results: list[AnalysisResult] = []
+        merged_results: list[AnalysisResult] = [None] * len(shards)  # type: ignore[list-item]
+        shard_errors: list[str] = []
+
         shard_bar = tqdm(
-            shards,
+            total=len(shards),
             desc="🔍 Extracting shards",
             unit="shard",
             dynamic_ncols=True,
             leave=True,
         )
-        for shard in shard_bar:
-            shard_bar.set_postfix(id=shard.shard_id[:12])
-            _vlog(f"  Extracting shard: {shard.shard_id}")
-            try:
-                result = runner.run(shard, repo_root)
-            except Exception as exc:
-                logger.error("Shard %s failed: %s", shard.shard_id, exc, exc_info=verbose)
-                raise
-            merged_results.append(result)
 
-            symbols_dicts = [s.model_dump() for s in result.symbols]
-            rels_dicts = [r.model_dump(by_alias=True) for r in result.relationships]
-            store.upsert_symbols(run_id, symbols_dicts)
-            store.upsert_relationships(run_id, rels_dicts)
-            _vlog(f"  → {len(result.symbols)} symbols, {len(result.relationships)} relationships")
+        with ThreadPoolExecutor(max_workers=_MAX_SHARD_WORKERS) as executor:
+            future_to_idx = {
+                executor.submit(runner.run, shard, repo_root): (i, shard)
+                for i, shard in enumerate(shards)
+            }
+            for future in as_completed(future_to_idx):
+                i, shard = future_to_idx[future]
+                shard_bar.set_postfix(id=shard.shard_id[:12])
+                try:
+                    result = future.result()
+                    merged_results[i] = result
+                    _vlog(f"  ✓ {shard.shard_id}: {len(result.symbols)} symbols, {len(result.relationships)} rels")
+                except Exception as exc:
+                    logger.error("Shard %s failed: %s", shard.shard_id, exc, exc_info=verbose)
+                    shard_errors.append(f"{shard.shard_id}: {exc}")
+                    merged_results[i] = AnalysisResult(
+                        shard_id=shard.shard_id, files_seen=[], entry_points=[],
+                        risks=[f"extraction failed: {exc}"]
+                    )
+                finally:
+                    shard_bar.update(1)
 
         shard_bar.close()
 
-        # ── 4. Build diagrams first (used by architecture page) ──────
+        if shard_errors:
+            _vlog(f"  ⚠ {len(shard_errors)} shard(s) failed — continuing with partial results")
+
+        # Persist all results after parallel extraction (SQLite writes must be serial)
+        for result in merged_results:
+            if result:
+                store.upsert_symbols(run_id, [s.model_dump() for s in result.symbols])
+                store.upsert_relationships(run_id, [r.model_dump(by_alias=True) for r in result.relationships])
+
+        # ── 4. Build diagrams ─────────────────────────────────────────
         _vlog("Building diagrams…")
         _log("Building diagrams…")
         from close_wiki.synthesis.diagram_builder import DiagramBuilder  # noqa: PLC0415
@@ -133,43 +155,55 @@ def run_digest(
         all_rels_raw = store.get_all_relationships(run_id)
         _vlog(f"  Total symbols: {len(all_symbols_raw)}, relationships: {len(all_rels_raw)}")
 
-        combined = _combine_results(merged_results)
+        combined = _combine_results([r for r in merged_results if r])
         diagram_builder = DiagramBuilder()
         diagrams = diagram_builder.build(all_rels_raw, entry_points=combined.entry_points)
-        _vlog(f"  Built {len(diagrams)} diagram(s): {list(diagrams.keys())}")
+        _vlog(f"  Built {len(diagrams)} diagram(s)")
 
         combined.evidence["pre_built_module_graph"] = diagrams.get("module-graph", (None, ""))[1]
         combined.evidence["pre_built_dependency_graph"] = diagrams.get("class-hierarchy", (None, ""))[1]
 
-        # ── 5. Synthesise wiki pages ─────────────────────────────────
+        # ── 5. Synthesise wiki pages in parallel ──────────────────────
         from close_wiki.synthesis.page_builder import CANONICAL_PAGES, PageBuilder  # noqa: PLC0415
 
-        combined_for_build = _combine_results(merged_results)
+        combined_for_build = _combine_results([r for r in merged_results if r])
         combined_for_build.evidence["pre_built_module_graph"] = combined.evidence["pre_built_module_graph"]
         combined_for_build.evidence["pre_built_dependency_graph"] = combined.evidence["pre_built_dependency_graph"]
 
         builder = PageBuilder(llm_config)
         pages: dict[str, tuple[str, str]] = {}
 
+        # Pre-build payload once — same for all pages (avoids 9x redundant computation)
+        from close_wiki.synthesis.page_builder import _build_payload  # noqa: PLC0415
+        shared_payload = _build_payload(combined_for_build)
+
         page_bar = tqdm(
-            CANONICAL_PAGES,
+            total=len(CANONICAL_PAGES),
             desc="📝 Generating wiki pages",
             unit="page",
             dynamic_ncols=True,
             leave=True,
         )
-        for slug in page_bar:
-            page_bar.set_postfix(page=slug)
-            _vlog(f"  Synthesising page: {slug}")
-            try:
-                page_result = builder.build_one(slug, combined_for_build)
-                if page_result:
-                    pages[slug] = page_result
-                    _vlog(f"  → {slug}: {len(page_result[1])} chars")
-            except Exception as exc:
-                logger.error("Page %s failed: %s", slug, exc, exc_info=verbose)
-                title = slug.replace("-", " ").title()
-                pages[slug] = (title, f"# {title}\n\n> *Generation failed: {exc}*\n")
+
+        with ThreadPoolExecutor(max_workers=_MAX_PAGE_WORKERS) as executor:
+            future_to_slug = {
+                executor.submit(builder.build_one, slug, combined_for_build, shared_payload): slug
+                for slug in CANONICAL_PAGES
+            }
+            for future in as_completed(future_to_slug):
+                slug = future_to_slug[future]
+                page_bar.set_postfix(page=slug)
+                try:
+                    result = future.result()
+                    if result:
+                        pages[slug] = result
+                        _vlog(f"  ✓ {slug}: {len(result[1])} chars")
+                except Exception as exc:
+                    logger.error("Page %s failed: %s", slug, exc, exc_info=verbose)
+                    title = slug.replace("-", " ").title()
+                    pages[slug] = (title, f"# {title}\n\n> *Generation failed: {exc}*\n")
+                finally:
+                    page_bar.update(1)
 
         page_bar.close()
 

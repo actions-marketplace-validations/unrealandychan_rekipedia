@@ -195,8 +195,12 @@ class PageBuilder:
                 results[slug] = page
         return results
 
-    def build_one(self, slug: str, combined: AnalysisResult) -> tuple[str, str] | None:
-        """Build a single wiki page. Returns (title, content) or None if skipped."""
+    def build_one(self, slug: str, combined: AnalysisResult, _payload: dict | None = None) -> tuple[str, str] | None:
+        """Build a single wiki page. Returns (title, content) or None if skipped.
+
+        Pass a pre-built *_payload* dict to avoid recomputing it for every page
+        when calling build_one in parallel (payload is the same for all pages).
+        """
         if slug not in _PAGE_FOCUS and slug not in self._overrides:
             return None
         if slug in self._exclude:
@@ -206,7 +210,7 @@ class PageBuilder:
             title = _extract_title(existing) or slug
             return (title, existing)
 
-        payload = _build_payload(combined)
+        payload = _payload if _payload is not None else _build_payload(combined)
         focus = self._overrides.get(slug) or _PAGE_FOCUS[slug]
         user_prompt = (
             f"Task: {focus}\n\n"
