@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Iterator
 
 from close_wiki.llm.client import LLMClient
 from close_wiki.models.contracts import LLMConfig
@@ -117,3 +118,87 @@ def run_ask(
     # ── 5. Call the LLM ───────────────────────────────────────────────
     client = LLMClient(llm_config)
     return client.call(question, system=full_system)
+
+
+def stream_ask(
+    question: str,
+    repo_root: Path,
+    output_dir: Path,
+    llm_config: LLMConfig | None = None,
+) -> Iterator[str]:
+    """Answer *question* grounded in the knowledge store, streaming tokens.
+
+    Identical to :func:`run_ask` except the final LLM call uses streaming
+    and yields text chunks instead of returning a single string.
+    """
+    llm_config = llm_config or LLMConfig()
+
+    # ── 1. Verify a scan exists ───────────────────────────────────────
+    db_path = output_dir / "store.db"
+    if not db_path.exists():
+        raise RuntimeError(
+            f"No knowledge store found at {db_path}.\n"
+            "Run `close-wiki scan .` first."
+        )
+
+    with SqliteStore(db_path) as store:
+        run_id = store.get_latest_run_id(str(repo_root))
+
+    if run_id is None:
+        raise RuntimeError(
+            "No successful scan found for this repository.\n"
+            "Run `close-wiki scan .` first."
+        )
+
+    # ── 2. Load wiki pages from disk ──────────────────────────────────
+    wiki_dir = output_dir / "wiki"
+    page_texts: list[str] = []
+    if wiki_dir.exists():
+        for md_file in sorted(wiki_dir.glob("*.md")):
+            slug = md_file.stem
+            content = md_file.read_text(encoding="utf-8")
+            page_texts.append(f"## [{slug}.md]\n\n{content}")
+
+    # ── 3. Load symbol index ──────────────────────────────────────────
+    symbols_path = output_dir / "exports" / "symbols.json"
+    symbol_lines: list[str] = []
+    if symbols_path.exists():
+        try:
+            symbols = json.loads(symbols_path.read_text(encoding="utf-8"))
+            for sym in symbols:
+                name = sym.get("name", "")
+                kind = sym.get("kind", "")
+                file_ = sym.get("file", "")
+                sig = sym.get("signature") or ""
+                line = f"[Symbol: {name}] kind={kind} file={file_}"
+                if sig:
+                    line += f" signature={sig}"
+                symbol_lines.append(line)
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    # ── 4. Assemble context within token budget ───────────────────────
+    system_prompt = _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+
+    context_parts: list[str] = ["# Knowledge Context\n"]
+
+    for page in page_texts:
+        if sum(len(p) for p in context_parts) + len(page) > _CONTEXT_CHAR_BUDGET:
+            context_parts.append("\n*[Additional wiki pages omitted — token budget reached]*\n")
+            break
+        context_parts.append(page)
+
+    if symbol_lines:
+        sym_section = "\n## Symbol Index\n\n" + "\n".join(symbol_lines)
+        remaining = _CONTEXT_CHAR_BUDGET - sum(len(p) for p in context_parts)
+        if remaining > 500:
+            if len(sym_section) > remaining:
+                sym_section = sym_section[:remaining] + "\n*[Symbol index truncated]*"
+            context_parts.append(sym_section)
+
+    context = "\n\n".join(context_parts)
+    full_system = f"{system_prompt}\n\n{context}"
+
+    # ── 5. Stream from the LLM ────────────────────────────────────────
+    client = LLMClient(llm_config)
+    return client.stream(question, system=full_system)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from typing import Iterator
 
 import litellm
 
@@ -40,3 +41,31 @@ class LLMClient:
 
         response = litellm.completion(**kwargs)
         return response.choices[0].message.content or ""
+
+    def stream(self, prompt: str, *, system: str = "") -> Iterator[str]:
+        """Stream response tokens as an iterator of text chunks.
+
+        Yields each chunk's delta text as it arrives from the LLM.
+        Raises ``litellm.exceptions.APIError`` on upstream errors.
+        """
+        messages: list[dict[str, str]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        kwargs: dict = {
+            "model": self._model,
+            "messages": messages,
+            "temperature": self._temperature,
+            "stream": True,
+        }
+        if self._api_key:
+            kwargs["api_key"] = self._api_key
+        if self._base_url:
+            kwargs["base_url"] = self._base_url
+
+        response = litellm.completion(**kwargs)
+        for chunk in response:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                yield delta
