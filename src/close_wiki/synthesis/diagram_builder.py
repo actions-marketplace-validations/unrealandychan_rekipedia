@@ -7,47 +7,95 @@ import re
 class DiagramBuilder:
     """Generate Mermaid diagrams from relationship rows."""
 
-    def build(self, relationships: list) -> dict[str, tuple[str, str]]:
+    def build(self, relationships: list, entry_points: list[str] | None = None) -> dict[str, tuple[str, str]]:
         """Return {name: (diagram_type, mermaid_content)}."""
         results: dict[str, tuple[str, str]] = {}
-
         if not relationships:
             return results
-
-        # Normalise rows (could be dicts or sqlite3.Row)
         rows = [_to_dict(r) for r in relationships]
-
-        results["module-graph"] = ("flowchart", _build_module_graph(rows))
+        results["module-graph"] = ("flowchart", _build_module_graph(rows, entry_points=entry_points))
         results["class-hierarchy"] = ("classDiagram", _build_class_hierarchy(rows))
-
         return results
 
 
 # ── diagram builders ─────────────────────────────────────────────────
 
-def _build_module_graph(rows: list[dict]) -> str:
-    """flowchart TD showing import relationships between files."""
-    edges: set[tuple[str, str]] = set()
+def _build_module_graph(rows: list[dict], entry_points: list[str] | None = None) -> str:
+    """flowchart LR showing module relationships with labelled edges and entry point highlights."""
+    entry_set = set(entry_points or [])
+
+    # Collect all edges by type
+    import_edges: list[tuple[str, str]] = []
+    call_edges: list[tuple[str, str]] = []
+    inherit_edges: list[tuple[str, str]] = []
+
+    seen_nodes: set[str] = set()
 
     for r in rows:
         frm = r.get("from_") or r.get("from") or ""
         to = r.get("to") or ""
         kind = r.get("kind") or ""
+        if not frm or not to:
+            continue
+        # Only internal relationships (skip external packages)
+        if kind == "import" and ("/" in to or "." in to or to.startswith("close_wiki")):
+            import_edges.append((frm, to))
+            seen_nodes.add(frm)
+            seen_nodes.add(to)
+        elif kind == "call":
+            call_edges.append((frm, to))
+            seen_nodes.add(frm)
+            seen_nodes.add(to)
+        elif kind == "inherits":
+            inherit_edges.append((frm, to))
+            seen_nodes.add(frm)
+            seen_nodes.add(to)
 
-        if kind == "import" and frm and to:
-            # Only internal files (no external packages)
-            if "/" in to or to.startswith("."):
-                edges.add((_sanitise(frm), _sanitise(to)))
+    if not seen_nodes:
+        return "flowchart LR\n  A[No internal relationships detected]"
 
-    if not edges:
-        return "flowchart TD\n  A[No internal imports detected]"
+    # Build id -> display label mapping
+    def node_id(name: str) -> str:
+        return re.sub(r"[^A-Za-z0-9_]", "_", name)
 
-    # Limit to 30 most important edges
-    edge_list = list(edges)[:30]
+    def node_label(name: str) -> str:
+        # Use last path component or class name as display label
+        label = name.split("/")[-1].split(".")[0]
+        return label or name
 
-    lines = ["flowchart TD"]
-    for frm, to in edge_list:
-        lines.append(f"  {frm} --> {to}")
+    lines = ["flowchart LR"]
+
+    # Define nodes with display labels
+    defined: set[str] = set()
+    for name in sorted(seen_nodes):
+        nid = node_id(name)
+        if nid not in defined:
+            label = node_label(name)
+            lines.append(f'  {nid}["{label}"]')
+            defined.add(nid)
+
+    lines.append("")
+
+    # Import edges (limit 25)
+    for frm, to in import_edges[:25]:
+        lines.append(f"  {node_id(frm)} -->|imports| {node_id(to)}")
+
+    # Call edges (limit 15)
+    for frm, to in call_edges[:15]:
+        lines.append(f"  {node_id(frm)} -.->|calls| {node_id(to)}")
+
+    # Inheritance edges (limit 10)
+    for child, parent in inherit_edges[:10]:
+        lines.append(f"  {node_id(parent)} <|-- {node_id(child)} : inherits")
+
+    lines.append("")
+
+    # Style entry points in gold
+    for ep in (entry_points or []):
+        nid = node_id(ep)
+        if nid in defined:
+            lines.append(f"  style {nid} fill:#f4a700,stroke:#c47d00,color:#000")
+
     return "\n".join(lines)
 
 

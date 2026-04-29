@@ -40,15 +40,17 @@ A 3–5 sentence summary of the end-to-end flow, referencing real symbols.""",
 
     "architecture": """Write a deep architectural overview. Include:
 ## System Architecture
-A Mermaid `flowchart TD` diagram showing all major components and how they connect. Use actual module names.
+If a pre-built module graph is provided in the analysis data under `pre_built_module_graph`, embed it EXACTLY as-is in a mermaid code block — do NOT modify it. Otherwise generate your own `flowchart TD` diagram.
 ## Component Breakdown
-For each major component: what it does, its responsibilities, and which files implement it.
+For each major component: what it does, its responsibilities, and which files implement it. For every component, cite the file using inline source links e.g. [`ComponentClass`](path/to/file.py#L1).
+## Entry Points
+List all entry points from `entry_points` data. For each one: what triggers it, what it does, and inline source link.
 ## Data Flow
-Step-by-step description of how data moves through the system, from input to output. Use a Mermaid sequence or flowchart diagram.
+Step-by-step description of how data moves through the system. Use a Mermaid sequence or flowchart diagram.
 ## Key Design Decisions
-Notable patterns used (e.g. plugin architecture, event-driven, pipeline, sandbox isolation). Reference actual code evidence.
-## Dependency Graph
-Mermaid diagram showing inter-module dependencies based on the relationships data.""",
+Notable patterns used (e.g. plugin architecture, event-driven, pipeline, sandbox isolation). Reference actual code evidence with source citations.
+## Inter-Module Dependencies
+If a pre-built dependency graph is provided in `pre_built_dependency_graph`, embed it. Otherwise describe the major import relationships.""",
 
     "core-modules": """Document every significant module/package. For each one:
 ### Module Name (`path/to/module`)
@@ -225,10 +227,21 @@ class PageBuilder:
 # ── helpers ──────────────────────────────────────────────────────────
 
 def _build_payload(combined: AnalysisResult) -> dict:
+    # Build a compact symbol index: name -> {file, line_start, line_end, kind}
+    symbol_index = {
+        s.name: {
+            "file": s.file,
+            "line_start": s.line_start,
+            "line_end": s.line_end,
+            "kind": s.kind,
+        }
+        for s in combined.symbols[:600]
+    }
     return {
         "files_seen": combined.files_seen[:500],
         "entry_points": combined.entry_points,
         "symbols": [s.model_dump() for s in combined.symbols[:600]],
+        "symbol_index": symbol_index,
         "relationships": [r.model_dump(by_alias=True) for r in combined.relationships[:600]],
         "build_commands": combined.build_commands,
         "test_commands": combined.test_commands,

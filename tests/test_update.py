@@ -59,7 +59,7 @@ def test_update_no_prior_scan_falls_back_to_full(mock_llm, tmp_path):
     # Should produce the same output as a full scan
     wiki_dir = output_dir / "wiki"
     assert wiki_dir.exists()
-    assert len(list(wiki_dir.glob("*.md"))) == 5
+    assert len(list(wiki_dir.glob("*.md"))) == 9
 
 
 def test_update_no_changes_exits_early(mock_llm, tmp_path):
@@ -142,4 +142,4 @@ def test_update_wiki_pages_refreshed_after_change(mock_llm, tmp_path):
 
     wiki_dir = output_dir / "wiki"
     pages = list(wiki_dir.glob("*.md"))
-    assert len(pages) == 5
+    assert len(pages) == 9

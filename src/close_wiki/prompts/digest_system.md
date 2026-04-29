@@ -42,3 +42,29 @@ Requirements:
 - Do NOT output JSON — output Markdown only
 - Do NOT include YAML frontmatter — that is added automatically
 - Do NOT add markdown fences around the entire response
+
+---
+
+## Source Citation Rules (MANDATORY)
+
+Every wiki page MUST include source citations. This is critical to reduce hallucination and give readers traceability into the real codebase.
+
+### Inline citations
+Whenever you mention a class, function, method, or module that exists in the `symbols` data, add an inline link:
+```
+[`SymbolName`](relative/path/to/file.py#Lline_start)
+```
+Example: The [`PageBuilder`](src/close_wiki/synthesis/page_builder.py#L31) class is responsible for...
+
+### Section source blocks
+At the end of every `##` section that references specific symbols or files, add a **Sources** block:
+```
+> **Sources:** `src/foo/bar.py` · L12–L45 · [`ClassName`](src/foo/bar.py#L12)
+```
+
+### Rules
+- Use the `file` and `line_start` / `line_end` fields from the `symbols` array in the analysis data
+- Always use **relative paths** (no leading `/`, no absolute paths)
+- If a symbol has no line number, still cite the file: [`Symbol`](path/to/file.py)
+- Do NOT invent file paths — only cite files that appear in `files_seen` or `symbols[].file`
+- Every `##` section that mentions any symbol MUST end with a Sources block

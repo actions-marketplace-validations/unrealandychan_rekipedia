@@ -85,21 +85,34 @@ def run_digest(
             store.upsert_symbols(run_id, symbols_dicts)
             store.upsert_relationships(run_id, rels_dicts)
 
-        # ── 4. Synthesise wiki pages ─────────────────────────────────
-        _log("Synthesising wiki pages…")
-        from close_wiki.synthesis.page_builder import PageBuilder  # noqa: PLC0415
+        # ── 4. Build diagrams first (used by architecture page) ─────────
+        _log("Building diagrams…")
         from close_wiki.synthesis.diagram_builder import DiagramBuilder  # noqa: PLC0415
 
         all_symbols_raw = store.get_all_symbols(run_id)
-        print(f"Total symbols: {len(all_symbols_raw)}")
         all_rels_raw = store.get_all_relationships(run_id)
 
         combined = _combine_results(merged_results)
-        builder = PageBuilder(llm_config)
-        pages = builder.build(combined)
-
         diagram_builder = DiagramBuilder()
-        diagrams = diagram_builder.build(all_rels_raw)
+        diagrams = diagram_builder.build(all_rels_raw, entry_points=combined.entry_points)
+
+        # Inject pre-built diagrams into combined so PageBuilder can embed them
+        combined.evidence["pre_built_module_graph"] = diagrams.get("module-graph", (None, ""))[1]
+        combined.evidence["pre_built_dependency_graph"] = diagrams.get("class-hierarchy", (None, ""))[1]
+
+        # ── 5. Synthesise wiki pages ─────────────────────────────────────
+        _log("Synthesising wiki pages…")
+        from close_wiki.synthesis.page_builder import PageBuilder  # noqa: PLC0415
+
+        print(f"Total symbols: {len(all_symbols_raw)}")
+
+        combined_for_build = _combine_results(merged_results)
+        # Re-attach pre-built diagrams to combined_for_build
+        combined_for_build.evidence["pre_built_module_graph"] = combined.evidence["pre_built_module_graph"]
+        combined_for_build.evidence["pre_built_dependency_graph"] = combined.evidence["pre_built_dependency_graph"]
+
+        builder = PageBuilder(llm_config)
+        pages = builder.build(combined_for_build)
 
         for slug, (title, content) in pages.items():
             store.upsert_page(run_id, slug, title, content)

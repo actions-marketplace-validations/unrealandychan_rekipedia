@@ -50,7 +50,7 @@ def test_scan_mini_py_repo(mock_llm, tmp_path):
     wiki_dir = output_dir / "wiki"
     assert wiki_dir.exists()
     pages = list(wiki_dir.glob("*.md"))
-    assert len(pages) == 5
+    assert len(pages) == 9
 
     # Manifest created
     manifest = output_dir / "exports" / "manifest.json"
@@ -59,7 +59,7 @@ def test_scan_mini_py_repo(mock_llm, tmp_path):
     import json
     data = json.loads(manifest.read_text())
     assert data["file_count"] > 0
-    assert len(data["pages"]) == 5
+    assert len(data["pages"]) == 9
 
 
 def test_scan_creates_diagrams(mock_llm, tmp_path):
