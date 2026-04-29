@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="prose">
+  <h1>close-wiki</h1>
+  <p>Your AI tech lead — always available, always up to date.</p>
+  {% if first_slug %}
+  <p style="margin-top:1.5rem">
+    <a href="/wiki/{{ first_slug }}">→ Open wiki</a>
+    &nbsp;&nbsp;
+    <a href="/ask">→ Ask a question</a>
+  </p>
+  {% else %}
+  <p style="color:var(--muted);margin-top:1rem">No wiki pages found. Run <code>close-wiki scan .</code> first.</p>
+  {% endif %}
+</div>
+{% endblock %}

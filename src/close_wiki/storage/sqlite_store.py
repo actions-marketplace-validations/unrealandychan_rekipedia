@@ -451,6 +451,30 @@ class SqliteStore:
         return len(to_copy)
 
 
+    # ── Q&A history ───────────────────────────────────────────────────
+
+    def save_qa(self, repo_path: str, question: str, answer: str, model: str = "") -> int:
+        """Persist a Q&A pair. Returns the new row id."""
+        cur = self._c.execute(
+            "INSERT INTO qa_history (repo_path, question, answer, model) VALUES (?, ?, ?, ?)",
+            (repo_path, question, answer, model),
+        )
+        self._c.commit()
+        return cur.lastrowid
+
+    def get_qa_history(self, repo_path: str, limit: int = 50) -> list[dict]:
+        """Return recent Q&A pairs for a repo, newest first."""
+        rows = self._c.execute(
+            "SELECT id, question, answer, model, created_at FROM qa_history "
+            "WHERE repo_path = ? ORDER BY id DESC LIMIT ?",
+            (repo_path, limit),
+        ).fetchall()
+        return [
+            {"id": r[0], "question": r[1], "answer": r[2], "model": r[3], "created_at": r[4]}
+            for r in rows
+        ]
+
+
 # ── helpers ──────────────────────────────────────────────────────────
 
 def _now() -> str:
