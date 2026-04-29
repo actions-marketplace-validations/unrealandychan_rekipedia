@@ -1,5 +1,70 @@
 # Release Notes
 
+## v0.5.0 — Deep Wiki, Interactive Ask & Developer Experience
+
+### What's new
+
+**v0.5.0** is a major quality-of-life release covering four areas: richer wiki generation, a streaming interactive CLI, a local web UI, and developer tooling.
+
+#### 9-page DeepWiki-style generation
+- Wiki expanded from **5 fixed pages → 9 deep pages**: `index`, `architecture`, `core-modules`, `algorithms`, `cli-and-api`, `installation-and-setup`, `configuration`, `testing`, `ecosystem-and-integrations`
+- Each page has a detailed per-page prompt specifying required sections, Mermaid diagrams, tables, and code examples (800–1200 words target)
+- System prompt upgraded: LLM now outputs **rich Markdown** (not JSON), with mandatory `## Section` / `### Subsection` headings
+
+#### Source citations (anti-hallucination)
+- Every wiki page now includes **inline source links**: [`ClassName`](path/to/file.py#L12)
+- Every `##` section ends with a `> **Sources:** ...` block citing real file paths and line numbers
+- `symbol_index` (name → `{file, line_start, line_end, kind}`) is injected into the LLM payload for accurate lookups
+
+#### Rich architecture diagram
+- `DiagramBuilder` now generates `flowchart LR` with **labelled edges** (`-->|imports|`, `-.->|calls|`, `<|-- : inherits`)
+- **Entry points highlighted in gold** (`fill:#f4a700`)
+- Pre-built diagram is injected into the architecture page — LLM embeds it verbatim (no hallucinated graphs)
+
+#### Interactive ask REPL with streaming
+- `close-wiki ask` now starts an **interactive session** — ask unlimited questions until Ctrl+C
+- Answers **stream token-by-token** to the terminal in real time
+- **Rich spinner** (`⠋ Thinking…`) while waiting for the first token
+- Single-shot backward-compat mode via `close-wiki ask -q "question"`
+
+#### Web UI (`close-wiki serve`)
+- New `close-wiki serve` command — starts a **FastAPI + Jinja2 local server** (default: `http://127.0.0.1:7070`)
+- Dark-themed wiki browser: navigate all generated pages, view diagrams
+- **Grounded Q&A in the browser**: ask questions, get answers from the same `run_ask` pipeline
+- **Q&A history** stored in SQLite (`qa_history` table) and browsable in the UI
+- Options: `--host`, `--port`, `--no-browser`, `--wiki-dir`
+
+#### tqdm progress bars
+- `close-wiki scan` now shows **two real-time progress bars**:
+  - `🔍 Extracting shards: 2/5 [00:04<00:08, id=src/cli]`
+  - `📝 Generating wiki pages: 4/9 [01:23<01:45, page=algorithms]`
+- ETA visible for the longest step (wiki generation)
+
+#### `--verbose` debug mode
+- `close-wiki scan . --verbose` enables:
+  - Full `litellm._turn_on_debug()` — HTTP requests, model responses
+  - `httpx` debug logs
+  - Per-step symbol/relationship counts
+  - Rich traceback with local variables on error
+- Normal mode shows `Tip: run with --verbose for full debug output` on error
+
+#### `make release-all`
+- New Makefile target: `make release-all PYPI_TOKEN=xxx NPM_TOKEN=xxx [VERSION=x.y.z]`
+- 5-step pipeline: version bump → build → git tag + push → PyPI → npm
+
+#### Bug fix: Docker sandbox argument order
+- Fixed `DockerSandboxRunner` passing `python3 /app/analyze_shard.py` as ENTRYPOINT args (causing `Usage:` error on exit 1). Now correctly passes only the two file-path arguments.
+
+### Tests
+- 69/70 passing (1 pre-existing `sqlite_utils` import failure, unrelated to close-wiki deps)
+- Updated hardcoded `== 5` page count assertions → `== 9`
+
+### Upgrade notes
+- Run `uv tool uninstall close-wiki && uv tool install git+https://github.com/unrealandychan/close-wiki` to get the M1-compatible arm64 binary
+- No DB migration needed
+
+---
+
 ## v0.4.0 — Phase 4: Grounded Q&A
 
 ### What's new

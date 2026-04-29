@@ -43,7 +43,8 @@ npm install -g close-wiki
 | `close-wiki init [REPO]` | Scaffold `.close-wiki/` with `config.yml` and update `.gitignore` |
 | `close-wiki scan [REPO]` | Full analysis — extracts symbols, synthesises wiki pages, exports JSON |
 | `close-wiki update [REPO]` | Incremental refresh — re-extracts only changed files, keeps the rest |
-| `close-wiki ask QUESTION` | Grounded Q&A: answers drawn exclusively from the wiki + symbol index |
+| `close-wiki ask [QUESTION]` | Interactive Q&A REPL — streaming answers, Ctrl+C to quit |
+| `close-wiki serve [REPO]` | Start a local web UI to browse wiki pages and ask questions |
 
 ---
 
@@ -100,8 +101,12 @@ export CLOSE_WIKI_BASE_URL=https://my-proxy/v1
 │   ├── index.md
 │   ├── architecture.md
 │   ├── core-modules.md
-│   ├── build-and-deploy.md
-│   └── testing-strategy.md
+│   ├── algorithms.md
+│   ├── cli-and-api.md
+│   ├── installation-and-setup.md
+│   ├── configuration.md
+│   ├── testing.md
+│   └── ecosystem-and-integrations.md
 ├── diagrams/               # Mermaid diagram files
 │   ├── module-graph.md
 │   └── class-hierarchy.md
@@ -122,6 +127,9 @@ close-wiki scan . --no-docker
 
 # Write output to a custom directory
 close-wiki scan . --output-dir /tmp/wiki-output
+
+# Enable debug logging (litellm, HTTP, full tracebacks)
+close-wiki scan . --verbose
 ```
 
 ### Incremental update
@@ -138,14 +146,30 @@ If no previous scan is found, `update` automatically falls back to a full scan.
 ### Ask the wiki
 
 ```bash
-close-wiki ask "How does the auth flow work?"
-close-wiki ask "What are the entry points?" --model gpt-5.5
-close-wiki ask "How do I run the tests?" --repo ./my-project
+# Start interactive Q&A session (streams answers, Ctrl+C to quit)
+close-wiki ask
+close-wiki ask --repo ./my-project
+close-wiki ask --model gpt-4o
+
+# Single-shot mode (backward compat)
+close-wiki ask -q "How does the auth flow work?"
 ```
 
-Answers are grounded **entirely** in your wiki pages and symbol index — the LLM cannot hallucinate details that aren't in the scanned knowledge store.
+Answers are grounded **entirely** in your wiki pages and symbol index — the LLM cannot hallucinate details that aren't in the scanned knowledge store. Answers are streamed token-by-token with a spinner while waiting.
 
 Not happy with a generated page? See **[docs/customizing.md](docs/customizing.md)** — you can pin pages, override prompts, change the writing style, or add your own pages that scans will never touch.
+
+### Serve the wiki
+
+```bash
+close-wiki serve .                     # opens browser at http://127.0.0.1:7070
+close-wiki serve . --port 8080         # custom port
+close-wiki serve . --no-browser        # don't auto-open browser
+```
+
+- Browse generated wiki pages in a dark-themed web UI
+- Ask questions with the same grounded Q&A (answers streamed via the web)
+- Q&A history stored in SQLite
 
 ---
 
@@ -175,7 +199,12 @@ make build
 ### Release
 
 ```bash
-PYPI_TOKEN=pypi-... NPM_TOKEN=npm_... make release
+PYPI_TOKEN=*** NPM_TOKEN=*** make release
+
+# Full release: build + tag + push + PyPI + npm
+make release-all PYPI_TOKEN=*** NPM_TOKEN=***
+# With version bump
+make release-all PYPI_TOKEN=*** NPM_TOKEN=*** VERSION=0.5.0
 ```
 
 ---
