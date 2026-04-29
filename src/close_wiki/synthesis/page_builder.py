@@ -10,21 +10,156 @@ from close_wiki.models.contracts import AnalysisResult, LLMConfig
 
 _SYSTEM_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "digest_system.md"
 
-# The 5 canonical pages every project wiki should have
+# The 9 canonical pages every project wiki should have
 CANONICAL_PAGES = [
     "index",
     "architecture",
     "core-modules",
-    "build-and-deploy",
-    "testing-strategy",
+    "algorithms",
+    "cli-and-api",
+    "installation-and-setup",
+    "configuration",
+    "testing",
+    "ecosystem-and-integrations",
 ]
 
 _PAGE_FOCUS: dict[str, str] = {
-    "index": "Give a high-level overview of the whole project: what it does, who it's for, and the main entry points.",
-    "architecture": "Describe the overall architecture: major components, how they interact, data flow, and key design decisions.",
-    "core-modules": "Focus on the most important modules/packages: what each does, its public API, and key classes/functions.",
-    "build-and-deploy": "Explain how to build, run, and deploy the project. Include all commands discovered in config files.",
-    "testing-strategy": "Describe how the project is tested: frameworks used, test locations, how to run tests, coverage approach.",
+    "index": """Write a comprehensive project overview page. Include:
+## What is this project?
+Explain the purpose, goals, and the problem it solves. Reference actual entry points and top-level modules.
+## Who is it for?
+Target audience and use cases.
+## Key Features
+Bullet list of the most important capabilities, grounded in the symbols and files found.
+## Quick Start
+The fastest way to get the project running — use build_commands and entry_points.
+## Project Structure
+A Mermaid diagram showing the top-level directory/module layout.
+## How it Works (High Level)
+A 3–5 sentence summary of the end-to-end flow, referencing real symbols.""",
+
+    "architecture": """Write a deep architectural overview. Include:
+## System Architecture
+A Mermaid `flowchart TD` diagram showing all major components and how they connect. Use actual module names.
+## Component Breakdown
+For each major component: what it does, its responsibilities, and which files implement it.
+## Data Flow
+Step-by-step description of how data moves through the system, from input to output. Use a Mermaid sequence or flowchart diagram.
+## Key Design Decisions
+Notable patterns used (e.g. plugin architecture, event-driven, pipeline, sandbox isolation). Reference actual code evidence.
+## Dependency Graph
+Mermaid diagram showing inter-module dependencies based on the relationships data.""",
+
+    "core-modules": """Document every significant module/package. For each one:
+### Module Name (`path/to/module`)
+- **Purpose**: what this module does
+- **Public API**: list key exported classes and functions with their signatures
+- **Key Classes**: brief description of each class, its constructor, and main methods
+- **Key Functions**: signature + one-line description
+- **Interactions**: which other modules it imports from / is imported by
+Include a Mermaid `classDiagram` showing class hierarchies if applicable.""",
+
+    "algorithms": """Document the core algorithms and data processing logic. Include:
+## Overview
+What computational problems does this project solve?
+## Algorithm Descriptions
+For each significant algorithm or processing pipeline found in the symbols:
+### Algorithm / Pipeline Name
+- **Input**: what data it receives
+- **Steps**: numbered list of processing steps
+- **Output**: what it produces
+- **Complexity**: time/space if discernible from the code
+- **Code Reference**: file and function name
+## Data Structures
+Key data structures (classes, types, schemas) used internally — use a table or class diagram.
+## Processing Pipeline
+Mermaid flowchart of the main processing pipeline end-to-end.""",
+
+    "cli-and-api": """Document all CLI commands and programmatic APIs. Include:
+## CLI Reference
+For each CLI command/subcommand found:
+### `command-name`
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+List all flags and arguments. Show a usage example.
+## Programmatic API
+For each public class/function intended for external use:
+### `ClassName` / `function_name`
+- Signature
+- Parameters table
+- Return value
+- Example usage (code block)
+## Integration Examples
+Show how to use the CLI and API together in a realistic workflow.""",
+
+    "installation-and-setup": """Write a complete installation and setup guide. Include:
+## Requirements
+System requirements, language versions, dependencies.
+## Installation Methods
+### From Source
+Step-by-step using build_commands found in the analysis.
+### Via Package Manager
+If pyproject.toml / package.json found, show pip/uv/npm install commands.
+### Docker
+If Dockerfile found, show docker build and run commands.
+## First Run
+Walk through running the project for the first time.
+## Environment Variables
+Any configuration via env vars found in the evidence/config files.
+## Troubleshooting
+Common setup issues and how to resolve them.""",
+
+    "configuration": """Document all configuration options. Include:
+## Configuration Files
+List every config file found (YAML, TOML, JSON, .env) with its purpose.
+## Configuration Reference
+For each config file, a full table:
+| Key | Type | Default | Required | Description |
+|-----|------|---------|----------|-------------|
+## Configuration Examples
+Show a minimal config and a full-featured config as code blocks.
+## Runtime Configuration
+Any CLI flags or env vars that override file-based config.
+## Validation
+Describe how config is validated (Pydantic models, schema, etc.).""",
+
+    "testing": """Document the testing strategy and how to run tests. Include:
+## Testing Philosophy
+What is tested, what the coverage goals are, and the testing approach.
+## Test Structure
+Directory layout of tests. Which directories/files contain which kinds of tests.
+## Running Tests
+Use test_commands from analysis data. Show:
+```bash
+# unit tests
+# integration tests
+# with coverage
+```
+## Test Categories
+### Unit Tests
+What units are tested, key fixtures/mocks.
+### Integration Tests
+What integrations are exercised.
+## Writing New Tests
+Conventions to follow, where to put new tests, how to run a single test.
+## CI/CD
+If CI config found in evidence, describe the pipeline.""",
+
+    "ecosystem-and-integrations": """Document external integrations, plugins, and the broader ecosystem. Include:
+## External Dependencies
+Table of all significant third-party libraries: name, version, purpose.
+## Integrations
+For each external system or service the project integrates with:
+### Integration Name
+- What it does
+- How it's configured
+- Code reference (file/class)
+## Extension Points
+Plugin interfaces, hooks, or extension mechanisms found in the codebase.
+## Related Projects
+Similar tools or projects in the same space (based on evidence in README/docs if found).
+## Roadmap / Known Limitations
+Any TODOs, FIXMEs, or risk items found in the analysis.""",
 }
 
 
@@ -91,10 +226,10 @@ class PageBuilder:
 
 def _build_payload(combined: AnalysisResult) -> dict:
     return {
-        "files_seen": combined.files_seen[:200],
+        "files_seen": combined.files_seen[:500],
         "entry_points": combined.entry_points,
-        "symbols": [s.model_dump() for s in combined.symbols[:300]],
-        "relationships": [r.model_dump(by_alias=True) for r in combined.relationships[:300]],
+        "symbols": [s.model_dump() for s in combined.symbols[:600]],
+        "relationships": [r.model_dump(by_alias=True) for r in combined.relationships[:600]],
         "build_commands": combined.build_commands,
         "test_commands": combined.test_commands,
         "risks": combined.risks,
@@ -115,45 +250,13 @@ def _extract_title(content: str) -> str | None:
 
 
 def _parse_llm_response(raw: str, slug: str) -> tuple[str, str]:
-    """Try to extract a structured response; fall back to raw markdown."""
+    """LLM now returns plain Markdown. Extract title from first H1."""
     raw = raw.strip()
-    # Strip markdown code fences if present
-    raw = re.sub(r"^```(?:json|markdown)?\s*", "", raw)
-    raw = re.sub(r"\s*```$", "", raw)
-
-    try:
-        data = json.loads(raw)
-        title = data.get("title") or slug.replace("-", " ").title()
-        summary = data.get("summary", "")
-        key_concepts = data.get("key_concepts", [])
-        symbols = data.get("symbols", [])
-        risks = data.get("risks", [])
-        build_commands = data.get("build_commands", [])
-        test_commands = data.get("test_commands", [])
-        mermaid = data.get("mermaid_graph", "")
-
-        lines = [f"# {title}\n", summary, ""]
-        if key_concepts:
-            lines += ["## Key Concepts", ""] + [f"- {c}" for c in key_concepts] + [""]
-        if symbols:
-            lines += ["## Symbols", ""]
-            for s in symbols[:20]:
-                lines.append(f"- **`{s.get('name', '')}`** ({s.get('kind', '')}) — {s.get('description', '')}")
-            lines.append("")
-        if build_commands:
-            lines += ["## Build Commands", "```bash"] + build_commands + ["```", ""]
-        if test_commands:
-            lines += ["## Test Commands", "```bash"] + test_commands + ["```", ""]
-        if risks:
-            lines += ["## Risks / Notes", ""] + [f"- {r}" for r in risks] + [""]
-        if mermaid:
-            lines += ["## Diagram", "```mermaid", mermaid, "```", ""]
-
-        return title, "\n".join(lines)
-    except (json.JSONDecodeError, KeyError):
-        # LLM returned plain markdown — use as-is
-        title = _extract_title(raw) or slug.replace("-", " ").title()
-        return title, raw
+    # Strip accidental outer fences
+    raw = re.sub(r"^```(?:markdown)?\s*\n", "", raw)
+    raw = re.sub(r"\n```\s*$", "", raw)
+    title = _extract_title(raw) or slug.replace("-", " ").title()
+    return title, raw
 
 
 def _ensure_frontmatter(slug: str, title: str, content: str) -> str:
