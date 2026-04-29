@@ -74,6 +74,43 @@ release-npm: ## Publish to npm (requires NPM_TOKEN)
 release: release-pypi release-npm ## Release to both PyPI and npm
 
 # ─────────────────────────────────────────────
+# Full release pipeline
+# ─────────────────────────────────────────────
+# Usage:
+#   make release-all PYPI_TOKEN=pypi-xxx NPM_TOKEN=npm_xxx
+#   make release-all PYPI_TOKEN=pypi-xxx NPM_TOKEN=npm_xxx VERSION=0.2.0
+VERSION ?=
+
+.PHONY: release-all
+release-all: ## Full release: build → git tag → push → PyPI → npm  (needs PYPI_TOKEN, NPM_TOKEN; optional VERSION=x.y.z)
+	@test -n "$(PYPI_TOKEN)" || (echo "❌  PYPI_TOKEN not set. Usage: make release-all PYPI_TOKEN=pypi-xxx NPM_TOKEN=npm_xxx" && exit 1)
+	@test -n "$(NPM_TOKEN)"  || (echo "❌  NPM_TOKEN not set.  Usage: make release-all PYPI_TOKEN=pypi-xxx NPM_TOKEN=npm_xxx" && exit 1)
+	@echo "▶  1/5  version bump"
+	@if [ -n "$(VERSION)" ]; then \
+	  sed -i.bak 's/^version = ".*"/version = "$(VERSION)"/' pyproject.toml && rm -f pyproject.toml.bak; \
+	  node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json'));p.version='$(VERSION)';fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"; \
+	  echo "     bumped to v$(VERSION)"; \
+	else \
+	  echo "     VERSION not set — keeping $$(grep '^version' pyproject.toml | head -1 | sed 's/version = //;s/\"//g')"; \
+	fi
+	@echo "▶  2/5  build"
+	$(UV) build
+	$(NPM) pack
+	@echo "▶  3/5  git commit + tag + push"
+	@RELEASE_VER=$$(grep '^version' pyproject.toml | head -1 | sed 's/version = "//;s/"//'); \
+	git add pyproject.toml package.json uv.lock 2>/dev/null || true; \
+	git diff --cached --quiet || git commit -m "chore: release v$$RELEASE_VER"; \
+	git tag -f "v$$RELEASE_VER"; \
+	git push origin main --tags; \
+	echo "     pushed v$$RELEASE_VER"
+	@echo "▶  4/5  publish to PyPI"
+	UV_PUBLISH_TOKEN=$(PYPI_TOKEN) $(UV) publish
+	@echo "▶  5/5  publish to npm"
+	$(NPM) config set //registry.npmjs.org/:_authToken $(NPM_TOKEN)
+	$(NPM) publish --access public
+	@echo "✅  Done! close-wiki released."
+
+# ─────────────────────────────────────────────
 # Housekeeping
 # ─────────────────────────────────────────────
 .PHONY: clean
