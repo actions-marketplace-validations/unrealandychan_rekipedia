@@ -22,13 +22,15 @@ console = Console()
 
 
 def _print_banner() -> None:
-    """Print the CLOSE-WIKI ASCII art banner."""
+    """Print the CLOSE-WIKI ASCII art banner (two-line ansi_shadow layout)."""
     try:
-        banner_str = pyfiglet.figlet_format("CLOSE-WIKI", font="slant")
+        line1 = pyfiglet.figlet_format("CLOSE", font="ansi_shadow").rstrip("\n")
+        line2 = pyfiglet.figlet_format("WIKI", font="ansi_shadow").rstrip("\n")
     except pyfiglet.FontNotFound:
-        banner_str = pyfiglet.figlet_format("CLOSE-WIKI", font="standard")
-    banner_text = Text(banner_str, style="bold cyan")
-    console.print(banner_text)
+        line1 = pyfiglet.figlet_format("CLOSE", font="standard").rstrip("\n")
+        line2 = pyfiglet.figlet_format("WIKI", font="standard").rstrip("\n")
+    console.print(Text(line1, style="bold cyan"))
+    console.print(Text(line2, style="bold bright_cyan"))
     console.print("  🔍  [bold cyan]Codebase Intelligence[/bold cyan]  ·  [dim]powered by LLM[/dim]\n")
 
 
