@@ -1,5 +1,29 @@
 # Release Notes
 
+## v0.7.3 — is_implementation Heuristic in Planner & Token-Aware File Skip
+
+### What's new
+
+#### `is_implementation` heuristic in planning summary
+- `_build_planning_summary()` now counts `impl_file_count`, `test_file_count`, and `config_file_count` using the same path-based heuristic as the RAG embedder
+- These counts are included in the planner JSON payload sent to the LLM — enables more precise wiki structure decisions:
+  - High `impl_file_count` → more core-component pages
+  - `test_file_count < 3` → skip dedicated testing page
+  - `config_file_count < 2` → skip configuration page
+- The planner system prompt now references these fields in its page-splitting rules
+
+#### Token-aware file skip (env var configurable)
+- `_MAX_CODE_CHARS` and `_MAX_DOC_CHARS` in `embedder.py` are now overridable via env vars:
+  - `CLOSE_WIKI_MAX_CODE_CHARS` (default: 320000 = ~80K tokens)
+  - `CLOSE_WIKI_MAX_DOC_CHARS` (default: 32000 = ~8K tokens)
+- Embedder now explicitly pre-checks file size before chunking and logs skipped files
+- Progress callback reports skipped-too-large count: `"Embedding 42 chunks from 8 files (2 files skipped — too large)…"`
+
+### Tests
+- 108/108 passing ✅
+
+---
+
 ## v0.7.1 — Page Importance, Wiki Export & Embed Provider Selection
 
 ### What's new

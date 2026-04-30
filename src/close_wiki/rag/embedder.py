@@ -41,9 +41,10 @@ _DEFAULT_EMBED_MODEL = os.environ.get(
 _CHUNK_CHARS = 2_000
 # Overlap between adjacent chunks
 _OVERLAP_CHARS = 200
-# Max file size to embed (skip giant files — same heuristic as deepwiki-open)
-_MAX_CODE_CHARS = 320_000   # ~80K tokens
-_MAX_DOC_CHARS  =  32_000   # ~8K tokens
+# Max file size to embed — configurable via env vars (skip giant files to avoid bad chunks)
+# Defaults: ~80K tokens for code, ~8K tokens for docs (same heuristic as deepwiki-open)
+_MAX_CODE_CHARS = int(os.environ.get("CLOSE_WIKI_MAX_CODE_CHARS", "320000"))   # ~80K tokens
+_MAX_DOC_CHARS  = int(os.environ.get("CLOSE_WIKI_MAX_DOC_CHARS",  "32000"))    # ~8K tokens
 
 # Batch size for embedding API calls
 _EMBED_BATCH = 100
@@ -203,12 +204,24 @@ class EmbedPipeline:
 
         self._out.mkdir(parents=True, exist_ok=True)
 
-        # 1. Collect chunks
+        # 1. Collect chunks — track skipped files
         if progress_cb:
             progress_cb("📂 Collecting source files for embedding…")
         all_chunks: list[dict] = []
         files = list(_iter_repo_files(repo_root))
+        skipped_too_large = 0
         for f in files:
+            ext = f.suffix.lower()
+            is_doc = ext in _DOC_EXTS
+            max_chars = _MAX_DOC_CHARS if is_doc else _MAX_CODE_CHARS
+            try:
+                size = f.stat().st_size
+            except OSError:
+                size = 0
+            if size > max_chars:
+                skipped_too_large += 1
+                logger.debug("Skipping %s — too large (%d chars > %d limit)", f, size, max_chars)
+                continue
             all_chunks.extend(_chunk_file(f, repo_root))
 
         n = len(all_chunks)
@@ -217,7 +230,8 @@ class EmbedPipeline:
             return 0
 
         if progress_cb:
-            progress_cb(f"🔢 Embedding {n} chunks from {len(files)} files…")
+            skip_msg = f" ({skipped_too_large} files skipped — too large)" if skipped_too_large else ""
+            progress_cb(f"🔢 Embedding {n} chunks from {len(files) - skipped_too_large} files{skip_msg}…")
 
         # 2. Embed in batches
         all_vecs: list[np.ndarray] = []

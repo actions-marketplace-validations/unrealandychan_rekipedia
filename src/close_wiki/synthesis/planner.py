@@ -74,6 +74,9 @@ Only create sections that have ≥2 pages. If a section would have 1 page, merge
 - If API is large → split `cli-reference` + `python-api` + `rest-api`
 - Each page should be 400–1200 words. Too long = split. Too short = merge.
 - Target: large repos → 10–15 pages; medium → 6–10 pages; small tools → 3–5 pages
+- Use `impl_file_count` to gauge repo complexity: high impl_file_count → more core-component pages
+- Use `test_file_count` to decide whether a dedicated `testing` page is warranted (skip if test_file_count < 3)
+- Use `config_file_count` to decide whether a `configuration` page is needed (skip if config_file_count < 2)
 
 ## Focus instructions (write these carefully — they guide the LLM writing each page):
 For each page, write a detailed `focus` (3–6 sentences) that specifies:
@@ -275,6 +278,22 @@ def _build_planning_summary(combined: AnalysisResult, diagrams: dict | None) -> 
         for f in combined.files_seen
     ) or bool(combined.evidence)
 
+    # Implementation vs test/config file counts (same heuristic as RAG embedder)
+    _DOC_EXTS = {".md", ".txt", ".rst", ".yaml", ".yml", ".toml", ".json"}
+    impl_file_count = 0
+    test_file_count = 0
+    config_file_count = 0
+    for f in combined.files_seen:
+        p = f.lower()
+        parts = Path(p).parts
+        ext = Path(f).suffix.lower()
+        if any(part.startswith("test") or part in ("tests", "spec", "specs", "__tests__") for part in parts):
+            test_file_count += 1
+        elif ext in _DOC_EXTS or any(kw in p for kw in ("config", "conf", "setting", "setup", ".env")):
+            config_file_count += 1
+        else:
+            impl_file_count += 1
+
     # Top-level modules/directories
     top_dirs = sorted({
         Path(f).parts[0] for f in combined.files_seen if "/" in f
@@ -288,6 +307,9 @@ def _build_planning_summary(combined: AnalysisResult, diagrams: dict | None) -> 
 
     return {
         "file_count": len(combined.files_seen),
+        "impl_file_count": impl_file_count,
+        "test_file_count": test_file_count,
+        "config_file_count": config_file_count,
         "file_extensions": ext_counts,
         "top_level_dirs": top_dirs[:20],
         "entry_points": combined.entry_points[:10],
