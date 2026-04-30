@@ -54,7 +54,7 @@ changelog:
 release:
   github:
     owner: unrealandychan
-    name: close-wiki
+    name: close-wiki-releases
   name_template: "{{.ProjectName}} v{{.Version}}"
   draft: false
   prerelease: auto
