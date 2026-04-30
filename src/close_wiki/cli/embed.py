@@ -109,6 +109,8 @@ def embed_cmd(
         console.print(f"  model      : {embed_provider}/{embed_model}")
     else:
         console.print(f"  model      : {embed_model}")
+    console.print(f"  base_url   : {resolved_base_url or '(default: api.openai.com)'}")
+    console.print(f"  api_key    : {'(set)' if resolved_api_key else '(not set)'}")
     console.print()
 
     llm_config = LLMConfig(

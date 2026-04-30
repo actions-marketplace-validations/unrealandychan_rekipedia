@@ -77,6 +77,8 @@ def scan_cmd(
     if llm_config.embed_model:
         _em = f"{llm_config.embed_provider}/{llm_config.embed_model}" if llm_config.embed_provider else llm_config.embed_model
         console.print(f"  embed    : [cyan]{_em}[/cyan]")
+        console.print(f"  embed url: [cyan]{llm_config.embed_base_url or '(default: api.openai.com)'}[/cyan]")
+        console.print(f"  embed key: [cyan]{'(set)' if llm_config.embed_api_key else '(not set)'}[/cyan]")
     if verbose:
         console.print("  mode     : [yellow]verbose (debug logging ON)[/yellow]")
     console.rule()
