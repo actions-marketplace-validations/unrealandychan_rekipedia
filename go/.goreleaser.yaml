@@ -59,9 +59,12 @@ release:
   draft: false
   prerelease: auto
 
-brews:
+homebrew_casks:
   - name: close-wiki
-    url_template: "https://github.com/unrealandychan/close-wiki-releases/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    url:
+      template: "https://github.com/unrealandychan/close-wiki-releases/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    binaries:
+      - close-wiki
     repository:
       owner: unrealandychan
       name: homebrew-tap
@@ -69,13 +72,10 @@ brews:
     commit_author:
       name: HermesBot
       email: bot@close-wiki.dev
+    directory: Casks
     homepage: "https://github.com/unrealandychan/close-wiki"
     description: "Agentic repo-to-wiki — scan any codebase into a structured knowledge base"
-    license: "MIT"
-    install: |
-      bin.install "close-wiki"
-    test: |
-      system "#{bin}/close-wiki", "--version"
+    skip_upload: false
 
 nfpms:
   - id: packages
