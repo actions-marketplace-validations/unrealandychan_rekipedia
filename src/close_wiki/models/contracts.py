@@ -19,6 +19,8 @@ class LLMConfig(BaseModel):
     # If embed_model is empty, EmbedPipeline falls back to CLOSE_WIKI_EMBED_MODEL env var.
     embed_model: str = ""
     embed_provider: str = ""  # e.g. "openai", "ollama", "azure" — used to build litellm model string
+    embed_api_key: str = ""   # separate API key for embed provider (falls back to api_key)
+    embed_base_url: str = ""  # separate base URL for embed provider (falls back to base_url)
 
 
 # ─────────────────────────────────────────────

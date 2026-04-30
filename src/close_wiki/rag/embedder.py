@@ -151,10 +151,13 @@ def _embed_batch(texts: list[str], model: str, llm_config: LLMConfig) -> np.ndar
     import litellm  # noqa: PLC0415
 
     kwargs: dict = {"model": model, "input": texts}
-    if llm_config.api_key:
-        kwargs["api_key"] = llm_config.api_key
-    if llm_config.base_url:
-        kwargs["base_url"] = llm_config.base_url
+    # Use embed-specific key/url if set, otherwise fall back to main LLM config
+    api_key = getattr(llm_config, "embed_api_key", None) or llm_config.api_key
+    base_url = getattr(llm_config, "embed_base_url", None) or llm_config.base_url
+    if api_key:
+        kwargs["api_key"] = api_key
+    if base_url:
+        kwargs["base_url"] = base_url
 
     resp = litellm.embedding(**kwargs)
     vecs = [item["embedding"] for item in resp.data]
