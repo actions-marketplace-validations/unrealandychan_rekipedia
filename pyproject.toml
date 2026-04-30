@@ -65,8 +65,8 @@ Issues = "https://github.com/your-org/close-wiki/issues"
 [tool.hatch.build.targets.wheel]
 packages = ["src/close_wiki"]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "sqlite-utils>=3.38",
