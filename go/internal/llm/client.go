@@ -3,13 +3,12 @@
 package llm
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
+	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -200,11 +199,9 @@ func (c *Client) Embed(ctx context.Context, texts []string) ([][]float32, error)
 	return vectors, nil
 }
 
-// embedViaHTTP calls the embeddings endpoint with a minimal JSON body (no
-// encoding_format or extra fields) — mirrors the Python httpx approach so
-// LiteLLM/custom proxies that reject the OpenAI SDK's additional fields work.
+// embedViaHTTP calls the embeddings endpoint using subprocess curl.
+// WAF does JA3 TLS fingerprint checking — only real curl passes.
 func embedViaHTTP(ctx context.Context, baseURL, apiKey, model string, texts []string) ([][]float32, error) {
-	// Ensure trailing slash stripped, then append /embeddings
 	endpoint := strings.TrimRight(baseURL, "/") + "/embeddings"
 
 	body, err := json.Marshal(map[string]any{
@@ -215,23 +212,25 @@ func embedViaHTTP(ctx context.Context, baseURL, apiKey, model string, texts []st
 		return nil, fmt.Errorf("embed marshal: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	// Write payload to temp file
+	tmp, err := os.CreateTemp("", "close-wiki-embed-*.json")
 	if err != nil {
-		return nil, fmt.Errorf("embed request: %w", err)
+		return nil, fmt.Errorf("embed tempfile: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("User-Agent", "curl/7.88.1")
+	defer os.Remove(tmp.Name())
+	if _, err = tmp.Write(body); err != nil {
+		return nil, fmt.Errorf("embed tempfile write: %w", err)
+	}
+	tmp.Close()
 
-	resp, err := http.DefaultClient.Do(req)
+	cmd := exec.CommandContext(ctx, "curl", "-s", "-X", "POST", endpoint,
+		"-H", "Content-Type: application/json",
+		"-H", "Authorization: Bearer "+apiKey,
+		"--data", "@"+tmp.Name(),
+	)
+	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("embed http: %w", err)
-	}
-	defer resp.Body.Close()
-
-	raw, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("embed http %d: %s", resp.StatusCode, string(raw))
+		return nil, fmt.Errorf("embed curl: %w", err)
 	}
 
 	var result struct {
@@ -239,8 +238,8 @@ func embedViaHTTP(ctx context.Context, baseURL, apiKey, model string, texts []st
 			Embedding []float32 `json:"embedding"`
 		} `json:"data"`
 	}
-	if err := json.Unmarshal(raw, &result); err != nil {
-		return nil, fmt.Errorf("embed decode: %w (body: %s)", err, string(raw))
+	if err := json.Unmarshal(out, &result); err != nil {
+		return nil, fmt.Errorf("embed decode: %w (body: %s)", err, string(out))
 	}
 
 	vectors := make([][]float32, len(result.Data))

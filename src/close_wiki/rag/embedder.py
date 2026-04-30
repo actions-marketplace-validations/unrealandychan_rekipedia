@@ -157,25 +157,33 @@ def _embed_batch(texts: list[str], model: str, llm_config: LLMConfig) -> np.ndar
     base_url = getattr(llm_config, "embed_base_url", None) or llm_config.base_url
 
     if base_url:
-        # Use curl_cffi (libcurl TLS fingerprint) — plain httpx/ssl is blocked
-        # by F5 Volterra WAF via JA3 fingerprinting even with curl User-Agent.
-        from curl_cffi import requests as curl_requests  # noqa: PLC0415
+        # Use subprocess curl — WAF does JA3 TLS fingerprint checking,
+        # only real curl passes. curl is available on macOS/Linux by default.
+        import json as _json, subprocess, tempfile  # noqa: PLC0415
         url = base_url.rstrip("/") + "/embeddings"
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key or 'no-key'}",
-        }
-        payload = {"model": model, "input": texts}
+        payload = _json.dumps({"model": model, "input": texts})
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            f.write(payload)
+            tmp = f.name
         try:
-            r = curl_requests.post(url, json=payload, headers=headers, timeout=60, impersonate="curl")
-            r.raise_for_status()
-            data = r.json()
+            result = subprocess.run(
+                [
+                    "curl", "-s", "-X", "POST", url,
+                    "-H", "Content-Type: application/json",
+                    "-H", f"Authorization: Bearer {api_key or 'no-key'}",
+                    "--data", f"@{tmp}",
+                ],
+                capture_output=True, text=True, timeout=60,
+            )
+            if result.returncode != 0:
+                raise RuntimeError(f"curl error: {result.stderr}")
+            data = _json.loads(result.stdout)
             vecs = [item["embedding"] for item in data["data"]]
         except Exception as exc:
-            raw = getattr(exc, "response", None)
-            if raw is not None:
-                logger.error("Embed proxy raw response: %s", getattr(raw, "text", "")[:500])
+            logger.error("Embed proxy curl response: %s", getattr(exc, "stderr", str(exc))[:500])
             raise
+        finally:
+            import os; os.unlink(tmp)  # noqa: E702
     else:
         import litellm  # noqa: PLC0415
         kwargs: dict = {"model": model, "input": texts}
