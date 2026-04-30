@@ -167,7 +167,7 @@ def _embed_batch(texts: list[str], model: str, llm_config: LLMConfig) -> np.ndar
         try:
             r = httpx.post(url, json=payload, headers=headers, timeout=60,
                            verify=certifi.where())
-            logger.debug("Embed proxy status=%s content-type=%s body_preview=%s",
+            logger.debug("Embed proxy status=%s content-type=%s body_preview=%r",
                          r.status_code,
                          r.headers.get("content-type", ""),
                          r.text[:500])

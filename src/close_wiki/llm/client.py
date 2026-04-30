@@ -6,7 +6,13 @@ import os
 import time
 from typing import Iterator
 
+import certifi
 import litellm
+
+# Force all httpx/ssl calls (litellm + httpx) to use certifi's CA bundle.
+# This prevents SSL verification failures behind corporate proxies / WAFs.
+os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+os.environ.setdefault("REQUESTS_CA_BUNDLE", certifi.where())
 
 from close_wiki.models.contracts import LLMConfig
 
