@@ -61,6 +61,7 @@ release:
 
 brews:
   - name: close-wiki
+    url_template: "https://github.com/unrealandychan/close-wiki-releases/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     repository:
       owner: unrealandychan
       name: homebrew-tap
