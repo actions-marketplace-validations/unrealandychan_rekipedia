@@ -157,18 +157,24 @@ def _embed_batch(texts: list[str], model: str, llm_config: LLMConfig) -> np.ndar
     base_url = getattr(llm_config, "embed_base_url", None) or llm_config.base_url
 
     if base_url:
-        # Use openai client directly so base_url is honoured unconditionally
-        import openai  # noqa: PLC0415
+        # Use httpx directly — OpenAI SDK sends extra fields (encoding_format etc.)
+        # that some proxies reject or return non-JSON for.
         import httpx  # noqa: PLC0415
-        client = openai.OpenAI(api_key=api_key or "no-key", base_url=base_url)
+        url = base_url.rstrip("/") + "/embeddings"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key or 'no-key'}",
+        }
+        payload = {"model": model, "input": texts}
         try:
-            resp = client.embeddings.create(model=model, input=texts)
-            vecs = [d.embedding for d in resp.data]
+            r = httpx.post(url, json=payload, headers=headers, timeout=60)
+            r.raise_for_status()
+            data = r.json()
+            vecs = [item["embedding"] for item in data["data"]]
         except Exception as exc:
-            # Surface raw response body for debugging proxy issues
-            raw = getattr(getattr(exc, "response", None), "text", None)
-            if raw:
-                logger.error("Embed proxy raw response (first 500 chars): %s", raw[:500])
+            raw = getattr(exc, "response", None)
+            if raw is not None:
+                logger.error("Embed proxy raw response: %s", getattr(raw, "text", "")[:500])
             raise
     else:
         import litellm  # noqa: PLC0415
