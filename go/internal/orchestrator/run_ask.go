@@ -12,6 +12,7 @@ import (
 
 	"github.com/unrealandychan/close-wiki/internal/llm"
 	"github.com/unrealandychan/close-wiki/internal/models"
+	"github.com/unrealandychan/close-wiki/internal/rag"
 	"github.com/unrealandychan/close-wiki/internal/storage"
 )
 
@@ -50,8 +51,9 @@ type AskResult struct {
 //  1. Locate latest successful scan run.
 //  2. Load wiki pages from disk.
 //  3. Load symbol index from store.
-//  4. Assemble context within character budget.
-//  5. Call LLM with grounding system prompt.
+//  4. Try RAG: embed question, search vector store, prepend top chunks.
+//  5. Assemble context within character budget.
+//  6. Call LLM with grounding system prompt.
 func RunAsk(ctx context.Context, question, repoRoot, outputDir string, opts AskOptions) (*AskResult, error) {
 	dbPath := filepath.Join(outputDir, "store.db")
 	if _, err := os.Stat(dbPath); err != nil {
@@ -77,13 +79,16 @@ func RunAsk(ctx context.Context, question, repoRoot, outputDir string, opts AskO
 	symbols, _ := store.GetAllSymbols(runID)
 	symLines := symbolLines(symbols)
 
-	// ── 4. Assemble context within budget ────────────────────────────────
-	contextParts := buildContext(wikiPages, symLines, opts.History, contextCharBudget)
+	// ── 4. RAG: try vector store ─────────────────────────────────────────
+	ragChunks := tryRAGSearch(ctx, question, outputDir, opts.LLMConfig)
+
+	// ── 5. Assemble context within budget ────────────────────────────────
+	contextParts := buildContext(ragChunks, wikiPages, symLines, opts.History, contextCharBudget)
 	contextStr := strings.Join(contextParts, "\n\n---\n\n")
 
 	prompt := fmt.Sprintf("## Context\n\n%s\n\n## Question\n\n%s", contextStr, question)
 
-	// ── 5. Call LLM ──────────────────────────────────────────────────────
+	// ── 6. Call LLM ──────────────────────────────────────────────────────
 	client := llm.New(opts.LLMConfig)
 	answer, err := client.Call(ctx, askSystemPrompt, prompt)
 	if err != nil {
@@ -115,12 +120,31 @@ func StreamAsk(ctx context.Context, question, repoRoot, outputDir string, opts A
 	wikiPages := loadWikiPages(outputDir)
 	symbols, _ := store.GetAllSymbols(runID)
 	symLines := symbolLines(symbols)
-	contextParts := buildContext(wikiPages, symLines, opts.History, contextCharBudget)
+
+	ragChunks := tryRAGSearch(ctx, question, outputDir, opts.LLMConfig)
+
+	contextParts := buildContext(ragChunks, wikiPages, symLines, opts.History, contextCharBudget)
 	contextStr := strings.Join(contextParts, "\n\n---\n\n")
 	prompt := fmt.Sprintf("## Context\n\n%s\n\n## Question\n\n%s", contextStr, question)
 
 	client := llm.New(opts.LLMConfig)
 	return client.StreamCall(ctx, askSystemPrompt, prompt, onChunk)
+}
+
+// tryRAGSearch embeds the question and searches the vector store.
+// Returns a formatted "## Relevant Code Snippets" section, or nil on any failure.
+func tryRAGSearch(ctx context.Context, question, outputDir string, cfg models.LLMConfig) []string {
+	pipeline := rag.NewEmbedPipeline(outputDir, cfg)
+	results, err := pipeline.Search(question, 5)
+	if err != nil || len(results) == 0 {
+		return nil
+	}
+	var sb strings.Builder
+	sb.WriteString("## Relevant Code Snippets\n\n")
+	for _, r := range results {
+		sb.WriteString(fmt.Sprintf("### %s\n\n```\n%s\n```\n\n", r.Chunk.FilePath, r.Chunk.Text))
+	}
+	return []string{sb.String()}
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -176,9 +200,18 @@ func symbolLines(symbols []models.Symbol) []string {
 	return []string{"## Symbol Index\n\n```json\n" + string(b) + "\n```"}
 }
 
-func buildContext(wikiPages, symLines []string, history []models.QAHistory, budget int) []string {
+func buildContext(ragChunks, wikiPages, symLines []string, history []models.QAHistory, budget int) []string {
 	var parts []string
 	used := 0
+
+	// RAG chunks first (highest priority)
+	for _, chunk := range ragChunks {
+		if used+len(chunk) > budget {
+			break
+		}
+		parts = append(parts, chunk)
+		used += len(chunk)
+	}
 
 	// Add previous Q&A history first (most recent last)
 	if len(history) > 0 {

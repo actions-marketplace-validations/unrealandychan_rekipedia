@@ -3,7 +3,9 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/unrealandychan/close-wiki/internal/server"
@@ -26,6 +28,7 @@ var serveCmd = &cobra.Command{
 		if len(args) > 0 {
 			root = args[0]
 		}
+		color.New(color.FgCyan, color.Bold).Fprintf(os.Stderr, "close-wiki serve  ▸  %s\n", root)
 		cfg := loadLLMConfig(serveFlags.model, "", "")
 		host := serveFlags.host
 		if host == "" {

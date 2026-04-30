@@ -4,13 +4,14 @@ package orchestrator
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
-	"time"
 
+	"github.com/fatih/color"
 	"github.com/google/uuid"
+	"github.com/schollz/progressbar/v3"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/unrealandychan/close-wiki/internal/extractor"
@@ -85,6 +86,7 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 	eg, egCtx := errgroup.WithContext(ctx)
 
 	reg := extractor.NewRegistry()
+	bar := newShardBar(len(shards))
 
 	for i, shard := range shards {
 		i, shard := i, shard
@@ -95,13 +97,14 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 			result, err := extractShard(egCtx, repoRoot, shard, reg)
 			resultsMu.Lock()
 			defer resultsMu.Unlock()
+			_ = bar.Add(1)
 			if err != nil {
 				log.logf("  ⚠ shard %s failed: %v", shard.ShardID, err)
 				mergedResults[i] = models.AnalysisResult{
-					ShardID:    shard.ShardID,
-					FilesSeen:  []string{},
+					ShardID:     shard.ShardID,
+					FilesSeen:   []string{},
 					EntryPoints: []string{},
-					Risks:      []string{fmt.Sprintf("extraction failed: %v", err)},
+					Risks:       []string{fmt.Sprintf("extraction failed: %v", err)},
 				}
 				return nil // graceful — don't abort the whole run
 			}
@@ -244,14 +247,26 @@ func combineResults(results []models.AnalysisResult) models.AnalysisResult {
 	return combined
 }
 
-// progressLogger logs to both a callback and slog.
+// progressLogger emits coloured messages to stderr and an optional callback.
 type progressLogger struct {
 	cb      func(string)
 	verbose bool
+
+	cyan    *color.Color
+	green   *color.Color
+	yellow  *color.Color
+	red     *color.Color
 }
 
 func newProgressLogger(cb func(string), verbose bool) *progressLogger {
-	return &progressLogger{cb: cb, verbose: verbose}
+	return &progressLogger{
+		cb:      cb,
+		verbose: verbose,
+		cyan:    color.New(color.FgCyan, color.Bold),
+		green:   color.New(color.FgGreen),
+		yellow:  color.New(color.FgYellow),
+		red:     color.New(color.FgRed),
+	}
 }
 
 func (l *progressLogger) logf(format string, args ...any) {
@@ -259,10 +274,32 @@ func (l *progressLogger) logf(format string, args ...any) {
 	if l.cb != nil {
 		l.cb(msg)
 	}
-	if l.verbose {
-		log.Println(msg)
+	// Colour by content
+	switch {
+	case strings.HasPrefix(msg, "⚠") || strings.HasPrefix(msg, "  ⚠"):
+		l.yellow.Fprintln(os.Stderr, msg)
+	case strings.HasPrefix(msg, "  ✓") || strings.HasPrefix(msg, "✅"):
+		l.green.Fprintln(os.Stderr, msg)
+	case strings.HasPrefix(msg, "Error") || strings.HasPrefix(msg, "error"):
+		l.red.Fprintln(os.Stderr, msg)
+	default:
+		l.cyan.Fprintln(os.Stderr, msg)
 	}
 }
 
-// ensure time import is used (timestamp in future log format)
-var _ = time.Now
+// newShardBar creates a progressbar for shard processing.
+func newShardBar(total int) *progressbar.ProgressBar {
+	return progressbar.NewOptions(total,
+		progressbar.OptionSetDescription("  extracting shards"),
+		progressbar.OptionSetWriter(os.Stderr),
+		progressbar.OptionShowCount(),
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "=",
+			SaucerHead:    ">",
+			SaucerPadding: " ",
+			BarStart:      "[",
+			BarEnd:        "]",
+		}),
+		progressbar.OptionClearOnFinish(),
+	)
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/unrealandychan/close-wiki/internal/orchestrator"
@@ -32,6 +33,8 @@ Use -q for single-shot (non-interactive) mode.`,
 				return fmt.Errorf("provide a question via -q or as an argument")
 			}
 		}
+
+		color.New(color.FgCyan, color.Bold).Fprintf(os.Stderr, "close-wiki ask  ▸  %s\n", askFlags.repo)
 
 		cfg := loadLLMConfig(askFlags.model, "", "")
 		opts := orchestrator.AskOptions{LLMConfig: cfg}

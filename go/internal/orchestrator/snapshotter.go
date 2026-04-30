@@ -49,6 +49,7 @@ var languageMap = map[string]string{
 var defaultIgnore = []string{
 	".git", ".close-wiki", "__pycache__", "node_modules",
 	"dist", "build", ".venv", "venv", ".env",
+	".mypy_cache", ".pytest_cache", ".tox", "htmlcov",
 	"*.pyc", "*.egg-info", ".DS_Store",
 }
 
@@ -97,6 +98,10 @@ func (s *Snapshotter) Snapshot() ([]models.FileManifest, error) {
 		rel = filepath.ToSlash(rel)
 
 		if d.IsDir() {
+			// Never skip the root itself (path == s.root or rel == ".")
+			if path == s.root || rel == "." {
+				return nil
+			}
 			base := d.Name()
 			if s.ignoreDirs[base] || strings.HasPrefix(base, ".") {
 				return filepath.SkipDir

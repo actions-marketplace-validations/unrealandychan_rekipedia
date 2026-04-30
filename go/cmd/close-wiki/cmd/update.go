@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/unrealandychan/close-wiki/internal/orchestrator"
@@ -26,12 +27,17 @@ var updateCmd = &cobra.Command{
 		if len(args) > 0 {
 			root = args[0]
 		}
-		if err := os.MkdirAll(outputDir, 0o755); err != nil {
+		outDir := outputDir
+		if updateFlags.outputDir != "" {
+			outDir = updateFlags.outputDir
+		}
+		if err := os.MkdirAll(outDir, 0o755); err != nil {
 			return err
 		}
+		color.New(color.FgCyan, color.Bold).Fprintf(os.Stderr, "close-wiki update  ▸  %s\n", root)
 		cfg := loadLLMConfig(updateFlags.model, "", "")
 		progress := func(msg string) { fmt.Fprintln(os.Stderr, msg) }
-		return orchestrator.RunUpdate(cmd.Context(), root, outputDir, orchestrator.UpdateOptions{
+		return orchestrator.RunUpdate(cmd.Context(), root, outDir, orchestrator.UpdateOptions{
 			LLMConfig: cfg,
 			Progress:  progress,
 			Languages: splitLanguages(updateFlags.languages),
@@ -46,3 +52,4 @@ func init() {
 	updateCmd.Flags().StringVar(&updateFlags.outputDir, "output-dir", "", "Output directory (default: .close-wiki)")
 	updateCmd.Flags().BoolVar(&updateFlags.noDocker, "no-docker", false, "Skip Docker, run extractors in-process")
 }
+

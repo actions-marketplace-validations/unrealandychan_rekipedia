@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/unrealandychan/close-wiki/internal/config"
@@ -45,6 +46,8 @@ var scanCmd = &cobra.Command{
 		if err := os.MkdirAll(outDir, 0o755); err != nil {
 			return err
 		}
+
+		color.New(color.FgCyan, color.Bold).Fprintf(os.Stderr, "close-wiki scan  ▸  %s\n", root)
 
 		cfg := loadLLMConfig(scanFlags.model, scanFlags.apiKey, scanFlags.baseURL)
 
