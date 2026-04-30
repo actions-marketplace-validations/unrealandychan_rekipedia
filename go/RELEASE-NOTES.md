@@ -1,6 +1,22 @@
 # Release Notes
 
-## v0.9.0
+## v0.9.1
+
+### Bug Fixes
+- **Recursive scanning** — Fixed `close-wiki scan .` reporting 0 files found (root directory was incorrectly skipped)
+- **RAG search in `ask`** — `ask` command now uses vector store for semantic search when available; gracefully falls back to wiki-only if not embedded
+
+### Improvements
+- **Colour output** — All CLI commands now use colour: cyan headers, green success, yellow warnings, red errors
+- **Progress bar** — Live progress bar during shard extraction
+- **Command banners** — All commands show `close-wiki <cmd>  ▸  /path/to/repo` on startup
+
+### Python/Go Parity
+- Snapshotter ignore dirs now match Python (added `.mypy_cache`, `.pytest_cache`, `.tox`, `htmlcov`)
+- `embed` command now supports `--api-key` and `--base-url` flags (matching Python)
+- Context assembly order now matches Python: RAG chunks > wiki pages > symbols > history
+
+
 
 ### New Features
 - **Go AST extractor** — Native Go source code analysis using `go/ast` stdlib (zero external dependencies)

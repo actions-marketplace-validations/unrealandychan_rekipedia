@@ -1,6 +1,6 @@
 {
   "name": "close-wiki",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Agentic repo-to-wiki: scan any repository into a portable SQLite knowledge store with wiki pages, diagrams, and grounded Q&A.",
   "bin": {
     "close-wiki": "./bin/close-wiki.js"
