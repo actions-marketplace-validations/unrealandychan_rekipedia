@@ -69,7 +69,6 @@ def _detect_language(path: Path) -> str | None:
         return "docker"
     return _LANGUAGE_MAP.get(suffix)
 
-
 class Snapshotter:
     """Walk *repo_root* and produce a list of :class:`FileManifest` objects."""
 
@@ -77,10 +76,15 @@ class Snapshotter:
         self,
         repo_root: Path,
         extra_ignore: list[str] | None = None,
+        languages: list[str] | None = None,
     ) -> None:
         self._root = repo_root.resolve()
         patterns = list(_DEFAULT_IGNORE) + (extra_ignore or [])
         self._spec = pathspec.PathSpec.from_lines("gitignore", patterns)
+        # Normalise to lowercase set; None means "all languages"
+        self._languages: set[str] | None = (
+            {lang.lower() for lang in languages} if languages else None
+        )
 
     def snapshot(self) -> list[FileManifest]:
         manifests: list[FileManifest] = []
@@ -90,12 +94,15 @@ class Snapshotter:
             rel = file_path.relative_to(self._root)
             if self._spec.match_file(str(rel)):
                 continue
+            lang = _detect_language(file_path)
+            if self._languages is not None and lang not in self._languages:
+                continue
             manifests.append(
                 FileManifest(
                     path=str(rel),
                     sha256=_sha256(file_path),
                     size_bytes=file_path.stat().st_size,
-                    language=_detect_language(file_path),
+                    language=lang,
                 )
             )
         return sorted(manifests, key=lambda m: m.path)

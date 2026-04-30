@@ -38,6 +38,7 @@ def run_digest(
     force_local: bool = False,
     verbose: bool = False,
     progress: Callable[[str], None] | None = None,
+    languages: list[str] | None = None,
 ) -> None:
     """Full scan pipeline.
 
@@ -84,7 +85,7 @@ def run_digest(
 
         # ── 1. Snapshot ──────────────────────────────────────────────
         _vlog("Snapshotting repository…")
-        snapshotter = Snapshotter(repo_root)
+        snapshotter = Snapshotter(repo_root, languages=languages)
         files = snapshotter.snapshot()
         _vlog(f"  {len(files)} files found")
 

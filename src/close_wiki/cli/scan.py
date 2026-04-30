@@ -32,6 +32,7 @@ def _load_config(repo: Path) -> dict:
 @click.option("--verbose", "-v", is_flag=True, default=False, help="Enable debug logging (litellm, HTTP, full tracebacks).")
 @click.option("--embed-model", default=None, envvar="CLOSE_WIKI_EMBED_MODEL", help="Embedding model for RAG index (e.g. text-embedding-3-small). If set, auto-embeds after scan.")
 @click.option("--embed-provider", default=None, envvar="CLOSE_WIKI_EMBED_PROVIDER", help="Embedding provider prefix (e.g. openai, ollama, azure). Combined with --embed-model as 'provider/model'.")
+@click.option("--languages", "-l", default=None, help="Comma-separated list of languages to include, e.g. python,typescript,go. Default: all.")
 def scan_cmd(
     repo: Path,
     model: str | None,
@@ -40,6 +41,7 @@ def scan_cmd(
     verbose: bool,
     embed_model: str | None,
     embed_provider: str | None,
+    languages: str | None,
 ) -> None:
     """Scan REPO and (re)build the close-wiki knowledge store.
 
@@ -81,6 +83,12 @@ def scan_cmd(
         console.print(f"  embed key: [cyan]{'(set)' if llm_config.embed_api_key else '(not set)'}[/cyan]")
     if verbose:
         console.print("  mode     : [yellow]verbose (debug logging ON)[/yellow]")
+    # Parse languages filter
+    lang_list: list[str] | None = None
+    if languages:
+        lang_list = [l.strip().lower() for l in languages.split(",") if l.strip()]
+        console.print(f"  languages: [cyan]{', '.join(lang_list)}[/cyan]")
+
     console.rule()
 
     from close_wiki.orchestrator.run_digest import run_digest  # noqa: PLC0415
@@ -99,6 +107,7 @@ def scan_cmd(
             force_local=no_docker,
             verbose=verbose,
             progress=_log,
+            languages=lang_list,
         )
     except Exception as exc:
         if verbose:

@@ -18,7 +18,7 @@ func TestSnapshotterBasic(t *testing.T) {
 	must(t, os.MkdirAll(filepath.Join(dir, "src"), 0o755))
 	must(t, os.WriteFile(filepath.Join(dir, "src", "app.go"), []byte("package app"), 0o644))
 
-	snapper := NewSnapshotter(dir, nil)
+	snapper := NewSnapshotter(dir, nil, nil)
 	files, err := snapper.Snapshot()
 	if err != nil {
 		t.Fatalf("Snapshot error: %v", err)
@@ -34,7 +34,7 @@ func TestSnapshotterIgnoresGit(t *testing.T) {
 	must(t, os.WriteFile(filepath.Join(dir, ".git", "HEAD"), []byte("ref: refs/heads/main"), 0o644))
 	must(t, os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main"), 0o644))
 
-	snapper := NewSnapshotter(dir, nil)
+	snapper := NewSnapshotter(dir, nil, nil)
 	files, err := snapper.Snapshot()
 	if err != nil {
 		t.Fatalf("Snapshot error: %v", err)
@@ -55,7 +55,7 @@ func TestSnapshotterIgnoresNodeModules(t *testing.T) {
 	must(t, os.WriteFile(filepath.Join(dir, "node_modules", "pkg", "index.js"), []byte("module.exports={}"), 0o644))
 	must(t, os.WriteFile(filepath.Join(dir, "index.ts"), []byte("export {}"), 0o644))
 
-	snapper := NewSnapshotter(dir, nil)
+	snapper := NewSnapshotter(dir, nil, nil)
 	files, err := snapper.Snapshot()
 	if err != nil {
 		t.Fatalf("Snapshot error: %v", err)
@@ -72,7 +72,7 @@ func TestSnapshotterLanguageDetection(t *testing.T) {
 	must(t, os.WriteFile(filepath.Join(dir, "Dockerfile"), []byte("FROM alpine"), 0o644))
 	must(t, os.WriteFile(filepath.Join(dir, "infra.tf"), []byte("resource {}"), 0o644))
 
-	snapper := NewSnapshotter(dir, nil)
+	snapper := NewSnapshotter(dir, nil, nil)
 	files, err := snapper.Snapshot()
 	if err != nil {
 		t.Fatalf("Snapshot error: %v", err)
@@ -99,7 +99,7 @@ func TestSnapshotterSHA256Stable(t *testing.T) {
 	content := []byte("hello world")
 	must(t, os.WriteFile(filepath.Join(dir, "file.txt"), content, 0o644))
 
-	snapper := NewSnapshotter(dir, nil)
+	snapper := NewSnapshotter(dir, nil, nil)
 	files1, _ := snapper.Snapshot()
 	files2, _ := snapper.Snapshot()
 	if len(files1) == 0 || len(files2) == 0 {

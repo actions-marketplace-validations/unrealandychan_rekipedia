@@ -27,6 +27,7 @@ type DigestOptions struct {
 	LLMConfig models.LLMConfig
 	Verbose   bool
 	Progress  func(string) // optional progress callback
+	Languages []string     // nil = all languages
 }
 
 // RunDigest executes the full scan → plan → generate → export pipeline.
@@ -58,7 +59,7 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 
 	// ── 1. Snapshot ────────────────────────────────────────────────────────
 	log.logf("Snapshotting repository…")
-	snapper := NewSnapshotter(repoRoot, nil)
+	snapper := NewSnapshotter(repoRoot, nil, opts.Languages)
 	files, err := snapper.Snapshot()
 	if err != nil {
 		return fmt.Errorf("snapshot: %w", err)

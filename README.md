@@ -36,13 +36,17 @@ uvx close-wiki scan .
 ### Permanent install
 
 ```bash
-# Python
-uv tool install close-wiki
-# or
+# Core (scan + serve + ask)
 pip install close-wiki
+# or
+uv tool install close-wiki
 
-# Node (adds global `close-wiki` binary that delegates to Python)
-npm install -g close-wiki
+# With RAG support (semantic embed + search — needs faiss-cpu + numpy ~100MB)
+pip install "close-wiki[rag]"
+
+# Homebrew (Go single binary — no Python needed)
+brew tap unrealandychan/tap
+brew install close-wiki
 ```
 
 ---

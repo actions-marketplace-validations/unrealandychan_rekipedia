@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -19,6 +20,7 @@ var scanFlags struct {
 	verbose       bool
 	embedModel    string
 	embedProvider string
+	languages     string
 }
 
 var scanCmd = &cobra.Command{
@@ -54,6 +56,7 @@ var scanCmd = &cobra.Command{
 			LLMConfig: cfg,
 			Verbose:   scanFlags.verbose,
 			Progress:  progress,
+			Languages: splitLanguages(scanFlags.languages),
 		})
 	},
 }
@@ -66,6 +69,7 @@ func init() {
 	scanCmd.Flags().BoolVarP(&scanFlags.verbose, "verbose", "v", false, "Verbose output")
 	scanCmd.Flags().StringVar(&scanFlags.embedModel, "embed-model", "", "Embedding model")
 	scanCmd.Flags().StringVar(&scanFlags.embedProvider, "embed-provider", "", "Embedding provider")
+	scanCmd.Flags().StringVarP(&scanFlags.languages, "languages", "l", "", "Comma-separated languages to include, e.g. python,typescript,go (default: all)")
 }
 
 // loadLLMConfig merges flags with config file defaults.
@@ -87,4 +91,23 @@ func loadLLMConfig(model, apiKey, baseURL string) models.LLMConfig {
 		llmCfg.BaseURL = baseURL
 	}
 	return llmCfg
+}
+
+// splitLanguages parses a comma-separated language string into a slice.
+// Returns nil (= all languages) if the input is empty.
+func splitLanguages(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if t := strings.TrimSpace(strings.ToLower(p)); t != "" {
+			out = append(out, t)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }

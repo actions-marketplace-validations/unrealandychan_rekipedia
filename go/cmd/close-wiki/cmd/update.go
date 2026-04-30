@@ -10,8 +10,9 @@ import (
 )
 
 var updateFlags struct {
-	model   string
-	verbose bool
+	model     string
+	verbose   bool
+	languages string
 }
 
 var updateCmd = &cobra.Command{
@@ -31,6 +32,7 @@ var updateCmd = &cobra.Command{
 		return orchestrator.RunUpdate(cmd.Context(), root, outputDir, orchestrator.UpdateOptions{
 			LLMConfig: cfg,
 			Progress:  progress,
+			Languages: splitLanguages(updateFlags.languages),
 		})
 	},
 }
@@ -38,4 +40,5 @@ var updateCmd = &cobra.Command{
 func init() {
 	updateCmd.Flags().StringVar(&updateFlags.model, "model", "", "LLM model override")
 	updateCmd.Flags().BoolVarP(&updateFlags.verbose, "verbose", "v", false, "Verbose output")
+	updateCmd.Flags().StringVarP(&updateFlags.languages, "languages", "l", "", "Comma-separated languages to include, e.g. python,typescript,go (default: all)")
 }

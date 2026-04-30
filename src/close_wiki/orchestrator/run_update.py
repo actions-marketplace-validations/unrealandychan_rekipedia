@@ -31,6 +31,7 @@ def run_update(
     *,
     force_local: bool = False,
     progress: Callable[[str], None] | None = None,
+    languages: list[str] | None = None,
 ) -> None:
     """Incremental update pipeline.
 
@@ -65,6 +66,7 @@ def run_update(
                 llm_config=llm_config,
                 force_local=force_local,
                 progress=progress,
+                languages=languages,
             )
             return
 
@@ -72,7 +74,7 @@ def run_update(
 
         # ── 2. Snapshot current state ─────────────────────────────────
         _log("Snapshotting repository…")
-        snapshotter = Snapshotter(repo_root)
+        snapshotter = Snapshotter(repo_root, languages=languages)
         current_files = snapshotter.snapshot()
         current_map: dict[str, FileManifest] = {f.path: f for f in current_files}
 

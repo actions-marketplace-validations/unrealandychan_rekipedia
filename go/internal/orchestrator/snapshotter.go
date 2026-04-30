@@ -54,14 +54,16 @@ var defaultIgnore = []string{
 
 // Snapshotter walks a repo root and produces FileManifest entries.
 type Snapshotter struct {
-	root         string
-	ignoreGlobs  []string
-	ignoreDirs   map[string]bool
+	root        string
+	ignoreGlobs []string
+	ignoreDirs  map[string]bool
+	languages   map[string]bool // nil = all
 }
 
 // NewSnapshotter creates a Snapshotter for the given repo root.
 // extraIgnore adds additional gitignore-style patterns.
-func NewSnapshotter(root string, extraIgnore []string) *Snapshotter {
+// languages, if non-empty, restricts files to those languages (lowercase).
+func NewSnapshotter(root string, extraIgnore []string, languages []string) *Snapshotter {
 	all := append(defaultIgnore, extraIgnore...)
 	dirs := make(map[string]bool)
 	var globs []string
@@ -72,7 +74,14 @@ func NewSnapshotter(root string, extraIgnore []string) *Snapshotter {
 			globs = append(globs, pat)
 		}
 	}
-	return &Snapshotter{root: root, ignoreGlobs: globs, ignoreDirs: dirs}
+	var langSet map[string]bool
+	if len(languages) > 0 {
+		langSet = make(map[string]bool, len(languages))
+		for _, l := range languages {
+			langSet[strings.ToLower(l)] = true
+		}
+	}
+	return &Snapshotter{root: root, ignoreGlobs: globs, ignoreDirs: dirs, languages: langSet}
 }
 
 // Snapshot walks the repository and returns all relevant files.
@@ -117,6 +126,9 @@ func (s *Snapshotter) Snapshot() ([]models.FileManifest, error) {
 		}
 
 		lang := detectLanguage(path)
+		if s.languages != nil && !s.languages[lang] {
+			return nil
+		}
 		manifests = append(manifests, models.FileManifest{
 			Path:      rel,
 			SHA256:    hash,

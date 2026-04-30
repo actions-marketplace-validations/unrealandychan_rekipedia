@@ -31,7 +31,8 @@ def _load_config(repo: Path) -> dict:
 @click.option("--model", default=None, envvar="CLOSE_WIKI_MODEL", help="LLM model override.")
 @click.option("--no-docker", is_flag=True, default=False, help="Skip Docker, run extractors in-process.")
 @click.option("--output-dir", default=None, type=click.Path(path_type=Path), help="Output directory (default: REPO/.close-wiki).")
-def update_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path | None) -> None:
+@click.option("--languages", "-l", default=None, help="Comma-separated list of languages to include, e.g. python,typescript,go. Default: all.")
+def update_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path | None, languages: str | None) -> None:
     """Incrementally refresh the wiki for files changed since the last scan.
 
     Re-extracts only changed files and re-synthesises all wiki pages.
@@ -61,6 +62,12 @@ def update_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path 
     console.print(f"  output   : [cyan]{output_dir}[/cyan]")
     console.print(f"  runner   : [cyan]{'local (--no-docker)' if no_docker else 'auto'}[/cyan]")
 
+    lang_list: list[str] | None = (
+        [l.strip().lower() for l in languages.split(",") if l.strip()] if languages else None
+    )
+    if lang_list:
+        console.print(f"  languages: [cyan]{', '.join(lang_list)}[/cyan]")
+
     from close_wiki.orchestrator.run_update import run_update  # noqa: PLC0415
 
     with Progress(
@@ -81,6 +88,7 @@ def update_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path 
                 llm_config=llm_config,
                 force_local=no_docker,
                 progress=_log,
+                languages=lang_list,
             )
         except Exception as exc:
             console.print(f"[bold red]Error:[/bold red] {exc}")

@@ -16,6 +16,7 @@ import (
 type UpdateOptions struct {
 	LLMConfig models.LLMConfig
 	Progress  func(string)
+	Languages []string // nil = all languages
 }
 
 // RunUpdate performs an incremental update:
@@ -37,6 +38,7 @@ func RunUpdate(ctx context.Context, repoRoot, outputDir string, opts UpdateOptio
 		return RunDigest(ctx, repoRoot, outputDir, DigestOptions{
 			LLMConfig: opts.LLMConfig,
 			Progress:  opts.Progress,
+			Languages: opts.Languages,
 		})
 	}
 	defer store.Close()
@@ -49,13 +51,14 @@ func RunUpdate(ctx context.Context, repoRoot, outputDir string, opts UpdateOptio
 		return RunDigest(ctx, repoRoot, outputDir, DigestOptions{
 			LLMConfig: opts.LLMConfig,
 			Progress:  opts.Progress,
+			Languages: opts.Languages,
 		})
 	}
 	log.logf("Last run: %s", lastRunID[:8])
 
 	// ── 2. Snapshot current state ──────────────────────────────────────────
 	log.logf("Snapshotting repository…")
-	snapper := NewSnapshotter(repoRoot, nil)
+	snapper := NewSnapshotter(repoRoot, nil, opts.Languages)
 	currentFiles, err := snapper.Snapshot()
 	if err != nil {
 		return fmt.Errorf("snapshot: %w", err)

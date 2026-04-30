@@ -19,6 +19,27 @@ from rich.console import Console
 
 console = Console()
 
+def _check_rag_deps() -> None:
+    """Raise a friendly error if faiss-cpu / numpy are not installed."""
+    missing = []
+    try:
+        import faiss  # noqa: F401
+    except ImportError:
+        missing.append("faiss-cpu")
+    try:
+        import numpy  # noqa: F401
+    except ImportError:
+        missing.append("numpy")
+    if missing:
+        console.print(
+            f"[bold red]Missing RAG dependencies:[/] {', '.join(missing)}\n"
+            "Install them with:\n\n"
+            "  [bold]pip install close-wiki[rag][/]\n"
+            "  or: uv add 'close-wiki[rag]'\n",
+            highlight=False,
+        )
+        raise SystemExit(1)
+
 
 @click.command("embed")
 @click.argument("repo_path", default=".", type=click.Path(exists=True, file_okay=False))
@@ -71,6 +92,7 @@ def embed_cmd(
     verbose: bool,
 ) -> None:
     """Build or refresh the RAG embed index for REPO_PATH."""
+    _check_rag_deps()
     import logging  # noqa: PLC0415
 
     if verbose:

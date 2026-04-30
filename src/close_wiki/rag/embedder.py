@@ -22,7 +22,13 @@ import time
 from pathlib import Path
 from typing import Iterator
 
-import numpy as np
+try:
+    import numpy as np
+    import faiss  # noqa: F401
+    _RAG_AVAILABLE = True
+except ImportError:
+    _RAG_AVAILABLE = False
+    np = None  # type: ignore[assignment]
 
 from close_wiki.models.contracts import LLMConfig
 
