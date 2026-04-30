@@ -30,7 +30,7 @@ jobs:
       - name: go mod tidy check
         run: |
           go mod tidy
-          git diff --exit-code go/go.sum || (echo "go.sum not up to date — run 'go mod tidy'" && exit 1)
+          git diff --exit-code go.sum || (echo "go.sum not up to date — run 'go mod tidy'" && exit 1)
 
       - name: go vet
         run: go vet ./...
