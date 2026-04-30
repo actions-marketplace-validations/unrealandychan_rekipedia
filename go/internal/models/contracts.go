@@ -10,6 +10,8 @@ type LLMConfig struct {
 	Temperature   float64 `yaml:"temperature"    json:"temperature"`
 	EmbedModel    string  `yaml:"embed_model"    json:"embed_model"`
 	EmbedProvider string  `yaml:"embed_provider" json:"embed_provider"`
+	EmbedAPIKey   string  `yaml:"embed_api_key"  json:"embed_api_key"`
+	EmbedBaseURL  string  `yaml:"embed_base_url" json:"embed_base_url"`
 }
 
 // DefaultLLMConfig returns sensible defaults (Ollama local).

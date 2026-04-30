@@ -60,6 +60,12 @@ func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("CLOSE_WIKI_EMBED_PROVIDER"); v != "" {
 		cfg.LLM.EmbedProvider = v
 	}
+	if v := os.Getenv("CLOSE_WIKI_EMBED_API_KEY"); v != "" {
+		cfg.LLM.EmbedAPIKey = v
+	}
+	if v := os.Getenv("CLOSE_WIKI_EMBED_BASE_URL"); v != "" {
+		cfg.LLM.EmbedBaseURL = v
+	}
 }
 
 // InitDir scaffolds .close-wiki/ with a default config.yml and .gitignore entry.

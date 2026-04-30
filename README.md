@@ -168,14 +168,28 @@ close-wiki scan . --embed-model text-embedding-3-small --embed-provider openai
 # Build or rebuild the FAISS index
 close-wiki embed .
 
-# Custom embedding model (any litellm-compatible model)
+# Custom embedding model + provider
 close-wiki embed . --model text-embedding-3-small --provider openai
 close-wiki embed . --model nomic-embed-text --provider ollama
 
-# Or set via env vars
+# If your embed provider uses a DIFFERENT API key from your main LLM:
+close-wiki embed . --model text-embedding-3-small --provider openai
+# set embed_api_key in config.yml, or:
+export CLOSE_WIKI_EMBED_API_KEY=sk-your-openai-key
+
+# Or configure everything in .close-wiki/config.yml:
+# llm:
+#   model: ollama/llama4          # main LLM (local)
+#   embed_model: text-embedding-3-small
+#   embed_provider: openai
+#   embed_api_key: sk-xxx         # separate key for embed provider
+#   embed_base_url: ""            # optional: custom endpoint
+
+# Env var overrides (all optional):
 export CLOSE_WIKI_EMBED_MODEL=nomic-embed-text
 export CLOSE_WIKI_EMBED_PROVIDER=ollama
-close-wiki scan .   # auto-embeds after scan if env vars are set
+export CLOSE_WIKI_EMBED_API_KEY=sk-xxx
+export CLOSE_WIKI_EMBED_BASE_URL=https://my-proxy.example.com/v1
 ```
 
 The FAISS index is saved to `.close-wiki/rag/index.faiss` and chunked source code to `.close-wiki/rag/chunks.json`.

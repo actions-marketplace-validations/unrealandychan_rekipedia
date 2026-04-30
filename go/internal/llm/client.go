@@ -152,12 +152,23 @@ func (c *Client) Embed(ctx context.Context, texts []string) ([][]float32, error)
 		embedModel = embedModel[idx+1:]
 	}
 
-	// Build a separate client if embed provider differs
+	// Build a separate client if embed has its own provider/key/base_url
 	ec := c.oc
-	if c.cfg.EmbedProvider != "" && c.cfg.EmbedProvider != providerFromModel(c.cfg.Model) {
-		ecfg := openai.DefaultConfig(c.cfg.APIKey)
-		if baseURL := inferBaseURLForProvider(c.cfg.EmbedProvider); baseURL != "" {
-			ecfg.BaseURL = baseURL
+	embedAPIKey := c.cfg.EmbedAPIKey
+	if embedAPIKey == "" {
+		embedAPIKey = c.cfg.APIKey // fall back to main key
+	}
+	embedBaseURL := c.cfg.EmbedBaseURL
+	if embedBaseURL == "" {
+		embedBaseURL = inferBaseURLForProvider(c.cfg.EmbedProvider)
+	}
+	needsSeparateClient := c.cfg.EmbedAPIKey != "" ||
+		c.cfg.EmbedBaseURL != "" ||
+		(c.cfg.EmbedProvider != "" && c.cfg.EmbedProvider != providerFromModel(c.cfg.Model))
+	if needsSeparateClient {
+		ecfg := openai.DefaultConfig(embedAPIKey)
+		if embedBaseURL != "" {
+			ecfg.BaseURL = embedBaseURL
 		}
 		ec = openai.NewClientWithConfig(ecfg)
 	}
