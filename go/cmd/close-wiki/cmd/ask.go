@@ -10,10 +10,11 @@ import (
 )
 
 var askFlags struct {
-	repo   string
-	model  string
-	query  string
-	stream bool
+	repo      string
+	model     string
+	query     string
+	stream    bool
+	outputDir string
 }
 
 var askCmd = &cobra.Command{
@@ -35,13 +36,18 @@ Use -q for single-shot (non-interactive) mode.`,
 		cfg := loadLLMConfig(askFlags.model, "", "")
 		opts := orchestrator.AskOptions{LLMConfig: cfg}
 
+		outDir := askFlags.outputDir
+		if outDir == "" {
+			outDir = ".close-wiki"
+		}
+
 		if askFlags.stream {
-			return orchestrator.StreamAsk(cmd.Context(), question, askFlags.repo, outputDir, opts, func(chunk string) {
+			return orchestrator.StreamAsk(cmd.Context(), question, askFlags.repo, outDir, opts, func(chunk string) {
 				fmt.Print(chunk)
 			})
 		}
 
-		result, err := orchestrator.RunAsk(cmd.Context(), question, askFlags.repo, outputDir, opts)
+		result, err := orchestrator.RunAsk(cmd.Context(), question, askFlags.repo, outDir, opts)
 		if err != nil {
 			return err
 		}
@@ -52,6 +58,7 @@ Use -q for single-shot (non-interactive) mode.`,
 
 func init() {
 	askCmd.Flags().StringVar(&askFlags.repo, "repo", ".", "Repo path")
+	askCmd.Flags().StringVar(&askFlags.outputDir, "output-dir", "", "Output directory (default: .close-wiki)")
 	askCmd.Flags().StringVar(&askFlags.model, "model", "", "LLM model override")
 	askCmd.Flags().StringVarP(&askFlags.query, "query", "q", "", "Single-shot question")
 	askCmd.Flags().BoolVar(&askFlags.stream, "stream", false, "Stream the response")

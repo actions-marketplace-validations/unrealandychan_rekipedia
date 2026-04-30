@@ -10,8 +10,10 @@ import (
 )
 
 var embedFlags struct {
-	model    string
-	provider string
+	model     string
+	provider  string
+	outputDir string
+	verbose   bool
 }
 
 var embedCmd = &cobra.Command{
@@ -47,4 +49,6 @@ var embedCmd = &cobra.Command{
 func init() {
 	embedCmd.Flags().StringVar(&embedFlags.model, "model", "", "Embedding model")
 	embedCmd.Flags().StringVar(&embedFlags.provider, "provider", "", "Embedding provider")
+	embedCmd.Flags().StringVar(&embedFlags.outputDir, "output-dir", "", "Output directory (default: .close-wiki)")
+	embedCmd.Flags().BoolVarP(&embedFlags.verbose, "verbose", "v", false, "Verbose output")
 }
