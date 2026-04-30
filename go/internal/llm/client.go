@@ -147,24 +147,30 @@ func (c *Client) Embed(ctx context.Context, texts []string) ([][]float32, error)
 		embedModel = "text-embedding-3-small"
 	}
 
-	// Strip provider prefix
-	if idx := strings.Index(embedModel, "/"); idx != -1 {
-		embedModel = embedModel[idx+1:]
-	}
-
-	// Build a separate client if embed has its own provider/key/base_url
-	ec := c.oc
-	embedAPIKey := c.cfg.EmbedAPIKey
-	if embedAPIKey == "" {
-		embedAPIKey = c.cfg.APIKey // fall back to main key
-	}
+	// When using a proxy (custom base_url), strip provider prefix — the proxy
+	// handles routing itself and provider prefixes cause it to be ignored.
 	embedBaseURL := c.cfg.EmbedBaseURL
 	if embedBaseURL == "" {
 		embedBaseURL = inferBaseURLForProvider(c.cfg.EmbedProvider)
 	}
-	needsSeparateClient := c.cfg.EmbedAPIKey != "" ||
-		c.cfg.EmbedBaseURL != "" ||
+	hasCustomBase := embedBaseURL != ""
+	if hasCustomBase {
+		// Strip any "provider/" prefix so proxy sees bare model name
+		if idx := strings.Index(embedModel, "/"); idx != -1 {
+			embedModel = embedModel[idx+1:]
+		}
+	}
+
+	embedAPIKey := c.cfg.EmbedAPIKey
+	if embedAPIKey == "" {
+		embedAPIKey = c.cfg.APIKey // fall back to main key
+	}
+
+	// Always build a dedicated embed client when base_url or key differs
+	needsSeparateClient := hasCustomBase ||
+		c.cfg.EmbedAPIKey != "" ||
 		(c.cfg.EmbedProvider != "" && c.cfg.EmbedProvider != providerFromModel(c.cfg.Model))
+	ec := c.oc
 	if needsSeparateClient {
 		ecfg := openai.DefaultConfig(embedAPIKey)
 		if embedBaseURL != "" {
