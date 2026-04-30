@@ -43,30 +43,9 @@ func Load(repoRoot string) (Config, error) {
 	return cfg, nil
 }
 
-// applyEnvOverrides merges CLOSE_WIKI_* env vars into cfg.
-func applyEnvOverrides(cfg *Config) {
-	if v := os.Getenv("CLOSE_WIKI_MODEL"); v != "" {
-		cfg.LLM.Model = v
-	}
-	if v := os.Getenv("CLOSE_WIKI_API_KEY"); v != "" {
-		cfg.LLM.APIKey = v
-	}
-	if v := os.Getenv("CLOSE_WIKI_BASE_URL"); v != "" {
-		cfg.LLM.BaseURL = v
-	}
-	if v := os.Getenv("CLOSE_WIKI_EMBED_MODEL"); v != "" {
-		cfg.LLM.EmbedModel = v
-	}
-	if v := os.Getenv("CLOSE_WIKI_EMBED_PROVIDER"); v != "" {
-		cfg.LLM.EmbedProvider = v
-	}
-	if v := os.Getenv("CLOSE_WIKI_EMBED_API_KEY"); v != "" {
-		cfg.LLM.EmbedAPIKey = v
-	}
-	if v := os.Getenv("CLOSE_WIKI_EMBED_BASE_URL"); v != "" {
-		cfg.LLM.EmbedBaseURL = v
-	}
-}
+// applyEnvOverrides is intentionally removed — configuration is read from
+// .close-wiki/config.yml only. Use CLI flags to override at runtime.
+func applyEnvOverrides(_ *Config) {}
 
 // InitDir scaffolds .close-wiki/ with a default config.yml and .gitignore entry.
 func InitDir(repoRoot string) error {

@@ -1,7 +1,6 @@
 """`close-wiki scan` command — full repo analysis."""
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
@@ -61,14 +60,14 @@ def scan_cmd(
     llm_cfg_raw = cfg.get("llm", {})
 
     llm_config = LLMConfig(
-        model=os.environ.get("CLOSE_WIKI_MODEL") or model or llm_cfg_raw.get("model", "ollama/llama4"),
-        api_key=os.environ.get("CLOSE_WIKI_API_KEY") or llm_cfg_raw.get("api_key", ""),
-        base_url=os.environ.get("CLOSE_WIKI_BASE_URL") or llm_cfg_raw.get("base_url", ""),
+        model=model or llm_cfg_raw.get("model", "ollama/llama4"),
+        api_key=llm_cfg_raw.get("api_key", ""),
+        base_url=llm_cfg_raw.get("base_url", ""),
         temperature=llm_cfg_raw.get("temperature", 0.2),
-        embed_model=embed_model or os.environ.get("CLOSE_WIKI_EMBED_MODEL") or llm_cfg_raw.get("embed_model", ""),
-        embed_provider=embed_provider or os.environ.get("CLOSE_WIKI_EMBED_PROVIDER") or llm_cfg_raw.get("embed_provider", ""),
-        embed_api_key=os.environ.get("CLOSE_WIKI_EMBED_API_KEY") or llm_cfg_raw.get("embed_api_key") or llm_cfg_raw.get("api_key", ""),
-        embed_base_url=os.environ.get("CLOSE_WIKI_EMBED_BASE_URL") or llm_cfg_raw.get("embed_base_url") or llm_cfg_raw.get("base_url", ""),
+        embed_model=embed_model or llm_cfg_raw.get("embed_model", ""),
+        embed_provider=embed_provider or llm_cfg_raw.get("embed_provider", ""),
+        embed_api_key=llm_cfg_raw.get("embed_api_key") or llm_cfg_raw.get("api_key", ""),
+        embed_base_url=llm_cfg_raw.get("embed_base_url") or llm_cfg_raw.get("base_url", ""),
     )
 
     console.print(f"[bold green]close-wiki scan[/bold green] {repo}")

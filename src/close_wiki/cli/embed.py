@@ -97,10 +97,10 @@ def embed_cmd(
     cfg = _load_config(repo)
     llm_cfg = cfg.get("llm", {})
 
-    embed_model = model or os.environ.get("CLOSE_WIKI_EMBED_MODEL") or llm_cfg.get("embed_model") or "text-embedding-3-small"
-    embed_provider = provider or os.environ.get("CLOSE_WIKI_EMBED_PROVIDER") or llm_cfg.get("embed_provider", "")
-    resolved_api_key = api_key or os.environ.get("CLOSE_WIKI_EMBED_API_KEY") or llm_cfg.get("embed_api_key") or llm_cfg.get("api_key", "")
-    resolved_base_url = base_url or os.environ.get("CLOSE_WIKI_EMBED_BASE_URL") or llm_cfg.get("embed_base_url") or llm_cfg.get("base_url", "")
+    embed_model = model or llm_cfg.get("embed_model") or "text-embedding-3-small"
+    embed_provider = provider or llm_cfg.get("embed_provider", "")
+    resolved_api_key = api_key or llm_cfg.get("embed_api_key") or llm_cfg.get("api_key", "")
+    resolved_base_url = base_url or llm_cfg.get("embed_base_url") or llm_cfg.get("base_url", "")
 
     console.print(f"[bold cyan]close-wiki embed[/bold cyan]")
     console.print(f"  repo       : {repo}")
@@ -119,10 +119,6 @@ def embed_cmd(
         embed_api_key=resolved_api_key,
         embed_base_url=resolved_base_url,
     )
-    # Also set env vars so EmbedPipeline resolution chain picks them up
-    os.environ["CLOSE_WIKI_EMBED_MODEL"] = embed_model
-    if embed_provider:
-        os.environ["CLOSE_WIKI_EMBED_PROVIDER"] = embed_provider
 
     pipe = EmbedPipeline(out, llm_config)
 
