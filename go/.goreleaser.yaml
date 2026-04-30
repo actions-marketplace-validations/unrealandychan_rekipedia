@@ -1,111 +1,63 @@
 version: 2
+
 project_name: close-wiki
 
 before:
   hooks:
     - go mod tidy
-    - go test ./...
 
 builds:
-  - id: close-wiki-linux-amd64
+  - id: close-wiki
     main: ./cmd/close-wiki
-    dir: .
     binary: close-wiki
     env:
       - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
     ldflags:
       - -s -w
-      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.version={{.Version}}
-      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.commit={{.Commit}}
-      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.date={{.Date}}
-    goos: [linux]
-    goarch: [amd64]
-
-  - id: close-wiki-linux-arm64
-    main: ./cmd/close-wiki
-    dir: .
-    binary: close-wiki
-    env:
-      - CGO_ENABLED=0
-    ldflags:
-      - -s -w
-      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.version={{.Version}}
-      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.commit={{.Commit}}
-      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.date={{.Date}}
-    goos: [linux]
-    goarch: [arm64]
-
-  - id: close-wiki-darwin-arm64
-    main: ./cmd/close-wiki
-    dir: .
-    binary: close-wiki
-    env:
-      - CGO_ENABLED=0
-    ldflags:
-      - -s -w
-      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.version={{.Version}}
-      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.commit={{.Commit}}
-      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.date={{.Date}}
-    goos: [darwin]
-    goarch: [arm64]
-
-  - id: close-wiki-darwin-amd64
-    main: ./cmd/close-wiki
-    dir: .
-    binary: close-wiki
-    env:
-      - CGO_ENABLED=0
-    ldflags:
-      - -s -w
-      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.version={{.Version}}
-      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.commit={{.Commit}}
-      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.date={{.Date}}
-    goos: [darwin]
-    goarch: [amd64]
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
 
 archives:
-  - formats: [tar.gz]
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  - id: default
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: windows
         formats: [zip]
+    files:
+      - README.md
+      - RELEASE-NOTES.md
 
 checksum:
   name_template: "checksums.txt"
-
-release:
-  github:
-    owner: unrealandychan
-    name: close-wiki
-  name_template: "v{{.Version}}"
-  footer: |
-    ## Installation
-
-    **macOS (Apple Silicon):**
-    ```bash
-    brew install unrealandychan/tap/close-wiki
-    ```
-
-    **Linux (one-liner):**
-    ```bash
-    curl -fsSL https://github.com/unrealandychan/close-wiki/releases/latest/download/install.sh | sh
-    ```
-
-    **Docker:**
-    ```bash
-    docker pull ghcr.io/unrealandychan/close-wiki:{{.Version}}
-    ```
 
 changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
-      - '^ci:'
-      - '^chore:'
-      - Merge pull request
-      - Merge branch
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "Merge pull request"
+      - "Merge branch"
+
+release:
+  github:
+    owner: unrealandychan
+    name: close-wiki
+  name_template: "{{.ProjectName}} v{{.Version}}"
+  draft: false
+  prerelease: auto
 
 brews:
   - name: close-wiki
@@ -114,42 +66,25 @@ brews:
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     commit_author:
-      name: goreleaserbot
-      email: bot@goreleaser.com
-    directory: Formula
+      name: HermesBot
+      email: bot@close-wiki.dev
     homepage: "https://github.com/unrealandychan/close-wiki"
-    description: "Your AI tech lead — scan any repo into a searchable knowledge store"
-    license: "BSL-1.1"
+    description: "Agentic repo-to-wiki — scan any codebase into a structured knowledge base"
+    license: "MIT"
     install: |
       bin.install "close-wiki"
     test: |
-      system "#{bin}/close-wiki --version"
+      system "#{bin}/close-wiki", "--version"
 
 nfpms:
-  - package_name: close-wiki
-    homepage: https://github.com/unrealandychan/close-wiki
-    description: "Your AI tech lead — scan any repo into a searchable knowledge store"
-    license: "BSL-1.1"
-    maintainer: "Eddie Chan <unrealandychan@users.noreply.github.com>"
+  - id: packages
+    package_name: close-wiki
+    vendor: unrealandychan
+    homepage: "https://github.com/unrealandychan/close-wiki"
+    description: "Agentic repo-to-wiki — scan any codebase into a structured knowledge base"
+    license: MIT
+    maintainer: "unrealandychan <unrealandychan@users.noreply.github.com>"
     formats:
       - deb
       - rpm
       - apk
-    bindir: /usr/local/bin
-
-dockers:
-  - image_templates:
-      - "ghcr.io/unrealandychan/close-wiki:{{ .Version }}-amd64"
-    dockerfile: Dockerfile
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.version={{ .Version }}"
-
-docker_manifests:
-  - name_template: "ghcr.io/unrealandychan/close-wiki:{{ .Version }}"
-    image_templates:
-      - "ghcr.io/unrealandychan/close-wiki:{{ .Version }}-amd64"
-  - name_template: "ghcr.io/unrealandychan/close-wiki:latest"
-    image_templates:
-      - "ghcr.io/unrealandychan/close-wiki:{{ .Version }}-amd64"
