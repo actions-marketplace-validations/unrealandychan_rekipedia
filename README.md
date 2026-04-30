@@ -8,8 +8,12 @@ No hallucinations, no guessing — every answer is grounded in your actual codeb
 
 ### Key features
 - **Agentic wiki orchestration**: `PlannerAgent` designs the wiki structure dynamically based on your repo
-- **DeepWiki-style sections**: pages grouped into logical sections (`getting-started`, `architecture`, `core-components`, etc.) for navigation
+- **Page importance scoring**: planner assigns each page an importance score (0–100); nav sidebar sorts by priority
+- **DeepWiki-style sections**: pages grouped into logical sections (`getting-started`, `architecture`, `core-components`, etc.)
 - **Context slicing**: each page only receives the data it needs (~40–60% token reduction vs fixed-layout approach)
+- **Hybrid RAG Q&A**: FAISS-indexed code chunks + wiki pages give the LLM full codebase context when answering questions
+- **Embed provider choice**: `--embed-provider openai|ollama|azure|...` — any litellm-compatible embedding model
+- **Wiki export**: bundle to a single Markdown file, ZIP archive, or structured JSON (`close-wiki export`)
 - **Incremental updates**: only re-processes changed files after the first scan
 - **Grounded Q&A**: answers cite real file paths and line numbers — no hallucinations
 
@@ -52,6 +56,8 @@ npm install -g close-wiki
 | `close-wiki update [REPO]` | Incremental refresh — re-extracts only changed files, keeps the rest |
 | `close-wiki ask [QUESTION]` | Interactive Q&A REPL — streaming answers, Ctrl+C to quit |
 | `close-wiki serve [REPO]` | Start a local web UI to browse wiki pages and ask questions |
+| `close-wiki embed [REPO]` | Build (or rebuild) the FAISS semantic search index for hybrid RAG Q&A |
+| `close-wiki export [REPO]` | Bundle the wiki to a single file (`--format md\|zip\|json`) |
 
 ---
 
@@ -104,18 +110,22 @@ export CLOSE_WIKI_BASE_URL=https://my-proxy/v1
 .close-wiki/
 ├── config.yml              # your settings (committed)
 ├── store.db                # SQLite knowledge store (git-ignored)
+├── scan_meta.json          # last scan metadata (model, timestamp, file count)
 ├── wiki/                   # generated Markdown pages (3–15 pages, dynamically planned)
 │   ├── index.md
 │   ├── architecture-overview.md
 │   ├── repository-structure.md
 │   └── ... (pages vary by repo)
+├── rag/                    # RAG index (git-ignored)
+│   ├── index.faiss         # FAISS flat L2 index
+│   └── chunks.json         # source code chunks + metadata
 ├── diagrams/               # Mermaid diagram files
 │   ├── module-graph.md
 │   └── class-hierarchy.md
 └── exports/                # JSON exports
     ├── symbols.json
     ├── relationships.json
-    └── manifest.json       # run summary + metadata
+    └── manifest.json       # run summary + metadata + page importance scores
 ```
 
 Dynamically generates 3–15 wiki pages based on repo complexity (powered by PlannerAgent).
@@ -145,6 +155,42 @@ close-wiki scan . --output-dir /tmp/wiki-output
 
 # Enable debug logging (litellm, HTTP, full tracebacks)
 close-wiki scan . --verbose
+
+# Auto-embed for RAG after scan
+close-wiki scan . --embed-model text-embedding-3-small --embed-provider openai
+```
+
+### RAG / semantic search
+
+`close-wiki ask` uses **hybrid retrieval** — wiki pages + FAISS-indexed code chunks — to answer questions with full codebase context.
+
+```bash
+# Build or rebuild the FAISS index
+close-wiki embed .
+
+# Custom embedding model (any litellm-compatible model)
+close-wiki embed . --model text-embedding-3-small --provider openai
+close-wiki embed . --model nomic-embed-text --provider ollama
+
+# Or set via env vars
+export CLOSE_WIKI_EMBED_MODEL=nomic-embed-text
+export CLOSE_WIKI_EMBED_PROVIDER=ollama
+close-wiki scan .   # auto-embeds after scan if env vars are set
+```
+
+The FAISS index is saved to `.close-wiki/rag/index.faiss` and chunked source code to `.close-wiki/rag/chunks.json`.
+
+### Export the wiki
+
+```bash
+# Single combined Markdown file (default)
+close-wiki export . --format md --output ./wiki-export.md
+
+# ZIP archive (one .md per page + manifest.json)
+close-wiki export . --format zip --output ./wiki.zip
+
+# Structured JSON (all pages + metadata)
+close-wiki export . --format json --output ./wiki.json
 ```
 
 ### Incremental update

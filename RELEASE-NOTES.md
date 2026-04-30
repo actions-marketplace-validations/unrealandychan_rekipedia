@@ -1,5 +1,65 @@
 # Release Notes
 
+## v0.7.1 — Page Importance, Wiki Export & Embed Provider Selection
+
+### What's new
+
+**v0.7.1** rounds out the RAG foundation with three user-facing improvements.
+
+#### Page importance scoring
+- `PlannerAgent` now generates an `importance` score (0–100) for every wiki page alongside the existing `priority` field
+- `WikiPlan.nav_order` is sorted by `priority` descending — most critical pages appear first in the sidebar
+- Importance is stored in `manifest.json` under `pages_meta` for downstream tooling
+
+#### Wiki export (`close-wiki export`)
+- New `close-wiki export [REPO]` command bundles the entire wiki into a portable file
+- Three formats via `--format`:
+  - `md` — single combined Markdown document with page headers (default)
+  - `zip` — archive with one `.md` per page plus `manifest.json`
+  - `json` — structured JSON with all pages, metadata, and importance scores
+- `--output` flag controls the destination path
+
+#### Embed provider selection
+- `close-wiki scan` now accepts `--embed-model` and `--embed-provider` flags to configure the embedding model at scan time
+- `close-wiki embed` gains a `--provider` flag
+- Provider is stored in `LLMConfig.embed_provider` and passed to litellm as `{provider}/{model}` for routing
+- Env vars: `CLOSE_WIKI_EMBED_MODEL`, `CLOSE_WIKI_EMBED_PROVIDER`
+- Supports any litellm-compatible provider: `openai`, `ollama`, `azure`, `cohere`, etc.
+
+### Tests
+- 108/108 passing (19 new tests across importance, export, embed provider, LLM client retry, CLI coverage)
+- Coverage: 74.7% (up from ~70%)
+
+---
+
+## v0.7.0 — RAG / FAISS Semantic Search & Hybrid Q&A
+
+### What's new
+
+**v0.7.0** adds a full RAG (Retrieval-Augmented Generation) pipeline powered by FAISS, enabling semantic search over source code chunks at Q&A time.
+
+#### FAISS embed pipeline (`close-wiki embed`)
+- New `close-wiki embed [REPO]` command builds a FAISS flat L2 index over chunked source files
+- Chunks are ~1000 characters, stored in `.close-wiki/rag/chunks.json`; index saved to `.close-wiki/rag/index.faiss`
+- Uses `litellm.embedding()` — model-agnostic, works with any litellm provider
+
+#### Hybrid Q&A retrieval
+- `close-wiki ask` now uses **hybrid retrieval**: FAISS top-8 code chunks + all wiki pages
+- Code chunks are injected as additional context under `## Relevant Source Code` in the LLM system prompt
+- Falls back gracefully to wiki-only mode when no FAISS index exists
+
+#### Auto-embed on scan
+- If `CLOSE_WIKI_EMBED_MODEL` is set, `close-wiki scan` automatically builds the FAISS index after wiki generation (step 8)
+
+#### scan_meta.json
+- Each scan now writes `.close-wiki/scan_meta.json` recording: `model`, `timestamp`, `close_wiki_version`, `file_count`, `embedded` flag
+
+### Tests
+- 89/89 passing
+- 8 new RAG tests (`tests/test_rag.py`)
+
+---
+
 ## v0.6.0 — Agentic Wiki Orchestration & DeepWiki-Style Structure
 
 ### What's new
