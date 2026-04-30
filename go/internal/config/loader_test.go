@@ -51,20 +51,18 @@ func TestLoadFromFile(t *testing.T) {
 }
 
 func TestEnvOverride(t *testing.T) {
+	// Env var overrides were intentionally removed — config comes from config.yml
+	// + CLI flags only. This test verifies that env vars are NOT applied.
 	tmp := t.TempDir()
-	t.Setenv("CLOSE_WIKI_MODEL", "claude-opus-4")
-	t.Setenv("CLOSE_WIKI_API_KEY", "sk-test")
-	t.Setenv("CLOSE_WIKI_EMBED_PROVIDER", "openai")
+	t.Setenv("CLOSE_WIKI_MODEL", "should-not-appear")
+	t.Setenv("CLOSE_WIKI_API_KEY", "should-not-appear")
 
 	cfg, _ := Load(tmp)
-	if cfg.LLM.Model != "claude-opus-4" {
-		t.Errorf("env override failed: got %s", cfg.LLM.Model)
+	if cfg.LLM.Model == "should-not-appear" {
+		t.Error("env var CLOSE_WIKI_MODEL should NOT override config (feature removed)")
 	}
-	if cfg.LLM.APIKey != "sk-test" {
-		t.Errorf("api_key override failed")
-	}
-	if cfg.LLM.EmbedProvider != "openai" {
-		t.Errorf("embed_provider override failed")
+	if cfg.LLM.APIKey == "should-not-appear" {
+		t.Error("env var CLOSE_WIKI_API_KEY should NOT override config (feature removed)")
 	}
 }
 

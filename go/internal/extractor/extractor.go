@@ -24,6 +24,7 @@ type Registry struct {
 func NewRegistry() *Registry {
 	return &Registry{
 		extractors: []Extractor{
+			NewGoExtractor(),
 			NewPythonExtractor(),
 			NewTypeScriptExtractor(),
 			NewConfigExtractor(),

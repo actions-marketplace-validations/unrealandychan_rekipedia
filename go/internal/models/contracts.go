@@ -34,6 +34,8 @@ const (
 	SymbolEnum      SymbolKind = "enum"
 	SymbolModule    SymbolKind = "module"
 	SymbolOther     SymbolKind = "other"
+	SymbolMethod    SymbolKind = "method"
+	SymbolConstant  SymbolKind = "constant"
 )
 
 // RelKind enumerates the kinds of relationships between symbols.

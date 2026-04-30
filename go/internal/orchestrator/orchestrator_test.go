@@ -115,7 +115,7 @@ func TestSnapshotterExtraIgnore(t *testing.T) {
 	must(t, os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main"), 0o644))
 	must(t, os.WriteFile(filepath.Join(dir, "secret.key"), []byte("supersecret"), 0o644))
 
-	snapper := NewSnapshotter(dir, []string{"*.key"})
+	snapper := NewSnapshotter(dir, []string{"*.key"}, nil)
 	files, _ := snapper.Snapshot()
 	for _, f := range files {
 		if filepath.Ext(f.Path) == ".key" {
