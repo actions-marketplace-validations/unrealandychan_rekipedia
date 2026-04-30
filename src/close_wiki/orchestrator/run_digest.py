@@ -255,6 +255,59 @@ def run_digest(
         MarkdownExporter(output_dir).export(pages, diagrams)
         JsonExporter(output_dir).export(run_id, files, combined, pages, diagrams)
 
+        # ── 7. Write scan_meta.json ───────────────────────────────────
+        from close_wiki.rag.scan_meta import write_scan_meta  # noqa: PLC0415
+
+        write_scan_meta(
+            output_dir,
+            repo_path=str(repo_root),
+            model=llm_config.model,
+            run_id=run_id,
+            file_count=len(files),
+            page_count=len(pages),
+        )
+        _vlog("scan_meta.json written")
+
+        # ── 8. RAG embed (optional — skip if no embed key configured) ─
+        embed_model = (
+            __import__("os").environ.get("CLOSE_WIKI_EMBED_MODEL", "")
+            or getattr(llm_config, "embed_model", "")
+        )
+        skip_embed = __import__("os").environ.get("CLOSE_WIKI_SKIP_EMBED", "").lower() in (
+            "1", "true", "yes"
+        )
+        # Only embed when an explicit embed model is set (avoids surprise API calls)
+        if embed_model and not skip_embed:
+            _log("Building RAG embed index…")
+            from close_wiki.rag.embedder import EmbedPipeline  # noqa: PLC0415
+            from close_wiki.rag.scan_meta import patch_scan_meta  # noqa: PLC0415
+
+            embed_bar = tqdm(
+                bar_format="  {desc}",
+                dynamic_ncols=True,
+                leave=False,
+            )
+
+            def _embed_progress(msg: str) -> None:
+                embed_bar.set_description_str(msg)
+                embed_bar.refresh()
+
+            try:
+                pipe = EmbedPipeline(output_dir, llm_config)
+                n_chunks = pipe.build(repo_root, progress_cb=_embed_progress)
+                embed_bar.set_description_str(f"✅ Embedded {n_chunks} chunks")
+                embed_bar.refresh()
+                patch_scan_meta(output_dir, embedded=True, embed_model=embed_model)
+            except Exception as embed_exc:
+                logger.warning("RAG embed failed (non-fatal): %s", embed_exc)
+                embed_bar.set_description_str(f"⚠ Embed skipped: {embed_exc}")
+                embed_bar.refresh()
+            finally:
+                embed_bar.close()
+        else:
+            if not skip_embed:
+                _vlog("CLOSE_WIKI_EMBED_MODEL not set — skipping RAG embed")
+
         store.update_run_status(run_id, "success")
         _vlog("Done.")
 

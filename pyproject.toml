@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "close-wiki"
-version = "0.6.0"
+version = "0.7.0"
 description = "Agentic repo-to-wiki: scan any repository into a knowledge store with wiki pages, diagrams, and grounded Q&A."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -42,6 +42,8 @@ dependencies = [
     "python-multipart>=0.0.9",
     "tqdm>=4.67.3",
     "pyfiglet>=1.0.4",
+    "faiss-cpu>=1.13.2",
+    "numpy>=2.4.4",
 ]
 
 [project.optional-dependencies]
@@ -65,6 +67,7 @@ packages = ["src/close_wiki"]
 dev-dependencies = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
+    "sqlite-utils>=3.38",
 ]
 
 [tool.pytest.ini_options]
