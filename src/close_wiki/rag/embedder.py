@@ -147,20 +147,29 @@ def _chunk_file(path: Path, repo_root: Path) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def _embed_batch(texts: list[str], model: str, llm_config: LLMConfig) -> np.ndarray:
-    """Call litellm.embedding() and return (N, D) float32 array."""
-    import litellm  # noqa: PLC0415
+    """Call embedding API and return (N, D) float32 array.
 
-    kwargs: dict = {"model": model, "input": texts}
-    # Use embed-specific key/url if set, otherwise fall back to main LLM config
+    When a custom base_url is configured (e.g. LiteLLM proxy), bypass litellm
+    and call the OpenAI-compatible endpoint directly — litellm overrides base_url
+    when it recognises provider prefixes like 'openai/'.
+    """
     api_key = getattr(llm_config, "embed_api_key", None) or llm_config.api_key
     base_url = getattr(llm_config, "embed_base_url", None) or llm_config.base_url
-    if api_key:
-        kwargs["api_key"] = api_key
-    if base_url:
-        kwargs["base_url"] = base_url
 
-    resp = litellm.embedding(**kwargs)
-    vecs = [item["embedding"] for item in resp.data]
+    if base_url:
+        # Use openai client directly so base_url is honoured unconditionally
+        import openai  # noqa: PLC0415
+        client = openai.OpenAI(api_key=api_key or "no-key", base_url=base_url)
+        resp = client.embeddings.create(model=model, input=texts)
+        vecs = [d.embedding for d in resp.data]
+    else:
+        import litellm  # noqa: PLC0415
+        kwargs: dict = {"model": model, "input": texts}
+        if api_key:
+            kwargs["api_key"] = api_key
+        resp = litellm.embedding(**kwargs)
+        vecs = [item["embedding"] for item in resp.data]
+
     return np.array(vecs, dtype=np.float32)
 
 
@@ -185,7 +194,13 @@ class EmbedPipeline:
             os.environ.get("CLOSE_WIKI_EMBED_PROVIDER")
             or getattr(llm_config, "embed_provider", "")
         )
-        if provider and "/" not in raw_model:
+        # When a custom base_url is set (e.g. LiteLLM proxy), skip the provider
+        # prefix — the proxy is OpenAI-compatible and handles routing itself.
+        # Only add "provider/model" when hitting the provider directly.
+        has_custom_base = bool(
+            getattr(llm_config, "embed_base_url", None) or llm_config.base_url
+        )
+        if provider and "/" not in raw_model and not has_custom_base:
             self._model = f"{provider}/{raw_model}"
         else:
             self._model = raw_model
