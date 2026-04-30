@@ -45,37 +45,72 @@ async function submitQuestion() {
   const btn = document.getElementById('ask-btn');
   const spinner = document.getElementById('spinner');
   const liveBox = document.getElementById('live-answer');
+  const liveA = document.getElementById('live-a');
 
   btn.disabled = true;
   spinner.style.display = 'block';
   liveBox.style.display = 'block';
   document.getElementById('live-q').textContent = q;
-  document.getElementById('live-a').innerHTML = '<em style="color:var(--muted)">Thinking…</em>';
+  liveA.innerHTML = '<em style="color:var(--muted)">Thinking…</em>';
 
-  const form = new FormData();
-  form.append('question', q);
+  let accumulated = '';
+  let firstChunk = true;
 
   try {
-    const res = await fetch('/ask', { method: 'POST', body: form });
-    const data = await res.json();
-    if (data.error) {
-      document.getElementById('live-a').innerHTML = '<span style="color:#f85149">' + data.error + '</span>';
-    } else {
-      document.getElementById('live-a').innerHTML = simpleMarkdown(data.answer);
-      const hist = document.getElementById('history');
-      const div = document.createElement('div');
-      div.className = 'qa-item';
-      div.innerHTML = '<div class="q">' + q + '</div><div class="prose">' + simpleMarkdown(data.answer) + '</div>';
-      hist.prepend(div);
-      liveBox.style.display = 'none';
-      input.value = '';
-    }
-  } catch(e) {
-    document.getElementById('live-a').innerHTML = '<span style="color:#f85149">Request failed</span>';
-  }
+    const url = '/ask/stream?question=' + encodeURIComponent(q);
+    const es = new EventSource(url);
 
-  btn.disabled = false;
-  spinner.style.display = 'none';
+    es.onmessage = (e) => {
+      if (e.data === '[DONE]') {
+        es.close();
+        btn.disabled = false;
+        spinner.style.display = 'none';
+
+        // Append to history
+        const hist = document.getElementById('history');
+        const div = document.createElement('div');
+        div.className = 'qa-item';
+        div.innerHTML =
+          '<div class="q">' + q + '</div>' +
+          '<div class="prose">' + simpleMarkdown(accumulated) + '</div>';
+        hist.prepend(div);
+        liveBox.style.display = 'none';
+        input.value = '';
+        return;
+      }
+      if (e.data.startsWith('[ERROR]')) {
+        liveA.innerHTML = '<span style="color:#f85149">' + e.data + '</span>';
+        es.close();
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        return;
+      }
+      // Unescape \n back to real newlines
+      const chunk = e.data.replace(/\\n/g, '\n');
+      accumulated += chunk;
+      if (firstChunk) {
+        liveA.innerHTML = '';
+        firstChunk = false;
+      }
+      liveA.innerHTML = simpleMarkdown(accumulated);
+      // Auto-scroll to bottom of live answer
+      liveA.scrollIntoView({ block: 'end', behavior: 'smooth' });
+    };
+
+    es.onerror = () => {
+      es.close();
+      if (!accumulated) {
+        liveA.innerHTML = '<span style="color:#f85149">Stream error — check server logs</span>';
+      }
+      btn.disabled = false;
+      spinner.style.display = 'none';
+    };
+
+  } catch(e) {
+    liveA.innerHTML = '<span style="color:#f85149">Request failed: ' + e.message + '</span>';
+    btn.disabled = false;
+    spinner.style.display = 'none';
+  }
 }
 
 document.getElementById('q-input').addEventListener('keydown', e => {

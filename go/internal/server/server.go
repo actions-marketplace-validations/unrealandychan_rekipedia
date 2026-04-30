@@ -43,6 +43,7 @@ func newRouter(s *Server) *chi.Mux {
 	r.Get("/api/pages", s.handleAPIPages)
 	r.Get("/api/page/{slug}", s.handleAPIPage)
 	r.Post("/api/ask", s.handleAPIAsk)
+	r.Get("/api/ask/stream", s.handleAPIAskStream)
 	r.Get("/api/health", s.handleHealth)
 	return r
 }
@@ -139,6 +140,42 @@ func (s *Server) handleAPIPage(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{"slug": slug, "title": title, "content": string(data)})
 }
 
+func (s *Server) handleAPIAskStream(w http.ResponseWriter, r *http.Request) {
+	question := r.URL.Query().Get("question")
+	if question == "" {
+		http.Error(w, "missing question", 400)
+		return
+	}
+
+	// Set SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.WriteHeader(http.StatusOK)
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming not supported", 500)
+		return
+	}
+
+	err := orchestrator.StreamAsk(r.Context(), question, s.repoRoot, s.outputDir,
+		orchestrator.AskOptions{LLMConfig: s.llmCfg},
+		func(chunk string) {
+			// Escape newlines so each SSE data line is single-line
+			safe := strings.ReplaceAll(chunk, "\n", `\n`)
+			fmt.Fprintf(w, "data: %s\n\n", safe)
+			flusher.Flush()
+		},
+	)
+	if err != nil {
+		fmt.Fprintf(w, "data: [ERROR] %s\n\n", err.Error())
+	} else {
+		fmt.Fprint(w, "data: [DONE]\n\n")
+	}
+	flusher.Flush()
+}
+
 func (s *Server) handleAPIAsk(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Question string `json:"question"`
@@ -174,7 +211,9 @@ func (s *Server) listPages() []pageInfo {
 	if err != nil {
 		return nil
 	}
-	var pages []pageInfo
+
+	// Build a map of slug -> H1 title from disk
+	available := make(map[string]string) // slug -> title
 	for _, e := range entries {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
 			continue
@@ -190,9 +229,49 @@ func (s *Server) listPages() []pageInfo {
 				}
 			}
 		}
-		pages = append(pages, pageInfo{Slug: slug, Title: title})
+		available[slug] = title
 	}
-	sort.Slice(pages, func(i, j int) bool { return pages[i].Slug < pages[j].Slug })
+
+	// Load nav_order from manifest.json if available
+	var navOrder []string
+	manifestPath := filepath.Join(s.outputDir, "exports", "manifest.json")
+	if data, err := os.ReadFile(manifestPath); err == nil {
+		var manifest struct {
+			NavOrder []string `json:"nav_order"`
+		}
+		if err := json.Unmarshal(data, &manifest); err == nil {
+			navOrder = manifest.NavOrder
+		}
+	}
+
+	// Build ordered slug list: nav_order first, then alphabetical remainder
+	seen := make(map[string]bool)
+	var orderedSlugs []string
+	for _, slug := range navOrder {
+		if _, ok := available[slug]; ok {
+			orderedSlugs = append(orderedSlugs, slug)
+			seen[slug] = true
+		}
+	}
+	// Collect remainder and sort alphabetically
+	var remainder []string
+	for slug := range available {
+		if !seen[slug] {
+			remainder = append(remainder, slug)
+		}
+	}
+	sort.Strings(remainder)
+	orderedSlugs = append(orderedSlugs, remainder...)
+
+	// Build final pageInfo list with #N · Title format
+	var pages []pageInfo
+	for i, slug := range orderedSlugs {
+		title := available[slug]
+		pages = append(pages, pageInfo{
+			Slug:  slug,
+			Title: fmt.Sprintf("#%d · %s", i+1, title),
+		})
+	}
 	return pages
 }
 
@@ -251,11 +330,19 @@ async function ask(){
   const ans=document.getElementById('answer');
   ans.style.display='block';
   ans.textContent='Thinking…';
-  try{
-    const r=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
-    const d=await r.json();
-    ans.textContent=d.answer||d.error||'No answer.';
-  }catch(e){ans.textContent='Error: '+e.message;}
+
+  let accumulated='';
+  const url='/api/ask/stream?question='+encodeURIComponent(q);
+  const es=new EventSource(url);
+
+  es.onmessage=(e)=>{
+    if(e.data==='[DONE]'){es.close();return;}
+    if(e.data.startsWith('[ERROR]')){ans.textContent=e.data;es.close();return;}
+    accumulated+=e.data.replace(/\\n/g,'\n');
+    ans.textContent=accumulated;
+    ans.scrollTop=ans.scrollHeight;
+  };
+  es.onerror=()=>{if(!accumulated)ans.textContent='Stream error.';es.close();};
 }
 document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')ask();});
 </script>
