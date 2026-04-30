@@ -80,8 +80,15 @@ type AnalysisResult struct {
 
 // Shard is a slice of files assigned to one extraction worker.
 type Shard struct {
-	ShardID string   `json:"shard_id"`
-	Files   []string `json:"files"`
+	ShardID string         `json:"shard_id"`
+	Root    string         `json:"root"`
+	Files   []FileManifest `json:"files"`
+}
+
+// QAHistory records a previous question-answer pair for multi-turn context.
+type QAHistory struct {
+	Question string `json:"question"`
+	Answer   string `json:"answer"`
 }
 
 // FileManifest records a file's identity for incremental updates.
