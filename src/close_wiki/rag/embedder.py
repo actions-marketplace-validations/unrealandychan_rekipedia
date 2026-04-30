@@ -157,33 +157,26 @@ def _embed_batch(texts: list[str], model: str, llm_config: LLMConfig) -> np.ndar
     base_url = getattr(llm_config, "embed_base_url", None) or llm_config.base_url
 
     if base_url:
-        # Use subprocess curl — WAF does JA3 TLS fingerprint checking,
-        # only real curl passes. curl is available on macOS/Linux by default.
-        import json as _json, subprocess, tempfile  # noqa: PLC0415
+        import httpx, certifi  # noqa: PLC0415
         url = base_url.rstrip("/") + "/embeddings"
-        payload = _json.dumps({"model": model, "input": texts})
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            f.write(payload)
-            tmp = f.name
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key or 'no-key'}",
+        }
+        payload = {"model": model, "input": texts}
         try:
-            result = subprocess.run(
-                [
-                    "curl", "-s", "-X", "POST", url,
-                    "-H", "Content-Type: application/json",
-                    "-H", f"Authorization: Bearer {api_key or 'no-key'}",
-                    "--data", f"@{tmp}",
-                ],
-                capture_output=True, text=True, timeout=60,
-            )
-            if result.returncode != 0:
-                raise RuntimeError(f"curl error: {result.stderr}")
-            data = _json.loads(result.stdout)
+            r = httpx.post(url, json=payload, headers=headers, timeout=60,
+                           verify=certifi.where())
+            logger.debug("Embed proxy status=%s content-type=%s body_preview=%s",
+                         r.status_code,
+                         r.headers.get("content-type", ""),
+                         r.text[:500])
+            r.raise_for_status()
+            data = r.json()
             vecs = [item["embedding"] for item in data["data"]]
         except Exception as exc:
-            logger.error("Embed proxy curl response: %s", getattr(exc, "stderr", str(exc))[:500])
+            logger.error("Embed proxy error: %s", exc)
             raise
-        finally:
-            import os; os.unlink(tmp)  # noqa: E702
     else:
         import litellm  # noqa: PLC0415
         kwargs: dict = {"model": model, "input": texts}
