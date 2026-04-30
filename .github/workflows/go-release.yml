@@ -23,9 +23,6 @@ jobs:
           go-version: '1.22'
           cache-dependency-path: go/go.sum
 
-      - name: Install CGO cross-compilation deps
-        run: sudo apt-get install -y gcc gcc-aarch64-linux-gnu
-
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:

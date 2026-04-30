@@ -12,7 +12,7 @@ builds:
     dir: .
     binary: close-wiki
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
     ldflags:
       - -s -w
       - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.version={{.Version}}
@@ -26,8 +26,7 @@ builds:
     dir: .
     binary: close-wiki
     env:
-      - CGO_ENABLED=1
-      - CC=aarch64-linux-gnu-gcc
+      - CGO_ENABLED=0
     ldflags:
       - -s -w
       - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.version={{.Version}}
@@ -41,7 +40,7 @@ builds:
     dir: .
     binary: close-wiki
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
     ldflags:
       - -s -w
       - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.version={{.Version}}
@@ -50,8 +49,22 @@ builds:
     goos: [darwin]
     goarch: [arm64]
 
+  - id: close-wiki-darwin-amd64
+    main: ./cmd/close-wiki
+    dir: .
+    binary: close-wiki
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.version={{.Version}}
+      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.commit={{.Commit}}
+      - -X github.com/unrealandychan/close-wiki/cmd/close-wiki/cmd.date={{.Date}}
+    goos: [darwin]
+    goarch: [amd64]
+
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - ../README.md
@@ -59,7 +72,7 @@ archives:
       - ../RELEASE-NOTES.md
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
 
 checksum:
   name_template: "checksums.txt"
