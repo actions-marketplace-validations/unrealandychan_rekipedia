@@ -1,0 +1,46 @@
+name: Go CI
+
+on:
+  push:
+    branches: [feat/golang-rewrite, main]
+    paths: ['go/**']
+  pull_request:
+    branches: [main]
+    paths: ['go/**']
+
+jobs:
+  test:
+    name: Test & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: go
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: go/go.sum
+
+      - name: Install CGO deps
+        run: sudo apt-get install -y gcc gcc-aarch64-linux-gnu
+
+      - name: go mod tidy check
+        run: |
+          go mod tidy
+          git diff --exit-code go/go.sum || (echo "go.sum not up to date — run 'go mod tidy'" && exit 1)
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./... -v -count=1 -timeout 120s
+
+      - name: Build binary (smoke test)
+        run: |
+          CGO_ENABLED=1 go build -ldflags "-s -w" -o /tmp/close-wiki ./cmd/close-wiki
+          /tmp/close-wiki --version
+          /tmp/close-wiki --help
+          /tmp/close-wiki scan --help
