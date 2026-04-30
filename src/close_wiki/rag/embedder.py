@@ -164,6 +164,7 @@ def _embed_batch(texts: list[str], model: str, llm_config: LLMConfig) -> np.ndar
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key or 'no-key'}",
+            "User-Agent": "curl/7.88.1",
         }
         payload = {"model": model, "input": texts}
         try:

@@ -221,6 +221,7 @@ func embedViaHTTP(ctx context.Context, baseURL, apiKey, model string, texts []st
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("User-Agent", "curl/7.88.1")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
