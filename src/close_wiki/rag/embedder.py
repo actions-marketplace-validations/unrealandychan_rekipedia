@@ -159,9 +159,17 @@ def _embed_batch(texts: list[str], model: str, llm_config: LLMConfig) -> np.ndar
     if base_url:
         # Use openai client directly so base_url is honoured unconditionally
         import openai  # noqa: PLC0415
+        import httpx  # noqa: PLC0415
         client = openai.OpenAI(api_key=api_key or "no-key", base_url=base_url)
-        resp = client.embeddings.create(model=model, input=texts)
-        vecs = [d.embedding for d in resp.data]
+        try:
+            resp = client.embeddings.create(model=model, input=texts)
+            vecs = [d.embedding for d in resp.data]
+        except Exception as exc:
+            # Surface raw response body for debugging proxy issues
+            raw = getattr(getattr(exc, "response", None), "text", None)
+            if raw:
+                logger.error("Embed proxy raw response (first 500 chars): %s", raw[:500])
+            raise
     else:
         import litellm  # noqa: PLC0415
         kwargs: dict = {"model": model, "input": texts}
