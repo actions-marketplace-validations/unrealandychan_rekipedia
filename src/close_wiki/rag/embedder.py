@@ -157,18 +157,17 @@ def _embed_batch(texts: list[str], model: str, llm_config: LLMConfig) -> np.ndar
     base_url = getattr(llm_config, "embed_base_url", None) or llm_config.base_url
 
     if base_url:
-        # Use httpx directly — OpenAI SDK sends extra fields (encoding_format etc.)
-        # that some proxies reject or return non-JSON for.
-        import httpx  # noqa: PLC0415
+        # Use curl_cffi (libcurl TLS fingerprint) — plain httpx/ssl is blocked
+        # by F5 Volterra WAF via JA3 fingerprinting even with curl User-Agent.
+        from curl_cffi import requests as curl_requests  # noqa: PLC0415
         url = base_url.rstrip("/") + "/embeddings"
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key or 'no-key'}",
-            "User-Agent": "curl/7.88.1",
         }
         payload = {"model": model, "input": texts}
         try:
-            r = httpx.post(url, json=payload, headers=headers, timeout=60)
+            r = curl_requests.post(url, json=payload, headers=headers, timeout=60, impersonate="curl")
             r.raise_for_status()
             data = r.json()
             vecs = [item["embedding"] for item in data["data"]]

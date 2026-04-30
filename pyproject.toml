@@ -26,6 +26,7 @@ classifiers = [
     "Topic :: Software Development :: Documentation",
 ]
 dependencies = [
+    "curl_cffi>=0.7",
     "click>=8.1",
     "pydantic>=2.0",
     # pyturso provides a modern MVCC storage engine.
