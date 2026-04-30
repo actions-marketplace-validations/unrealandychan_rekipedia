@@ -28,6 +28,7 @@ Output a single JSON object — no markdown fences, no commentary:
       "title": "Human Readable Title",
       "section": "section-id",
       "priority": 1,
+      "importance": 90,
       "focus": "Very detailed instruction: exact sections to write, what tables/diagrams to include, which symbols to document.",
       "required_data": ["files_seen"],
       "tags": ["overview"]
@@ -36,6 +37,15 @@ Output a single JSON object — no markdown fences, no commentary:
   "nav_order": ["slug1", "slug2"],
   "index_slug": "index"
 }
+
+## importance field (0–100):
+Assign an importance score to each page:
+- 95–100: index, architecture-overview (always-read pages)
+- 80–94: core-module pages, data-flow, repository-structure
+- 60–79: api-reference, configuration, testing
+- 40–59: internals, algorithms, contributing
+- 20–39: ecosystem, deployment, third-party integrations
+importance drives nav prominence in the web UI and determines which pages are shown first.
 
 ## Section design (inspired by DeepWiki)
 
@@ -104,8 +114,27 @@ class WikiPlan:
     def __init__(self, data: dict) -> None:
         self.pages: list[dict] = data.get("pages", [])
         self.sections: list[dict] = data.get("sections", [])
-        self.nav_order: list[str] = data.get("nav_order", [s["slug"] for s in self.pages])
         self.index_slug: str = data.get("index_slug", "index")
+
+        # Build nav_order: respect planner's explicit order if provided,
+        # then sort by importance (desc) then priority (asc) for stable ordering.
+        raw_nav = data.get("nav_order", [])
+        if raw_nav:
+            # Planner provided an order — honour it, then append any missing slugs
+            ordered = list(raw_nav)
+            known = set(ordered)
+            extras = sorted(
+                [p for p in self.pages if p["slug"] not in known],
+                key=lambda p: (-p.get("importance", 50), p.get("priority", 99)),
+            )
+            self.nav_order: list[str] = ordered + [p["slug"] for p in extras]
+        else:
+            # No explicit order — sort by importance desc, priority asc
+            sorted_pages = sorted(
+                self.pages,
+                key=lambda p: (-p.get("importance", 50), p.get("priority", 99)),
+            )
+            self.nav_order = [p["slug"] for p in sorted_pages]
 
     def get_page(self, slug: str) -> dict | None:
         return next((p for p in self.pages if p["slug"] == slug), None)

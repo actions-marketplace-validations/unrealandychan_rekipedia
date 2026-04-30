@@ -45,16 +45,47 @@ class JsonExporter:
         )
 
         # manifest.json
+        nav_order: list[str] = []
+        pages_meta: list[dict] = []
+        try:
+            import json as _json  # noqa: PLC0415
+            nav_order = _json.loads(combined.evidence.get("nav_order", "[]"))
+            pages_meta = _json.loads(combined.evidence.get("wiki_pages_meta", "[]"))
+        except Exception:
+            pass
+
+        # Build ordered pages list: nav_order first, then any unordered remainder
+        ordered_slugs = nav_order or list(pages.keys())
+        pages_meta_by_slug = {p["slug"]: p for p in pages_meta}
+        pages_list = []
+        for slug in ordered_slugs:
+            if slug not in pages:
+                continue
+            title = pages[slug][0]
+            meta = pages_meta_by_slug.get(slug, {})
+            entry: dict = {"slug": slug, "title": title}
+            if "importance" in meta:
+                entry["importance"] = meta["importance"]
+            if "priority" in meta:
+                entry["priority"] = meta["priority"]
+            if "section" in meta:
+                entry["section"] = meta["section"]
+            if "tags" in meta:
+                entry["tags"] = meta["tags"]
+            pages_list.append(entry)
+        # Append any slugs not in nav_order
+        for slug, (title, _) in pages.items():
+            if slug not in {e["slug"] for e in pages_list}:
+                pages_list.append({"slug": slug, "title": title})
+
         manifest = {
             "run_id": run_id,
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "file_count": len(files),
             "symbol_count": len(combined.symbols),
             "relationship_count": len(combined.relationships),
-            "pages": [
-                {"slug": slug, "title": title}
-                for slug, (title, _) in pages.items()
-            ],
+            "nav_order": ordered_slugs,
+            "pages": pages_list,
             "diagrams": list(diagrams.keys()),
             "risks": combined.risks,
             "build_commands": combined.build_commands,

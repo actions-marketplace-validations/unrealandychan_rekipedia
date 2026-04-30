@@ -35,6 +35,13 @@ console = Console()
     "Can also be set via CLOSE_WIKI_EMBED_MODEL env var.",
 )
 @click.option(
+    "--provider",
+    default=None,
+    envvar="CLOSE_WIKI_EMBED_PROVIDER",
+    help="Embedding provider (e.g. openai, ollama, azure). "
+    "Combined with --model as 'provider/model' for litellm routing.",
+)
+@click.option(
     "--api-key",
     default=None,
     envvar="OPENAI_API_KEY",
@@ -57,6 +64,7 @@ def embed_cmd(
     repo_path: str,
     output_dir: str | None,
     model: str | None,
+    provider: str | None,
     api_key: str | None,
     base_url: str | None,
     top_k: int,
@@ -81,11 +89,15 @@ def embed_cmd(
         sys.exit(1)
 
     embed_model = model or os.environ.get("CLOSE_WIKI_EMBED_MODEL", "text-embedding-3-small")
+    embed_provider = provider or os.environ.get("CLOSE_WIKI_EMBED_PROVIDER", "")
 
     console.print(f"[bold cyan]close-wiki embed[/bold cyan]")
     console.print(f"  repo       : {repo}")
     console.print(f"  output-dir : {out}")
-    console.print(f"  model      : {embed_model}")
+    if embed_provider:
+        console.print(f"  model      : {embed_provider}/{embed_model}")
+    else:
+        console.print(f"  model      : {embed_model}")
     console.print()
 
     from close_wiki.models.contracts import LLMConfig  # noqa: PLC0415
@@ -95,9 +107,13 @@ def embed_cmd(
     llm_config = LLMConfig(
         api_key=api_key or "",
         base_url=base_url or "",
+        embed_model=embed_model,
+        embed_provider=embed_provider,
     )
-    # Attach embed_model dynamically so EmbedPipeline picks it up
+    # Also set env vars so EmbedPipeline resolution chain picks them up
     os.environ["CLOSE_WIKI_EMBED_MODEL"] = embed_model
+    if embed_provider:
+        os.environ["CLOSE_WIKI_EMBED_PROVIDER"] = embed_provider
 
     pipe = EmbedPipeline(out, llm_config)
 

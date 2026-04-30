@@ -170,11 +170,21 @@ class EmbedPipeline:
     def __init__(self, output_dir: Path, llm_config: LLMConfig) -> None:
         self._out = output_dir / _RAG_DIR
         self._cfg = llm_config
-        self._model = (
+        # Resolve embed model: CLI flag → config field → env var → default
+        raw_model = (
             os.environ.get("CLOSE_WIKI_EMBED_MODEL")
             or getattr(llm_config, "embed_model", None)
             or _DEFAULT_EMBED_MODEL
         )
+        # If user specified a provider, build the litellm model string: "provider/model"
+        provider = (
+            os.environ.get("CLOSE_WIKI_EMBED_PROVIDER")
+            or getattr(llm_config, "embed_provider", "")
+        )
+        if provider and "/" not in raw_model:
+            self._model = f"{provider}/{raw_model}"
+        else:
+            self._model = raw_model
 
     # ------------------------------------------------------------------
     # Build

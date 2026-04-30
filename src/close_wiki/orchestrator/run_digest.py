@@ -240,6 +240,9 @@ def run_digest(
         combined_for_build.evidence["nav_order"] = json.dumps(wiki_plan.nav_order)
         combined_for_build.evidence["wiki_sections"] = json.dumps(wiki_plan.sections)
         combined_for_build.evidence["index_slug"] = wiki_plan.index_slug
+        combined_for_build.evidence["wiki_pages_meta"] = json.dumps(
+            [{k: v for k, v in p.items() if k != "focus"} for p in wiki_plan.pages]
+        )
 
         for slug, (title, content) in pages.items():
             store.upsert_page(run_id, slug, title, content)

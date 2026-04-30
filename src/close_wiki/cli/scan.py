@@ -31,7 +31,17 @@ def _load_config(repo: Path) -> dict:
 @click.option("--no-docker", is_flag=True, default=False, help="Skip Docker, run extractors in-process.")
 @click.option("--output-dir", default=None, type=click.Path(path_type=Path), help="Output directory (default: REPO/.close-wiki).")
 @click.option("--verbose", "-v", is_flag=True, default=False, help="Enable debug logging (litellm, HTTP, full tracebacks).")
-def scan_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path | None, verbose: bool) -> None:
+@click.option("--embed-model", default=None, envvar="CLOSE_WIKI_EMBED_MODEL", help="Embedding model for RAG index (e.g. text-embedding-3-small). If set, auto-embeds after scan.")
+@click.option("--embed-provider", default=None, envvar="CLOSE_WIKI_EMBED_PROVIDER", help="Embedding provider prefix (e.g. openai, ollama, azure). Combined with --embed-model as 'provider/model'.")
+def scan_cmd(
+    repo: Path,
+    model: str | None,
+    no_docker: bool,
+    output_dir: Path | None,
+    verbose: bool,
+    embed_model: str | None,
+    embed_provider: str | None,
+) -> None:
     """Scan REPO and (re)build the close-wiki knowledge store.
 
     Produces wiki pages in OUTPUT_DIR/wiki/, diagrams in OUTPUT_DIR/diagrams/,
@@ -55,12 +65,17 @@ def scan_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path | 
         api_key=os.environ.get("CLOSE_WIKI_API_KEY") or llm_cfg_raw.get("api_key", ""),
         base_url=os.environ.get("CLOSE_WIKI_BASE_URL") or llm_cfg_raw.get("base_url", ""),
         temperature=llm_cfg_raw.get("temperature", 0.2),
+        embed_model=embed_model or llm_cfg_raw.get("embed_model", ""),
+        embed_provider=embed_provider or llm_cfg_raw.get("embed_provider", ""),
     )
 
     console.print(f"[bold green]close-wiki scan[/bold green] {repo}")
     console.print(f"  model    : [cyan]{llm_config.model}[/cyan]")
     console.print(f"  output   : [cyan]{output_dir}[/cyan]")
     console.print(f"  runner   : [cyan]{'local (--no-docker)' if no_docker else 'auto'}[/cyan]")
+    if llm_config.embed_model:
+        _em = f"{llm_config.embed_provider}/{llm_config.embed_model}" if llm_config.embed_provider else llm_config.embed_model
+        console.print(f"  embed    : [cyan]{_em}[/cyan]")
     if verbose:
         console.print("  mode     : [yellow]verbose (debug logging ON)[/yellow]")
     console.rule()

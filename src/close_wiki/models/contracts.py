@@ -15,6 +15,10 @@ class LLMConfig(BaseModel):
     api_key: str = ""
     base_url: str = ""
     temperature: float = 0.2
+    # Embedding model / provider (separate from the generation LLM)
+    # If embed_model is empty, EmbedPipeline falls back to CLOSE_WIKI_EMBED_MODEL env var.
+    embed_model: str = ""
+    embed_provider: str = ""  # e.g. "openai", "ollama", "azure" — used to build litellm model string
 
 
 # ─────────────────────────────────────────────
