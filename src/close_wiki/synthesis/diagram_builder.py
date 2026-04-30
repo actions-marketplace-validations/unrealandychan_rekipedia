@@ -37,11 +37,27 @@ def _build_module_graph(rows: list[dict], entry_points: list[str] | None = None)
         kind = r.get("kind") or ""
         if not frm or not to:
             continue
-        # Only internal relationships (skip external packages)
-        if kind == "import" and ("/" in to or "." in to or to.startswith("close_wiki")):
-            import_edges.append((frm, to))
-            seen_nodes.add(frm)
-            seen_nodes.add(to)
+        # Only keep internal relationships — filter out stdlib/well-known external packages
+        _EXTERNAL_PREFIXES = (
+            "os", "sys", "re", "io", "json", "time", "math", "typing", "pathlib",
+            "collections", "itertools", "functools", "dataclasses", "enum", "abc",
+            "logging", "threading", "subprocess", "asyncio", "contextlib", "copy",
+            "hashlib", "base64", "uuid", "random", "datetime", "string", "struct",
+            # popular third-party
+            "fastapi", "pydantic", "sqlalchemy", "django", "flask", "requests",
+            "httpx", "aiohttp", "numpy", "pandas", "torch", "sklearn", "openai",
+            "boto3", "celery", "redis", "pytest", "click", "typer", "rich",
+            "starlette", "uvicorn", "gunicorn", "alembic", "litellm", "faiss",
+        )
+        if kind == "import":
+            # Keep if it looks internal: has path separator, has dot-notation, or
+            # doesn't start with a known external package name
+            is_external = any(to == p or to.startswith(p + ".") or to.startswith(p + "/")
+                              for p in _EXTERNAL_PREFIXES)
+            if not is_external and to:
+                import_edges.append((frm, to))
+                seen_nodes.add(frm)
+                seen_nodes.add(to)
         elif kind == "call":
             call_edges.append((frm, to))
             seen_nodes.add(frm)

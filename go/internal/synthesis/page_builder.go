@@ -26,6 +26,34 @@ Rules:
 - Do NOT add a title (H1) — that will be added by the renderer
 - Do NOT include commentary about the task itself`
 
+// pageExtraFocus holds additional per-slug focus instructions injected into the prompt.
+var pageExtraFocus = map[string]string{
+	"technical-debt": `Analyse and document all technical debt found in this codebase. Include:
+## Summary
+A 2–3 sentence executive summary of the overall technical health. Give an overall debt rating: Low / Medium / High / Critical.
+## Debt Inventory
+A prioritised table:
+| # | Area | Severity | Description | Files Affected | Effort to Fix |
+|---|------|----------|-------------|----------------|---------------|
+Severity: 🔴 Critical / 🟠 High / 🟡 Medium / 🟢 Low. Effort: S (<1d) / M (1-3d) / L (1-2w) / XL (>2w).
+## Critical Issues
+For each Critical/High item: file references, the problematic pattern, why it matters, and a concrete fix suggestion.
+## Code Smell Patterns
+Recurring anti-patterns (God classes, deep nesting, duplicated logic, missing error handling, hardcoded values). Show a real example and recommended refactor.
+## Missing Tests
+Areas with insufficient coverage. List specific modules/functions lacking tests.
+## Dependency & Security Concerns
+Outdated or risky dependencies from go.mod / pyproject.toml / package.json.
+## TODO / FIXME Tracker
+Every TODO, FIXME, HACK, XXX comment found:
+| File | Comment | Suggested Action |
+|------|---------|-----------------|
+## Refactoring Roadmap
+| Priority | Action | Rationale | Estimated Effort |
+|----------|--------|-----------|-----------------|
+Do NOT fabricate issues — only report what is evidenced in the provided data.`,
+}
+
 const maxPageWorkers = 4
 
 // PageBuilder builds wiki pages concurrently via the LLM.
@@ -86,9 +114,14 @@ func (b *PageBuilder) BuildPage(ctx context.Context, spec models.WikiPageSpec, p
 	sliced := slicePayload(payload, spec.RequiredData)
 	payloadJSON, _ := json.Marshal(sliced)
 
+	focus := spec.Focus
+	if extra, ok := pageExtraFocus[spec.Slug]; ok {
+		focus = extra + "\n\n" + focus
+	}
+
 	prompt := fmt.Sprintf(
 		"## Page to write\nSlug: %s\nTitle: %s\nSection: %s\nImportance: %d\n\nFocus instructions:\n%s\n\n## Repository data\n\n```json\n%s\n```",
-		spec.Slug, spec.Title, spec.Section, spec.Importance, spec.Focus, string(payloadJSON),
+		spec.Slug, spec.Title, spec.Section, spec.Importance, focus, string(payloadJSON),
 	)
 
 	content, err := b.client.Call(ctx, pageSystemPrompt, prompt)

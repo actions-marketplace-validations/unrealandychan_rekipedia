@@ -53,8 +53,9 @@ Common sections: getting-started, architecture, core-components, api-reference, 
 
 ## Always include (if data supports):
 - ` + "`index`" + `: Project overview, key features, quick-start, repo structure tree
-- ` + "`repository-structure`" + `: Full repo layout with annotations (REQUIRED if file_count ≥ 10)
-- ` + "`architecture-overview`" + `: System diagram (Mermaid flowchart LR), component responsibilities
+|- ` + "`repository-structure`" + `: Full repo layout with annotations (REQUIRED if file_count >= 10)
+- ` + "`architecture-overview`" + `: System diagram (Mermaid flowchart LR), component responsibilities, design decisions, data flow
+- ` + "`technical-debt`" + `: ALWAYS include this page. Analyse TODO/FIXME comments, code smells, missing tests, risky dependencies, anti-patterns. Importance: 70. Section: development. required_data: ["symbols", "files_seen", "relationships"]
 
 ## Page splitting rules:
 - ≥5 major top-level modules → one page PER module
@@ -261,6 +262,15 @@ func fallbackPlan(result models.AnalysisResult) models.WikiPlan {
 			Tags:         []string{"testing"},
 		})
 	}
+
+	// Always add technical-debt page
+	pages = append(pages, models.WikiPageSpec{
+		Slug: "technical-debt", Title: "Technical Debt", Section: "development",
+		Priority: 5, Importance: 70,
+		Focus:        "Analyse TODO/FIXME comments, code smells, missing tests, risky dependencies, anti-patterns. Produce a prioritised debt inventory table with severity + effort estimates. Include a refactoring roadmap.",
+		RequiredData: []string{"symbols", "files_seen", "relationships"},
+		Tags:         []string{"internals", "contributing"},
+	})
 
 	sections := []models.WikiSection{
 		{ID: "getting-started", Title: "Getting Started", Pages: []string{"index"}},

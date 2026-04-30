@@ -21,6 +21,7 @@ CANONICAL_PAGES = [
     "configuration",
     "testing",
     "ecosystem-and-integrations",
+    "technical-debt",
 ]
 
 _PAGE_FOCUS: dict[str, str] = {
@@ -162,6 +163,30 @@ Plugin interfaces, hooks, or extension mechanisms found in the codebase.
 Similar tools or projects in the same space (based on evidence in README/docs if found).
 ## Roadmap / Known Limitations
 Any TODOs, FIXMEs, or risk items found in the analysis.""",
+    "technical-debt": """Analyse and document all technical debt found in this codebase. Include:
+## Summary
+A 2–3 sentence executive summary of the overall technical health of the codebase. Give an overall debt rating: Low / Medium / High / Critical.
+## Debt Inventory
+A prioritised table of every debt item found:
+| # | Area | Severity | Description | Files Affected | Effort to Fix |
+|---|------|----------|-------------|----------------|---------------|
+Severity: 🔴 Critical / 🟠 High / 🟡 Medium / 🟢 Low.
+Effort: S (< 1 day) / M (1–3 days) / L (1–2 weeks) / XL (> 2 weeks).
+## Critical Issues
+For each Critical/High item: a dedicated subsection with exact file references, the problematic pattern, why it's a problem, and a concrete fix suggestion with code snippet if applicable.
+## Code Smell Patterns
+Recurring anti-patterns found (e.g. God classes, deep nesting, duplicated logic, missing error handling, hardcoded values). For each: show a real example from the code and the recommended refactor.
+## Missing Tests
+Areas with insufficient test coverage based on test_file_count and impl_file_count ratio. List specific modules/functions that lack tests.
+## Dependency & Security Concerns
+Outdated or risky dependencies found in pyproject.toml / package.json / go.mod. Flag any known CVE-prone patterns.
+## TODO / FIXME Tracker
+Extract and list every TODO, FIXME, HACK, XXX comment found in the codebase in a table: File | Line | Comment | Suggested Action.
+## Refactoring Roadmap
+A prioritised action plan — order by impact/effort ratio:
+| Priority | Action | Rationale | Estimated Effort |
+|----------|--------|-----------|-----------------|
+Do NOT fabricate issues — only report what is actually evidenced in the symbols, files, and relationships provided.""",
 }
 
 

@@ -171,14 +171,30 @@ func safeClassName(name string) string {
 }
 
 // isInternalLookingModule heuristically detects internal imports.
+// Keeps anything that isn't a known stdlib / popular third-party package.
 func isInternalLookingModule(name string) bool {
-	// Standard lib / well-known external packages are likely external
 	external := map[string]bool{
+		// Go stdlib
 		"os": true, "sys": true, "re": true, "json": true, "math": true,
 		"io": true, "fmt": true, "log": true, "time": true, "net": true,
 		"http": true, "strings": true, "strconv": true, "errors": true,
 		"context": true, "sync": true, "path": true, "sort": true,
 		"bytes": true, "bufio": true, "crypto": true, "reflect": true,
+		"runtime": true, "testing": true, "flag": true, "encoding": true,
+		// Python stdlib
+		"typing": true, "pathlib": true, "collections": true, "itertools": true,
+		"functools": true, "dataclasses": true, "enum": true, "abc": true,
+		"logging": true, "threading": true, "subprocess": true, "asyncio": true,
+		"contextlib": true, "copy": true, "hashlib": true, "base64": true,
+		"uuid": true, "random": true, "datetime": true, "struct": true,
+		// Popular third-party
+		"fastapi": true, "pydantic": true, "sqlalchemy": true, "django": true,
+		"flask": true, "requests": true, "httpx": true, "aiohttp": true,
+		"numpy": true, "pandas": true, "torch": true, "sklearn": true,
+		"openai": true, "boto3": true, "celery": true, "redis": true,
+		"pytest": true, "click": true, "typer": true, "rich": true,
+		"starlette": true, "uvicorn": true, "gunicorn": true, "alembic": true,
+		"litellm": true, "faiss": true,
 	}
 	return !external[name]
 }

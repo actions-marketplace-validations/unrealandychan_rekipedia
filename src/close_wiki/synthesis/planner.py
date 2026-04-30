@@ -66,7 +66,8 @@ Only create sections that have ≥2 pages. If a section would have 1 page, merge
 ## Always include these pages (if data supports):
 - `index`: Project overview, key features, quick-start snippet, repo structure tree (as code block), badges
 - `repository-structure`: Full repo layout with annotations — every top-level dir/file explained. Use a tree diagram + table. REQUIRED if file_count ≥ 10.
-- `architecture-overview`: System diagram (Mermaid flowchart LR), component responsibilities, design decisions, data flow
+|- `architecture-overview`: System diagram (Mermaid flowchart LR), component responsibilities, design decisions, data flow
+- `technical-debt`: **ALWAYS include this page.** Analyse TODO/FIXME comments, code smells, missing tests, risky dependencies, and anti-patterns. Importance: 70. Section: development. required_data: [\"symbols\", \"files_seen\", \"relationships\"]
 
 ## Page splitting rules (critical for large repos):
 - If a repo has ≥5 major top-level modules → one page PER module (e.g. `module-cli`, `module-storage`, `module-llm`)
@@ -390,6 +391,17 @@ def _default_plan(combined: AnalysisResult) -> WikiPlan:
             "required_data": ["test_commands", "symbols", "files_seen"],
             "tags": ["testing"],
         })
+
+    # Always add technical-debt page
+    pages.append({
+        "slug": "technical-debt",
+        "title": "Technical Debt",
+        "priority": 7,
+        "focus": "Analyse TODO/FIXME comments, code smells, missing tests, risky dependencies, anti-patterns. Produce a prioritised debt inventory table with severity + effort estimates. Include a refactoring roadmap.",
+        "required_data": ["symbols", "files_seen", "relationships"],
+        "tags": ["internals", "contributing"],
+        "section": "development",
+    })
 
     nav_order = [p["slug"] for p in sorted(pages, key=lambda x: x["priority"])]
     sections = [
