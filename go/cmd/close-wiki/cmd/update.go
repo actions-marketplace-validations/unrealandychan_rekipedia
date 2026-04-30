@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/unrealandychan/close-wiki/internal/orchestrator"
 )
 
 var updateFlags struct {
@@ -20,8 +23,15 @@ var updateCmd = &cobra.Command{
 		if len(args) > 0 {
 			root = args[0]
 		}
-		fmt.Printf("→ Updating %s (not yet implemented)\n", root)
-		return nil
+		if err := os.MkdirAll(outputDir, 0o755); err != nil {
+			return err
+		}
+		cfg := loadLLMConfig(updateFlags.model, "", "")
+		progress := func(msg string) { fmt.Fprintln(os.Stderr, msg) }
+		return orchestrator.RunUpdate(cmd.Context(), root, outputDir, orchestrator.UpdateOptions{
+			LLMConfig: cfg,
+			Progress:  progress,
+		})
 	},
 }
 

@@ -4,6 +4,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -14,6 +15,9 @@ var (
 	commit  = "none"
 	date    = "unknown"
 )
+
+// outputDir is the persistent output directory flag (default: .close-wiki).
+var outputDir string
 
 var rootCmd = &cobra.Command{
 	Use:   "close-wiki",
@@ -33,6 +37,10 @@ func Execute() {
 }
 
 func init() {
+	cwd, _ := os.Getwd()
+	defaultOutput := filepath.Join(cwd, ".close-wiki")
+	rootCmd.PersistentFlags().StringVarP(&outputDir, "output", "o", defaultOutput, "Output directory")
+
 	rootCmd.AddCommand(
 		initCmd,
 		scanCmd,

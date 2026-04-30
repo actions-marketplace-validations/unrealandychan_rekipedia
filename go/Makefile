@@ -58,6 +58,9 @@ check: lint test smoke
 release-dry:
 	goreleaser release --snapshot --clean
 
+## release-dry-run: alias for release-dry
+release-dry-run: release-dry
+
 ## clean: remove build artifacts
 clean:
 	rm -rf $(BUILD_DIR)

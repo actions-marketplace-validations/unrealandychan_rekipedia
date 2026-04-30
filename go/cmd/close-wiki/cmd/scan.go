@@ -2,8 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/unrealandychan/close-wiki/internal/config"
+	"github.com/unrealandychan/close-wiki/internal/models"
+	"github.com/unrealandychan/close-wiki/internal/orchestrator"
 )
 
 var scanFlags struct {
@@ -30,9 +35,26 @@ var scanCmd = &cobra.Command{
 		if len(args) > 0 {
 			root = args[0]
 		}
-		// TODO: wire orchestrator.RunDigest
-		fmt.Printf("→ Scanning %s (not yet implemented — use Python CLI for now)\n", root)
-		return nil
+
+		outDir := outputDir
+		if scanFlags.outputDir != "" {
+			outDir = scanFlags.outputDir
+		}
+		if err := os.MkdirAll(outDir, 0o755); err != nil {
+			return err
+		}
+
+		cfg := loadLLMConfig(scanFlags.model, scanFlags.apiKey, scanFlags.baseURL)
+
+		progress := func(msg string) {
+			fmt.Fprintln(os.Stderr, msg)
+		}
+
+		return orchestrator.RunDigest(cmd.Context(), root, outDir, orchestrator.DigestOptions{
+			LLMConfig: cfg,
+			Verbose:   scanFlags.verbose,
+			Progress:  progress,
+		})
 	},
 }
 
@@ -44,4 +66,25 @@ func init() {
 	scanCmd.Flags().BoolVarP(&scanFlags.verbose, "verbose", "v", false, "Verbose output")
 	scanCmd.Flags().StringVar(&scanFlags.embedModel, "embed-model", "", "Embedding model")
 	scanCmd.Flags().StringVar(&scanFlags.embedProvider, "embed-provider", "", "Embedding provider")
+}
+
+// loadLLMConfig merges flags with config file defaults.
+func loadLLMConfig(model, apiKey, baseURL string) models.LLMConfig {
+	cfg, err := config.Load("")
+	var llmCfg models.LLMConfig
+	if err == nil {
+		llmCfg = cfg.LLM
+	} else {
+		llmCfg = models.DefaultLLMConfig()
+	}
+	if model != "" {
+		llmCfg.Model = model
+	}
+	if apiKey != "" {
+		llmCfg.APIKey = apiKey
+	}
+	if baseURL != "" {
+		llmCfg.BaseURL = baseURL
+	}
+	return llmCfg
 }
