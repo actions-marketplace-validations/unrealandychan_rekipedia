@@ -3,9 +3,13 @@
 package llm
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -147,35 +151,32 @@ func (c *Client) Embed(ctx context.Context, texts []string) ([][]float32, error)
 		embedModel = "text-embedding-3-small"
 	}
 
-	// When using a proxy (custom base_url), strip provider prefix — the proxy
-	// handles routing itself and provider prefixes cause it to be ignored.
 	embedBaseURL := c.cfg.EmbedBaseURL
 	if embedBaseURL == "" {
 		embedBaseURL = inferBaseURLForProvider(c.cfg.EmbedProvider)
 	}
-	hasCustomBase := embedBaseURL != ""
-	if hasCustomBase {
-		// Strip any "provider/" prefix so proxy sees bare model name
-		if idx := strings.Index(embedModel, "/"); idx != -1 {
-			embedModel = embedModel[idx+1:]
-		}
-	}
 
 	embedAPIKey := c.cfg.EmbedAPIKey
 	if embedAPIKey == "" {
-		embedAPIKey = c.cfg.APIKey // fall back to main key
+		embedAPIKey = c.cfg.APIKey
 	}
 
-	// Always build a dedicated embed client when base_url or key differs
-	needsSeparateClient := hasCustomBase ||
-		c.cfg.EmbedAPIKey != "" ||
+	// Strip provider prefix when using a proxy
+	if embedBaseURL != "" {
+		if idx := strings.Index(embedModel, "/"); idx != -1 {
+			embedModel = embedModel[idx+1:]
+		}
+		// Use raw HTTP (like curl) — OpenAI SDK adds encoding_format + other
+		// fields that some proxies reject and return non-JSON for.
+		return embedViaHTTP(ctx, embedBaseURL, embedAPIKey, embedModel, texts)
+	}
+
+	// No custom base_url — use go-openai SDK against the real provider
+	needsSeparateClient := c.cfg.EmbedAPIKey != "" ||
 		(c.cfg.EmbedProvider != "" && c.cfg.EmbedProvider != providerFromModel(c.cfg.Model))
 	ec := c.oc
 	if needsSeparateClient {
 		ecfg := openai.DefaultConfig(embedAPIKey)
-		if embedBaseURL != "" {
-			ecfg.BaseURL = embedBaseURL
-		}
 		ec = openai.NewClientWithConfig(ecfg)
 	}
 
@@ -195,6 +196,55 @@ func (c *Client) Embed(ctx context.Context, texts []string) ([][]float32, error)
 			v[j] = float32(f)
 		}
 		vectors[i] = v
+	}
+	return vectors, nil
+}
+
+// embedViaHTTP calls the embeddings endpoint with a minimal JSON body (no
+// encoding_format or extra fields) — mirrors the Python httpx approach so
+// LiteLLM/custom proxies that reject the OpenAI SDK's additional fields work.
+func embedViaHTTP(ctx context.Context, baseURL, apiKey, model string, texts []string) ([][]float32, error) {
+	// Ensure trailing slash stripped, then append /embeddings
+	endpoint := strings.TrimRight(baseURL, "/") + "/embeddings"
+
+	body, err := json.Marshal(map[string]any{
+		"model": model,
+		"input": texts,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("embed marshal: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("embed request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("embed http: %w", err)
+	}
+	defer resp.Body.Close()
+
+	raw, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("embed http %d: %s", resp.StatusCode, string(raw))
+	}
+
+	var result struct {
+		Data []struct {
+			Embedding []float32 `json:"embedding"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, fmt.Errorf("embed decode: %w (body: %s)", err, string(raw))
+	}
+
+	vectors := make([][]float32, len(result.Data))
+	for i, d := range result.Data {
+		vectors[i] = d.Embedding
 	}
 	return vectors, nil
 }
