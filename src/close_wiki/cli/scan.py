@@ -65,8 +65,10 @@ def scan_cmd(
         api_key=os.environ.get("CLOSE_WIKI_API_KEY") or llm_cfg_raw.get("api_key", ""),
         base_url=os.environ.get("CLOSE_WIKI_BASE_URL") or llm_cfg_raw.get("base_url", ""),
         temperature=llm_cfg_raw.get("temperature", 0.2),
-        embed_model=embed_model or llm_cfg_raw.get("embed_model", ""),
-        embed_provider=embed_provider or llm_cfg_raw.get("embed_provider", ""),
+        embed_model=embed_model or os.environ.get("CLOSE_WIKI_EMBED_MODEL") or llm_cfg_raw.get("embed_model", ""),
+        embed_provider=embed_provider or os.environ.get("CLOSE_WIKI_EMBED_PROVIDER") or llm_cfg_raw.get("embed_provider", ""),
+        embed_api_key=os.environ.get("CLOSE_WIKI_EMBED_API_KEY") or llm_cfg_raw.get("embed_api_key") or llm_cfg_raw.get("api_key", ""),
+        embed_base_url=os.environ.get("CLOSE_WIKI_EMBED_BASE_URL") or llm_cfg_raw.get("embed_base_url") or llm_cfg_raw.get("base_url", ""),
     )
 
     console.print(f"[bold green]close-wiki scan[/bold green] {repo}")

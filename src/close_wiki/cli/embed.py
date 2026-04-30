@@ -88,8 +88,19 @@ def embed_cmd(
         )
         sys.exit(1)
 
-    embed_model = model or os.environ.get("CLOSE_WIKI_EMBED_MODEL", "text-embedding-3-small")
-    embed_provider = provider or os.environ.get("CLOSE_WIKI_EMBED_PROVIDER", "")
+    # Load config.yml first, then CLI flags / env vars override
+    from close_wiki.cli.scan import _load_config  # noqa: PLC0415
+    from close_wiki.models.contracts import LLMConfig  # noqa: PLC0415
+    from close_wiki.rag.embedder import EmbedPipeline  # noqa: PLC0415
+    from close_wiki.rag.scan_meta import patch_scan_meta  # noqa: PLC0415
+
+    cfg = _load_config(repo)
+    llm_cfg = cfg.get("llm", {})
+
+    embed_model = model or os.environ.get("CLOSE_WIKI_EMBED_MODEL") or llm_cfg.get("embed_model") or "text-embedding-3-small"
+    embed_provider = provider or os.environ.get("CLOSE_WIKI_EMBED_PROVIDER") or llm_cfg.get("embed_provider", "")
+    resolved_api_key = api_key or os.environ.get("CLOSE_WIKI_EMBED_API_KEY") or llm_cfg.get("embed_api_key") or llm_cfg.get("api_key", "")
+    resolved_base_url = base_url or os.environ.get("CLOSE_WIKI_EMBED_BASE_URL") or llm_cfg.get("embed_base_url") or llm_cfg.get("base_url", "")
 
     console.print(f"[bold cyan]close-wiki embed[/bold cyan]")
     console.print(f"  repo       : {repo}")
@@ -100,15 +111,13 @@ def embed_cmd(
         console.print(f"  model      : {embed_model}")
     console.print()
 
-    from close_wiki.models.contracts import LLMConfig  # noqa: PLC0415
-    from close_wiki.rag.embedder import EmbedPipeline  # noqa: PLC0415
-    from close_wiki.rag.scan_meta import patch_scan_meta  # noqa: PLC0415
-
     llm_config = LLMConfig(
-        api_key=api_key or "",
-        base_url=base_url or "",
+        api_key=resolved_api_key,
+        base_url=resolved_base_url,
         embed_model=embed_model,
         embed_provider=embed_provider,
+        embed_api_key=resolved_api_key,
+        embed_base_url=resolved_base_url,
     )
     # Also set env vars so EmbedPipeline resolution chain picks them up
     os.environ["CLOSE_WIKI_EMBED_MODEL"] = embed_model
