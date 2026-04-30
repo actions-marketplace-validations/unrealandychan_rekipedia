@@ -1,40 +1,308 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 style="color:#e6edf3;margin-bottom:1.5rem;font-size:1.5rem;font-weight:600">💬 Ask</h1>
+<style>
+  /* ── Layout ─────────────────────────────────────────────── */
+  .ask-layout { display: flex; flex-direction: column; height: calc(100vh - 5rem); max-width: 820px; }
+  .ask-header { margin-bottom: 1.25rem; flex-shrink: 0; }
+  .ask-header h1 { font-size: 1.4rem; font-weight: 700; color: #e6edf3; margin-bottom: 0.25rem; }
+  .ask-header p { font-size: 0.875rem; color: var(--muted); }
 
-<div class="ask-box">
-  <input id="q-input" type="text" placeholder="How does authentication work?" autofocus>
-  <div class="spinner" id="spinner"></div>
-  <button id="ask-btn" onclick="submitQuestion()">Ask</button>
-</div>
+  /* ── Tabs ───────────────────────────────────────────────── */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; flex-shrink: 0; }
+  .tab-btn {
+    padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 500;
+    color: var(--muted); background: none; border: none; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: all 0.15s; display: flex; align-items: center; gap: 0.4rem;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-badge {
+    background: var(--surface2); color: var(--muted); border: 1px solid var(--border);
+    border-radius: 100px; font-size: 0.7rem; padding: 0 0.4rem; min-width: 18px; text-align: center;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
-<div id="live-answer" style="display:none" class="qa-item">
-  <div class="q" id="live-q"></div>
-  <div class="prose" id="live-a"></div>
-</div>
+  /* ── Chat panel ─────────────────────────────────────────── */
+  .chat-messages {
+    flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem;
+    padding: 0.5rem 0 1rem; min-height: 0;
+  }
+  .msg { display: flex; flex-direction: column; gap: 0.35rem; max-width: 100%; }
+  .msg-user { align-items: flex-end; }
+  .msg-ai { align-items: flex-start; }
+  .msg-bubble {
+    max-width: 85%; padding: 0.75rem 1rem;
+    border-radius: var(--radius); font-size: 0.92rem; line-height: 1.65;
+  }
+  .msg-user .msg-bubble {
+    background: var(--accent); color: #0d1117; border-radius: var(--radius) var(--radius) 2px var(--radius);
+    font-weight: 500;
+  }
+  .msg-ai .msg-bubble {
+    background: var(--surface); border: 1px solid var(--border-subtle);
+    color: var(--text); border-radius: 2px var(--radius) var(--radius) var(--radius);
+  }
+  .msg-ai .msg-bubble.streaming { border-color: var(--accent); }
+  .msg-meta { font-size: 0.72rem; color: var(--muted2); padding: 0 0.25rem; }
 
-<div id="history">
-{% for item in history %}
-<div class="qa-item">
-  <div class="q">{{ item.question }}</div>
-  <div class="prose">{{ item.answer | safe }}</div>
-  <div class="meta">{{ item.model }} · {{ item.created_at }}</div>
-</div>
-{% endfor %}
+  /* ── MD inside bubbles ──────────────────────────────────── */
+  .msg-bubble h1, .msg-bubble h2, .msg-bubble h3 { color: #e6edf3; margin: 0.75em 0 0.35em; font-weight: 600; }
+  .msg-bubble h1 { font-size: 1.15em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  .msg-bubble h2 { font-size: 1.05em; }
+  .msg-bubble h3 { font-size: 0.95em; }
+  .msg-bubble p { margin: 0.5em 0; }
+  .msg-bubble p:first-child { margin-top: 0; }
+  .msg-bubble p:last-child { margin-bottom: 0; }
+  .msg-bubble code {
+    background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.08);
+    padding: 0.15em 0.4em; border-radius: 3px;
+    font-size: 0.85em; font-family: "SFMono-Regular", Consolas, monospace;
+  }
+  .msg-bubble pre {
+    background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 6px; padding: 0.9em 1em; overflow-x: auto;
+    margin: 0.75em 0; font-size: 0.85em;
+  }
+  .msg-bubble pre code { background: none; border: none; padding: 0; font-size: 1em; }
+  .msg-bubble ul, .msg-bubble ol { padding-left: 1.4em; margin: 0.5em 0; }
+  .msg-bubble li { margin: 0.2em 0; }
+  .msg-bubble table { border-collapse: collapse; width: 100%; margin: 0.75em 0; font-size: 0.88em; }
+  .msg-bubble th { background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.08); padding: 0.4em 0.7em; font-weight: 600; text-align: left; }
+  .msg-bubble td { border: 1px solid rgba(255,255,255,.07); padding: 0.35em 0.7em; }
+  .msg-bubble blockquote { border-left: 3px solid var(--border); padding-left: 0.85em; color: var(--muted); margin: 0.5em 0; }
+  .msg-bubble strong { font-weight: 600; }
+  .msg-bubble em { font-style: italic; }
+
+  /* ── Cursor blink ───────────────────────────────────────── */
+  .cursor::after {
+    content: '▋'; animation: blink 1s step-end infinite;
+    font-size: 0.9em; color: var(--accent); margin-left: 1px;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── Input bar ──────────────────────────────────────────── */
+  .chat-input-row {
+    display: flex; gap: 0.6rem; align-items: flex-end;
+    padding-top: 0.75rem; border-top: 1px solid var(--border-subtle); flex-shrink: 0;
+  }
+  .chat-input-wrap { flex: 1; position: relative; }
+  .chat-input {
+    width: 100%; padding: 0.65rem 1rem; min-height: 44px; max-height: 120px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text); font-size: 0.9rem;
+    resize: none; outline: none; font-family: inherit; line-height: 1.5;
+    transition: border-color 0.15s;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+  .chat-input::placeholder { color: var(--muted2); }
+  .send-btn {
+    padding: 0.65rem 1.1rem; height: 44px;
+    background: var(--accent); color: #0d1117; border: none;
+    border-radius: var(--radius); font-weight: 600; cursor: pointer;
+    font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;
+    transition: all 0.15s; flex-shrink: 0;
+  }
+  .send-btn:hover { background: #79b8ff; }
+  .send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .send-btn svg { width: 15px; height: 15px; }
+
+  /* ── History tab ────────────────────────────────────────── */
+  .history-list { display: flex; flex-direction: column; gap: 0.75rem; overflow-y: auto; flex: 1; padding-bottom: 1rem; }
+  .hist-item {
+    background: var(--surface); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius); overflow: hidden; cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .hist-item:hover { border-color: var(--border); }
+  .hist-item.expanded { border-color: var(--accent); }
+  .hist-header {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    padding: 0.85rem 1rem; user-select: none;
+  }
+  .hist-q { flex: 1; font-size: 0.9rem; font-weight: 500; color: var(--text); line-height: 1.4; }
+  .hist-meta { font-size: 0.72rem; color: var(--muted2); white-space: nowrap; flex-shrink: 0; padding-top: 0.15rem; }
+  .hist-chevron { color: var(--muted2); font-size: 0.75rem; flex-shrink: 0; padding-top: 0.2rem; transition: transform 0.2s; }
+  .hist-item.expanded .hist-chevron { transform: rotate(90deg); }
+  .hist-answer {
+    display: none; padding: 0 1rem 1rem;
+    border-top: 1px solid var(--border-subtle); padding-top: 0.85rem;
+    font-size: 0.88rem; line-height: 1.65; color: var(--text);
+  }
+  .hist-item.expanded .hist-answer { display: block; }
+  .hist-answer h1, .hist-answer h2, .hist-answer h3 { color: #e6edf3; margin: 0.75em 0 0.3em; font-weight: 600; }
+  .hist-answer h2 { font-size: 1.05em; }
+  .hist-answer h3 { font-size: 0.95em; }
+  .hist-answer p { margin: 0.5em 0; }
+  .hist-answer code {
+    background: var(--code-bg); border: 1px solid var(--border-subtle);
+    padding: 0.15em 0.4em; border-radius: 3px;
+    font-size: 0.83em; font-family: "SFMono-Regular", Consolas, monospace;
+  }
+  .hist-answer pre {
+    background: var(--code-bg); border: 1px solid var(--border-subtle);
+    border-radius: 6px; padding: 0.9em 1em; overflow-x: auto; margin: 0.6em 0;
+  }
+  .hist-answer pre code { background: none; border: none; padding: 0; }
+  .hist-answer ul, .hist-answer ol { padding-left: 1.4em; margin: 0.4em 0; }
+  .hist-answer table { border-collapse: collapse; width: 100%; margin: 0.6em 0; font-size: 0.88em; }
+  .hist-answer th { background: var(--surface2); border: 1px solid var(--border); padding: 0.35em 0.65em; font-weight: 600; }
+  .hist-answer td { border: 1px solid var(--border); padding: 0.3em 0.65em; }
+  .hist-empty { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 0.9rem; }
+
+  /* ── Marked.js loaded from CDN ──────────────────────────── */
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+
+<div class="ask-layout">
+  <div class="ask-header">
+    <h1>💬 Ask AI</h1>
+    <p>Ask anything about your codebase — powered by your wiki knowledge base.</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('chat', this)">
+      💬 Chat
+    </button>
+    <button class="tab-btn" onclick="switchTab('history', this)">
+      🕘 History
+      <span class="tab-badge" id="history-count">{{ history | length }}</span>
+    </button>
+  </div>
+
+  <!-- Chat Panel -->
+  <div class="tab-panel active" id="tab-chat">
+    <div class="chat-messages" id="chat-messages">
+      <div id="welcome-msg" style="text-align:center;padding:2rem 0;color:var(--muted);font-size:0.9rem">
+        <div style="font-size:2rem;margin-bottom:0.75rem">🤖</div>
+        <div style="font-weight:500;color:var(--text);margin-bottom:0.35rem">Ask me anything about this project</div>
+        <div>I have read the entire codebase and wiki. Try: <em>"How does authentication work?"</em></div>
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <div class="chat-input-wrap">
+        <textarea id="q-input" class="chat-input" placeholder="Ask a question… (Enter to send, Shift+Enter for newline)" rows="1"></textarea>
+      </div>
+      <button class="send-btn" id="ask-btn" onclick="submitQuestion()">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M.5 1.163A1 1 0 0 1 1.97.28l12.868 6.837a1 1 0 0 1 0 1.766L1.969 15.72A1 1 0 0 1 .5 14.836V10.33a1 1 0 0 1 .816-.983L8.5 8 1.316 6.653A1 1 0 0 1 .5 5.67V1.163Z"/></svg>
+        Send
+      </button>
+    </div>
+  </div>
+
+  <!-- History Panel -->
+  <div class="tab-panel" id="tab-history">
+    <div class="history-list" id="history-list">
+      {% if history %}
+        {% for item in history %}
+        <div class="hist-item" onclick="toggleHist(this)">
+          <div class="hist-header">
+            <div class="hist-q">{{ item.question }}</div>
+            <div class="hist-meta">{{ item.created_at }}</div>
+            <div class="hist-chevron">▶</div>
+          </div>
+          <div class="hist-answer prose-hist">{{ item.answer | safe }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="hist-empty">
+          <div style="font-size:1.75rem;margin-bottom:0.75rem">📭</div>
+          No history yet — ask your first question!
+        </div>
+      {% endif %}
+    </div>
+  </div>
 </div>
 
 <script>
-function simpleMarkdown(text) {
-  return text
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\n/g, '<br>');
+// ── marked.js config ───────────────────────────────────────────────────
+if (typeof marked !== 'undefined') {
+  marked.setOptions({ breaks: true, gfm: true });
+}
+function renderMd(text) {
+  if (typeof marked === 'undefined') {
+    // Fallback if CDN fails
+    return text
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/```([\s\S]*?)```/g,'<pre><code>$1</code></pre>')
+      .replace(/`([^`]+)`/g,'<code>$1</code>')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g,'<em>$1</em>')
+      .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+      .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+      .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+      .replace(/\n/g,'<br>');
+  }
+  return marked.parse(text);
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── History accordion ──────────────────────────────────────────────────
+function toggleHist(el) { el.classList.toggle('expanded'); }
+
+// ── Auto-resize textarea ───────────────────────────────────────────────
+const textarea = document.getElementById('q-input');
+textarea.addEventListener('input', () => {
+  textarea.style.height = 'auto';
+  textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+});
+textarea.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitQuestion(); }
+});
+
+// ── Chat ───────────────────────────────────────────────────────────────
+let msgIdCounter = 0;
+
+function appendMessage(role, html, id) {
+  const welcome = document.getElementById('welcome-msg');
+  if (welcome) welcome.remove();
+
+  const container = document.getElementById('chat-messages');
+  const outer = document.createElement('div');
+  outer.className = 'msg msg-' + role;
+  if (id) outer.id = id;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = html;
+
+  outer.appendChild(bubble);
+  container.appendChild(outer);
+  container.scrollTop = container.scrollHeight;
+  return bubble;
+}
+
+function appendUserMsg(text) {
+  const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  appendMessage('user', escaped);
+}
+
+function appendAIMsg(id) {
+  const welcome = document.getElementById('welcome-msg');
+  if (welcome) welcome.remove();
+
+  const container = document.getElementById('chat-messages');
+  const outer = document.createElement('div');
+  outer.className = 'msg msg-ai';
+  outer.id = id;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble streaming cursor';
+  bubble.innerHTML = '<em style="color:var(--muted)">Thinking…</em>';
+
+  outer.appendChild(bubble);
+  container.appendChild(outer);
+  container.scrollTop = container.scrollHeight;
+  return bubble;
 }
 
 async function submitQuestion() {
@@ -43,15 +311,13 @@ async function submitQuestion() {
   if (!q) return;
 
   const btn = document.getElementById('ask-btn');
-  const spinner = document.getElementById('spinner');
-  const liveBox = document.getElementById('live-answer');
-  const liveA = document.getElementById('live-a');
-
   btn.disabled = true;
-  spinner.style.display = 'block';
-  liveBox.style.display = 'block';
-  document.getElementById('live-q').textContent = q;
-  liveA.innerHTML = '<em style="color:var(--muted)">Thinking…</em>';
+  input.value = '';
+  input.style.height = 'auto';
+
+  appendUserMsg(q);
+  const aiId = 'ai-msg-' + (++msgIdCounter);
+  const aiBubble = appendAIMsg(aiId);
 
   let accumulated = '';
   let firstChunk = true;
@@ -64,57 +330,63 @@ async function submitQuestion() {
       if (e.data === '[DONE]') {
         es.close();
         btn.disabled = false;
-        spinner.style.display = 'none';
-
-        // Append to history
-        const hist = document.getElementById('history');
-        const div = document.createElement('div');
-        div.className = 'qa-item';
-        div.innerHTML =
-          '<div class="q">' + q + '</div>' +
-          '<div class="prose">' + simpleMarkdown(accumulated) + '</div>';
-        hist.prepend(div);
-        liveBox.style.display = 'none';
-        input.value = '';
+        aiBubble.classList.remove('streaming', 'cursor');
+        aiBubble.innerHTML = renderMd(accumulated);
+        // Add to history tab
+        addToHistoryTab(q, renderMd(accumulated));
+        document.getElementById('chat-messages').scrollTop = 999999;
         return;
       }
       if (e.data.startsWith('[ERROR]')) {
-        liveA.innerHTML = '<span style="color:#f85149">' + e.data + '</span>';
-        es.close();
-        btn.disabled = false;
-        spinner.style.display = 'none';
-        return;
+        aiBubble.innerHTML = '<span style="color:var(--red)">' + e.data.replace('[ERROR]','').trim() + '</span>';
+        aiBubble.classList.remove('streaming', 'cursor');
+        es.close(); btn.disabled = false; return;
       }
-      // Unescape \n back to real newlines
       const chunk = e.data.replace(/\\n/g, '\n');
       accumulated += chunk;
-      if (firstChunk) {
-        liveA.innerHTML = '';
-        firstChunk = false;
-      }
-      liveA.innerHTML = simpleMarkdown(accumulated);
-      // Auto-scroll to bottom of live answer
-      liveA.scrollIntoView({ block: 'end', behavior: 'smooth' });
+      if (firstChunk) { firstChunk = false; }
+      aiBubble.innerHTML = renderMd(accumulated);
+      aiBubble.classList.add('cursor');
+      document.getElementById('chat-messages').scrollTop = 999999;
     };
 
     es.onerror = () => {
       es.close();
       if (!accumulated) {
-        liveA.innerHTML = '<span style="color:#f85149">Stream error — check server logs</span>';
+        aiBubble.innerHTML = '<span style="color:var(--red)">Stream error — check server logs</span>';
       }
+      aiBubble.classList.remove('streaming', 'cursor');
       btn.disabled = false;
-      spinner.style.display = 'none';
     };
 
-  } catch(e) {
-    liveA.innerHTML = '<span style="color:#f85149">Request failed: ' + e.message + '</span>';
+  } catch(err) {
+    aiBubble.innerHTML = '<span style="color:var(--red)">Request failed: ' + err.message + '</span>';
+    aiBubble.classList.remove('streaming', 'cursor');
     btn.disabled = false;
-    spinner.style.display = 'none';
   }
 }
 
-document.getElementById('q-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') submitQuestion();
-});
+function addToHistoryTab(question, answerHtml) {
+  const list = document.getElementById('history-list');
+  // Remove empty state if present
+  const empty = list.querySelector('.hist-empty');
+  if (empty) empty.remove();
+
+  const now = new Date().toLocaleString();
+  const item = document.createElement('div');
+  item.className = 'hist-item';
+  item.innerHTML = `
+    <div class="hist-header" onclick="toggleHist(this.parentElement)">
+      <div class="hist-q">${question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div class="hist-meta">${now}</div>
+      <div class="hist-chevron">▶</div>
+    </div>
+    <div class="hist-answer">${answerHtml}</div>`;
+  list.prepend(item);
+
+  // Update badge
+  const badge = document.getElementById('history-count');
+  badge.textContent = parseInt(badge.textContent || '0') + 1;
+}
 </script>
 {% endblock %}

@@ -67,6 +67,44 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
             pages.append({"slug": slug, "title": f"#{i} · {title}"})
         return pages
 
+    def _project_name() -> str:
+        """Extract project name from repo root directory name."""
+        return repo_root.name.replace("-", " ").replace("_", " ").title()
+
+    def _summary_html() -> str:
+        """Read architecture-overview or index page for summary snippet."""
+        wiki_dir = output_dir / "wiki"
+        for slug in ("architecture-overview", "repository-structure", "getting-started"):
+            p = wiki_dir / f"{slug}.md"
+            if p.exists():
+                raw = p.read_text(encoding="utf-8")
+                # Take just the intro paragraph (before first ##)
+                lines, snippet = raw.splitlines(), []
+                for line in lines:
+                    if line.startswith("## ") and snippet:
+                        break
+                    if not line.startswith("# "):
+                        snippet.append(line)
+                text = "\n".join(snippet[:12]).strip()
+                if text:
+                    return md.markdown(text, extensions=["fenced_code", "tables"])
+        return ""
+
+    def _file_count() -> int:
+        db_path = output_dir / "store.db"
+        if not db_path.exists():
+            return 0
+        try:
+            with SqliteStore(db_path) as store:
+                run_id = store.get_latest_run_id(str(repo_root))
+                if run_id:
+                    files = store.get_files_for_run(run_id)
+                    return len(files)
+        except Exception:
+            pass
+        return 0
+
+
     def _render_md(path: Path) -> str:
         return md.markdown(
             path.read_text(encoding="utf-8"),
@@ -85,7 +123,10 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
         first_slug = pages[0]["slug"] if pages else None
         return templates.TemplateResponse(
             request, "index.html",
-            _ctx(request, pages=pages, first_slug=first_slug),
+            _ctx(request, pages=pages, first_slug=first_slug,
+                 project_name=_project_name(),
+                 summary_html=_summary_html(),
+                 file_count=_file_count()),
         )
 
     @app.get("/wiki/{slug}", response_class=HTMLResponse)
@@ -98,6 +139,7 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
         return templates.TemplateResponse(
             request, "wiki.html",
             _ctx(request, pages=pages, slug=slug, content=html,
+                 project_name=_project_name(),
                  title=slug.replace("-", " ").title()),
         )
 
@@ -111,7 +153,7 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
         pages = _wiki_pages()
         return templates.TemplateResponse(
             request, "ask.html",
-            _ctx(request, pages=pages, history=history),
+            _ctx(request, pages=pages, history=history, project_name=_project_name()),
         )
 
     @app.get("/ask/stream", response_class=StreamingResponse)
