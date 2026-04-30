@@ -66,10 +66,6 @@ builds:
 archives:
   - formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    files:
-      - ../README.md
-      - ../LICENSE
-      - ../RELEASE-NOTES.md
     format_overrides:
       - goos: windows
         formats: [zip]
