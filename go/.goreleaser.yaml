@@ -58,6 +58,7 @@ release:
   name_template: "{{.ProjectName}} v{{.Version}}"
   draft: false
   prerelease: auto
+  replace_existing_artifacts: true
 
 homebrew_casks:
   - name: close-wiki
