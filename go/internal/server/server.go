@@ -86,15 +86,21 @@ func (s *Server) Start(ctx context.Context) error {
 
 // ── template helpers ──────────────────────────────────────────────────────────
 
-// templateFuncs provides helper functions used in templates.
-var templateFuncs = template.FuncMap{
-	"inc": func(i int) int { return i + 1 },
-}
-
-// loadTemplates parses all templates from the embedded FS.
-func loadTemplates() (*template.Template, error) {
-	tmpl := template.New("").Funcs(templateFuncs)
-	return tmpl.ParseFS(templateFS, "templates/*.html")
+// renderTemplate loads base.html + the named page template per-request,
+// avoiding the Go template inheritance bug where the last parsed
+// {{define "content"}} block wins for all pages.
+func (s *Server) renderTemplate(w http.ResponseWriter, name string, data any) {
+	t, err := template.New("").Funcs(template.FuncMap{
+		"inc": func(i int) int { return i + 1 },
+	}).ParseFS(templateFS, "templates/base.html", "templates/"+name)
+	if err != nil {
+		http.Error(w, "template error: "+err.Error(), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := t.ExecuteTemplate(w, "base.html", data); err != nil {
+		http.Error(w, "render error: "+err.Error(), 500)
+	}
 }
 
 // baseData returns common fields for all templates.
@@ -113,33 +119,14 @@ func (s *Server) baseData(activePage, activeSlug string) map[string]any {
 // ── handlers ──────────────────────────────────────────────────────────────────
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
-	pages := s.listPages()
-
-	// If no wiki exists yet, redirect to first page or show empty notice
-	if len(pages) == 0 {
-		http.Redirect(w, r, "/wiki/_empty", http.StatusFound)
-		return
-	}
-
-	tmpl, err := loadTemplates()
-	if err != nil {
-		http.Error(w, "template error: "+err.Error(), 500)
-		return
-	}
-
 	diagrams := s.listDiagrams()
-
-	// Gather stats
 	stats := s.gatherStats()
 
 	data := s.baseData("home", "")
 	data["Stats"] = stats
 	data["Diagrams"] = diagrams
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.ExecuteTemplate(w, "index.html", data); err != nil {
-		http.Error(w, err.Error(), 500)
-	}
+	s.renderTemplate(w, "index.html", data)
 }
 
 func (s *Server) handleWikiPage(w http.ResponseWriter, r *http.Request) {
@@ -166,35 +153,15 @@ func (s *Server) handleWikiPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	tmpl, err := loadTemplates()
-	if err != nil {
-		http.Error(w, "template error: "+err.Error(), 500)
-		return
-	}
-
 	data := s.baseData("wiki", slug)
 	data["Title"] = title
 	data["Content"] = template.HTML(buf.String())
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.ExecuteTemplate(w, "wiki.html", data); err != nil {
-		http.Error(w, err.Error(), 500)
-	}
+	s.renderTemplate(w, "wiki.html", data)
 }
 
 func (s *Server) handleAskPage(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := loadTemplates()
-	if err != nil {
-		http.Error(w, "template error: "+err.Error(), 500)
-		return
-	}
-
 	data := s.baseData("ask", "")
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.ExecuteTemplate(w, "ask.html", data); err != nil {
-		http.Error(w, err.Error(), 500)
-	}
+	s.renderTemplate(w, "ask.html", data)
 }
 
 func (s *Server) handleAskStream(w http.ResponseWriter, r *http.Request) {

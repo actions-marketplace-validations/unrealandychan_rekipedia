@@ -1,5 +1,9 @@
-{{template "base.html" .}}
 {{define "title"}}{{.Title}} — close-wiki{{end}}
+{{define "extra_head"}}
+<style>
+.wiki-content{max-width:820px}
+</style>
+{{end}}
 {{define "content"}}
 <div style="margin-bottom:20px">
   <a href="/" class="btn btn-secondary" style="margin-bottom:16px">← Home</a>
@@ -8,9 +12,4 @@
 <div class="wiki-content">
   {{.Content}}
 </div>
-{{end}}
-{{define "extra_head"}}
-<style>
-.wiki-content{max-width:820px}
-</style>
 {{end}}

@@ -1,10 +1,11 @@
-{{template "base.html" .}}
 {{define "title"}}{{.RepoName}} — close-wiki{{end}}
 {{define "content"}}
-<h1>{{.RepoName}}</h1>
-<p style="color:#6b7280;margin-bottom:24px">Knowledge base for <code>{{.RepoPath}}</code></p>
+<div style="margin-bottom:32px">
+  <h1 style="font-size:2.2em;font-weight:800;color:#f1f5f9;margin-bottom:8px">{{.RepoName}}</h1>
+  <p style="color:#6b7280;font-size:15px">Agentic code intelligence for <code>{{.RepoPath}}</code></p>
+</div>
 
-<div class="card-grid">
+<div class="card-grid" style="margin-bottom:28px">
   <div class="stat-card">
     <div class="stat-label">Wiki Pages</div>
     <div class="stat-value">{{.Stats.PageCount}}</div>
@@ -22,20 +23,20 @@
   </div>
 </div>
 
-{{if .Diagrams}}
-<h2>Diagrams</h2>
-<div class="card" style="margin-bottom:24px">
-  <ul class="page-list">
-    {{range .Diagrams}}
-    <li><a href="/diagrams/{{.}}"><span class="icon" style="font-size:14px">📊</span> {{.}}</a></li>
-    {{end}}
-  </ul>
+<div class="card" style="margin-bottom:24px;border-left:3px solid #3b82f6">
+  <p style="color:#9ca3af;font-size:14px;line-height:1.7;margin:0">
+    <strong style="color:#e2e8f0">close-wiki</strong> scans your codebase and generates a searchable wiki with pages, diagrams, and grounded Q&amp;A — all stored locally in a portable SQLite database.
+  </p>
 </div>
-{{end}}
 
-<h2>Wiki Pages</h2>
+<div style="display:flex;gap:10px;margin-bottom:32px">
+  <a href="/wiki/{{if .Pages}}{{(index .Pages 0).Slug}}{{else}}_empty{{end}}" class="btn btn-primary">📖 Browse Wiki Pages</a>
+  <a href="/ask" class="btn btn-secondary">💬 Ask a Question</a>
+</div>
+
+{{if .Pages}}
+<h2 style="margin-bottom:14px">Wiki Pages</h2>
 <div class="card" style="margin-bottom:24px">
-  {{if .Pages}}
   <ul class="page-list">
     {{range $i, $p := .Pages}}
     <li>
@@ -46,10 +47,23 @@
     </li>
     {{end}}
   </ul>
-  {{else}}
-  <p style="color:#6b7280;padding:8px 0">No wiki pages yet. Run <code>close-wiki scan .</code> first.</p>
-  {{end}}
 </div>
+{{else}}
+<h2 style="margin-bottom:14px">Getting Started</h2>
+<div class="card" style="margin-bottom:24px">
+  <p style="color:#9ca3af;margin-bottom:12px">No wiki pages yet. Run the scanner to generate your wiki:</p>
+  <pre style="margin:0"><code>close-wiki scan .</code></pre>
+</div>
+{{end}}
 
-<a href="/ask" class="btn btn-primary">💬 Ask a Question</a>
+{{if .Diagrams}}
+<h2 style="margin-bottom:14px">Diagrams</h2>
+<div class="card" style="margin-bottom:24px">
+  <ul class="page-list">
+    {{range .Diagrams}}
+    <li><a href="/diagrams/{{.}}"><span style="font-size:14px">📊</span> {{.}}</a></li>
+    {{end}}
+  </ul>
+</div>
+{{end}}
 {{end}}
