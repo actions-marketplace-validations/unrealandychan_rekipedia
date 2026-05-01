@@ -34,7 +34,19 @@
   <a href="/ask" class="btn btn-secondary">💬 Ask a Question</a>
 </div>
 
-{{if .Pages}}
+{{if .Sections}}
+<h2 style="margin-bottom:14px">Wiki Pages</h2>
+{{range .Sections}}
+<h3 style="margin:18px 0 8px;font-size:1em;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em">{{.Title}}</h3>
+<div class="card" style="margin-bottom:16px">
+  <ul class="page-list">
+    {{range .Pages}}
+    <li><a href="/wiki/{{.Slug}}">{{.Title}}</a></li>
+    {{end}}
+  </ul>
+</div>
+{{end}}
+{{else if .Pages}}
 <h2 style="margin-bottom:14px">Wiki Pages</h2>
 <div class="card" style="margin-bottom:24px">
   <ul class="page-list">

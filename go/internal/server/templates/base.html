@@ -77,7 +77,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <a href="/ask" {{if eq .ActivePage "ask"}}class="active"{{end}}>
       <span class="icon">💬</span> Ask
     </a>
-    {{if .Pages}}
+    {{if .Sections}}
+    {{range .Sections}}
+    <div class="nav-section">{{.Title}}</div>
+    {{range .Pages}}
+    <a href="/wiki/{{.Slug}}" {{if eq $.ActiveSlug .Slug}}class="active"{{end}}>{{.Title}}</a>
+    {{end}}
+    {{end}}
+    {{else if .Pages}}
     <div class="nav-section">Wiki Pages</div>
     {{range .Pages}}
     <a href="/wiki/{{.Slug}}" {{if eq $.ActiveSlug .Slug}}class="active"{{end}}>{{.Title}}</a>

@@ -29,13 +29,20 @@ type pageEntry struct {
 	Section    string `json:"section,omitempty"`
 }
 
+type sectionEntry struct {
+	ID    string   `json:"id"`
+	Title string   `json:"title"`
+	Pages []string `json:"pages"`
+}
+
 type manifest struct {
-	RunID       string      `json:"run_id"`
-	GeneratedAt string      `json:"generated_at"`
-	FileCount   int         `json:"file_count"`
-	PageCount   int         `json:"page_count"`
-	NavOrder    []string    `json:"nav_order"`
-	Pages       []pageEntry `json:"pages"`
+	RunID       string         `json:"run_id"`
+	GeneratedAt string         `json:"generated_at"`
+	FileCount   int            `json:"file_count"`
+	PageCount   int            `json:"page_count"`
+	NavOrder    []string       `json:"nav_order"`
+	Sections    []sectionEntry `json:"sections,omitempty"`
+	Pages       []pageEntry    `json:"pages"`
 }
 
 // Export writes exports/symbols.json, exports/relationships.json, exports/manifest.json.
@@ -106,12 +113,23 @@ func (e *JSONExporter) Export(
 		navOrder = []string{}
 	}
 
+	// Build sections from plan
+	var sections []sectionEntry
+	for _, s := range plan.Sections {
+		sections = append(sections, sectionEntry{
+			ID:    s.ID,
+			Title: s.Title,
+			Pages: s.Pages,
+		})
+	}
+
 	m := manifest{
 		RunID:       runID,
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
 		FileCount:   len(files),
 		PageCount:   len(pages),
 		NavOrder:    navOrder,
+		Sections:    sections,
 		Pages:       pageEntries,
 	}
 	if err := writeJSON(filepath.Join(exportsDir, "manifest.json"), m); err != nil {

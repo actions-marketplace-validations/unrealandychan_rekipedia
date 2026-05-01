@@ -106,13 +106,14 @@ func (s *Server) renderTemplate(w http.ResponseWriter, name string, data any) {
 // baseData returns common fields for all templates.
 func (s *Server) baseData(activePage, activeSlug string) map[string]any {
 	repoName := filepath.Base(s.repoRoot)
-	pages := s.listPages()
+	pages, sections := s.listPagesAndSections()
 	return map[string]any{
 		"RepoName":   repoName,
 		"RepoPath":   s.repoRoot,
 		"ActivePage": activePage,
 		"ActiveSlug": activeSlug,
 		"Pages":      pages,
+		"Sections":   sections,
 	}
 }
 
@@ -144,7 +145,7 @@ func (s *Server) handleWikiPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pages := s.listPages()
+	pages, _ := s.listPagesAndSections()
 	title := slug
 	for _, p := range pages {
 		if p.Slug == slug {
@@ -308,7 +309,8 @@ func (s *Server) handleDiagram(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAPIPages(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, s.listPages())
+	pages, _ := s.listPagesAndSections()
+	writeJSON(w, pages)
 }
 
 func (s *Server) handleAPIPage(w http.ResponseWriter, r *http.Request) {
@@ -320,7 +322,7 @@ func (s *Server) handleAPIPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	title := slug
-	pages := s.listPages()
+	pages, _ := s.listPagesAndSections()
 	for _, p := range pages {
 		if p.Slug == slug {
 			title = p.Title
@@ -353,8 +355,15 @@ func (s *Server) persistQA(question, answer string) {
 }
 
 type pageInfo struct {
-	Slug  string `json:"slug"`
-	Title string `json:"title"`
+	Slug    string `json:"slug"`
+	Title   string `json:"title"`
+	Section string `json:"section"`
+}
+
+type sectionGroup struct {
+	ID    string
+	Title string
+	Pages []pageInfo
 }
 
 type statsInfo struct {
@@ -365,7 +374,7 @@ type statsInfo struct {
 }
 
 func (s *Server) gatherStats() statsInfo {
-	pages := s.listPages()
+	pages, _ := s.listPagesAndSections()
 	info := statsInfo{
 		PageCount: len(pages),
 		LastScan:  "—",
@@ -416,47 +425,82 @@ func (s *Server) listDiagrams() []string {
 	return files
 }
 
-func (s *Server) listPages() []pageInfo {
+func (s *Server) listPagesAndSections() ([]pageInfo, []sectionGroup) {
 	wikiDir := filepath.Join(s.outputDir, "wiki")
 	entries, err := os.ReadDir(wikiDir)
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 
-	available := make(map[string]string)
+	available := make(map[string]bool)
 	for _, e := range entries {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
 			continue
 		}
 		slug := strings.TrimSuffix(e.Name(), ".md")
-		title := slug
-		if data, err := os.ReadFile(filepath.Join(wikiDir, e.Name())); err == nil {
-			for _, line := range strings.Split(string(data), "\n") {
-				line = strings.TrimSpace(line)
-				if strings.HasPrefix(line, "# ") {
-					title = strings.TrimPrefix(line, "# ")
-					break
-				}
-			}
-		}
-		available[slug] = title
+		available[slug] = true
 	}
 
 	var navOrder []string
+	slugTitle := make(map[string]string)
+	slugSection := make(map[string]string)
+	var manifestSections []struct {
+		ID    string   `json:"id"`
+		Title string   `json:"title"`
+		Pages []string `json:"pages"`
+	}
+
 	manifestPath := filepath.Join(s.outputDir, "exports", "manifest.json")
 	if data, err := os.ReadFile(manifestPath); err == nil {
-		var manifest struct {
+		var m struct {
 			NavOrder []string `json:"nav_order"`
+			Sections []struct {
+				ID    string   `json:"id"`
+				Title string   `json:"title"`
+				Pages []string `json:"pages"`
+			} `json:"sections"`
+			Pages []struct {
+				Slug    string `json:"slug"`
+				Title   string `json:"title"`
+				Section string `json:"section"`
+			} `json:"pages"`
 		}
-		if err := json.Unmarshal(data, &manifest); err == nil {
-			navOrder = manifest.NavOrder
+		if err := json.Unmarshal(data, &m); err == nil {
+			navOrder = m.NavOrder
+			manifestSections = m.Sections
+			for _, p := range m.Pages {
+				slugTitle[p.Slug] = p.Title
+				slugSection[p.Slug] = p.Section
+			}
+		}
+	}
+
+	// Fallback: read title from markdown H1
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
+			continue
+		}
+		slug := strings.TrimSuffix(e.Name(), ".md")
+		if slugTitle[slug] == "" {
+			if data, err := os.ReadFile(filepath.Join(wikiDir, e.Name())); err == nil {
+				for _, line := range strings.Split(string(data), "\n") {
+					line = strings.TrimSpace(line)
+					if strings.HasPrefix(line, "# ") {
+						slugTitle[slug] = strings.TrimPrefix(line, "# ")
+						break
+					}
+				}
+			}
+			if slugTitle[slug] == "" {
+				slugTitle[slug] = slug
+			}
 		}
 	}
 
 	seen := make(map[string]bool)
 	var orderedSlugs []string
 	for _, slug := range navOrder {
-		if _, ok := available[slug]; ok {
+		if available[slug] {
 			orderedSlugs = append(orderedSlugs, slug)
 			seen[slug] = true
 		}
@@ -472,8 +516,68 @@ func (s *Server) listPages() []pageInfo {
 
 	var pages []pageInfo
 	for _, slug := range orderedSlugs {
-		pages = append(pages, pageInfo{Slug: slug, Title: available[slug]})
+		pages = append(pages, pageInfo{
+			Slug:    slug,
+			Title:   slugTitle[slug],
+			Section: slugSection[slug],
+		})
 	}
+
+	// Build section groups
+	var sections []sectionGroup
+	if len(manifestSections) > 0 {
+		pageBySlug := make(map[string]pageInfo)
+		for _, p := range pages {
+			pageBySlug[p.Slug] = p
+		}
+		inSection := make(map[string]bool)
+		for _, sec := range manifestSections {
+			sg := sectionGroup{ID: sec.ID, Title: sec.Title}
+			for _, slug := range sec.Pages {
+				if p, ok := pageBySlug[slug]; ok {
+					sg.Pages = append(sg.Pages, p)
+					inSection[slug] = true
+				}
+			}
+			if len(sg.Pages) > 0 {
+				sections = append(sections, sg)
+			}
+		}
+		// Pages not in any section → "Other"
+		var other []pageInfo
+		for _, p := range pages {
+			if !inSection[p.Slug] {
+				other = append(other, p)
+			}
+		}
+		if len(other) > 0 {
+			sections = append(sections, sectionGroup{ID: "other", Title: "Other", Pages: other})
+		}
+	} else if len(pages) > 0 {
+		// Auto-group by section field
+		var sectionOrder []string
+		sectionPages := make(map[string][]pageInfo)
+		for _, p := range pages {
+			sec := p.Section
+			if sec == "" {
+				sec = "Other"
+			}
+			if _, exists := sectionPages[sec]; !exists {
+				sectionOrder = append(sectionOrder, sec)
+			}
+			sectionPages[sec] = append(sectionPages[sec], p)
+		}
+		for _, sec := range sectionOrder {
+			sections = append(sections, sectionGroup{ID: sec, Title: sec, Pages: sectionPages[sec]})
+		}
+	}
+
+	return pages, sections
+}
+
+// listPages is kept for backward compat (used in tests).
+func (s *Server) listPages() []pageInfo {
+	pages, _ := s.listPagesAndSections()
 	return pages
 }
 
