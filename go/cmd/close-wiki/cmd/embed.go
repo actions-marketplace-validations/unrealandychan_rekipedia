@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/fatih/color"
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 
 	"github.com/unrealandychan/close-wiki/internal/rag"
@@ -34,7 +34,7 @@ var embedCmd = &cobra.Command{
 		if err := os.MkdirAll(outDir, 0o755); err != nil {
 			return err
 		}
-		color.New(color.FgCyan, color.Bold).Fprintf(os.Stderr, "close-wiki embed  ▸  %s\n", root)
+		pterm.DefaultHeader.WithFullWidth(false).WithBackgroundStyle(pterm.NewStyle(pterm.BgDarkGray)).WithTextStyle(pterm.NewStyle(pterm.FgWhite)).Println("close-wiki embed ▸ " + root)
 		cfg := loadLLMConfig("", embedFlags.apiKey, embedFlags.baseURL)
 		if embedFlags.model != "" {
 			cfg.EmbedModel = embedFlags.model
@@ -48,7 +48,7 @@ var embedCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		color.New(color.FgGreen).Fprintf(os.Stderr, "✅ Embedded %d chunks\n", n)
+		pterm.Success.Printf("Embedded %d chunks\n", n)
 		return nil
 	},
 }

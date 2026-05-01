@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fatih/color"
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 
 	"github.com/unrealandychan/close-wiki/internal/config"
@@ -46,7 +46,7 @@ var scanCmd = &cobra.Command{
 			return err
 		}
 
-		color.New(color.FgCyan, color.Bold).Fprintf(os.Stderr, "close-wiki scan  ▸  %s\n", root)
+		pterm.DefaultHeader.WithFullWidth(false).WithBackgroundStyle(pterm.NewStyle(pterm.BgDarkGray)).WithTextStyle(pterm.NewStyle(pterm.FgWhite)).Println("close-wiki scan ▸ " + root)
 
 		cfg := loadLLMConfig(scanFlags.model, scanFlags.apiKey, scanFlags.baseURL)
 

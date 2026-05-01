@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fatih/color"
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 
 	"github.com/unrealandychan/close-wiki/internal/server"
@@ -19,6 +19,37 @@ var serveFlags struct {
 	outputDir string
 }
 
+const ansiLogo = "\033[36m" + `   ██████╗██╗      ██████╗ ███████╗███████╗   ██╗    ██╗██╗██╗  ██╗██╗
+  ██╔════╝██║     ██╔═══██╗██╔════╝██╔════╝   ██║    ██║██║██║ ██╔╝██║
+  ██║     ██║     ██║   ██║███████╗█████╗     ██║ █╗ ██║██║█████╔╝ ██║
+  ██║     ██║     ██║   ██║╚════██║██╔══╝     ██║███╗██║██║██╔═██╗ ██║
+  ╚██████╗███████╗╚██████╔╝███████║███████╗   ╚███╔███╔╝██║██║  ██╗██║
+   ╚═════╝╚══════╝ ╚═════╝ ╚══════╝╚══════╝    ╚══╝╚══╝ ╚═╝╚═╝  ╚═╝╚═╝` + "\033[0m"
+
+func printServeBanner(addr, root, outDir, model string) {
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, ansiLogo)
+	fmt.Fprintln(os.Stderr)
+
+	browserStr := "auto-open"
+	if serveFlags.noBrowser {
+		browserStr = "disabled"
+	}
+
+	pterm.DefaultBox.WithTitle("").
+		WithRightPadding(2).
+		WithLeftPadding(2).
+		Println(
+			pterm.Sprintf("%-10s %-22s %-10s %s\n", "Version", version, "Serving", "http://"+addr) +
+				pterm.Sprintf("%-10s %-22s %-10s %s\n", "Repo", root, "Model", model) +
+				pterm.Sprintf("%-10s %-22s %-10s %s", "Output", outDir, "Browser", browserStr),
+		)
+
+	fmt.Fprintln(os.Stderr)
+	pterm.FgGreen.Println("  Ready — press Ctrl+C to stop")
+	fmt.Fprintln(os.Stderr)
+}
+
 var serveCmd = &cobra.Command{
 	Use:   "serve [repo-path]",
 	Short: "Start the close-wiki web UI",
@@ -28,7 +59,6 @@ var serveCmd = &cobra.Command{
 		if len(args) > 0 {
 			root = args[0]
 		}
-		color.New(color.FgCyan, color.Bold).Fprintf(os.Stderr, "close-wiki serve  ▸  %s\n", root)
 		cfg := loadLLMConfig(serveFlags.model, "", "")
 		host := serveFlags.host
 		if host == "" {
@@ -39,6 +69,7 @@ var serveCmd = &cobra.Command{
 		if outDir == "" {
 			outDir = ".close-wiki"
 		}
+		printServeBanner(addr, root, outDir, cfg.Model)
 		srv := server.New(root, outDir, addr, cfg)
 		return srv.Start(context.Background())
 	},

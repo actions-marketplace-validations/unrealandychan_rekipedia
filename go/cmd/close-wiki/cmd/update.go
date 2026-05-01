@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/fatih/color"
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 
 	"github.com/unrealandychan/close-wiki/internal/orchestrator"
@@ -33,7 +33,7 @@ var updateCmd = &cobra.Command{
 		if err := os.MkdirAll(outDir, 0o755); err != nil {
 			return err
 		}
-		color.New(color.FgCyan, color.Bold).Fprintf(os.Stderr, "close-wiki update  ▸  %s\n", root)
+		pterm.DefaultHeader.WithFullWidth(false).WithBackgroundStyle(pterm.NewStyle(pterm.BgDarkGray)).WithTextStyle(pterm.NewStyle(pterm.FgWhite)).Println("close-wiki update ▸ " + root)
 		cfg := loadLLMConfig(updateFlags.model, "", "")
 		var progress func(string) // nil — terminal output handled by pterm in orchestrator
 		return orchestrator.RunUpdate(cmd.Context(), root, outDir, orchestrator.UpdateOptions{
