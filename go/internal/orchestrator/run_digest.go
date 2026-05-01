@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
+	"time"
 
-	"github.com/fatih/color"
 	"github.com/google/uuid"
-	"github.com/schollz/progressbar/v3"
+	"github.com/pterm/pterm"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/unrealandychan/close-wiki/internal/extractor"
@@ -27,7 +26,7 @@ const maxShardWorkers = 4
 type DigestOptions struct {
 	LLMConfig models.LLMConfig
 	Verbose   bool
-	Progress  func(string) // optional progress callback
+	Progress  func(string) // optional progress callback (for non-terminal consumers, e.g. web SSE)
 	Languages []string     // nil = all languages
 }
 
@@ -42,7 +41,14 @@ type DigestOptions struct {
 //  6. Generate wiki pages (LLM, concurrent)
 //  7. Persist & export
 func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptions) error {
-	log := newProgressLogger(opts.Progress, opts.Verbose)
+	start := time.Now()
+	cb := opts.Progress // optional non-terminal callback
+
+	// ── Header ─────────────────────────────────────────────────────────────
+	pterm.DefaultSection.WithLevel(1).Printf("close-wiki scan ▸ %s", repoRoot)
+	if cb != nil {
+		cb(fmt.Sprintf("close-wiki scan ▸ %s", repoRoot))
+	}
 
 	runID := uuid.New().String()
 	dbPath := filepath.Join(outputDir, "store.db")
@@ -56,29 +62,53 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 	if err := store.UpsertRun(runID, repoRoot); err != nil {
 		return fmt.Errorf("upsert run: %w", err)
 	}
-	log.logf("Run %s started", runID[:8])
 
 	// ── 1. Snapshot ────────────────────────────────────────────────────────
-	log.logf("Snapshotting repository…")
+	snapSpinner, _ := pterm.DefaultSpinner.WithText("Snapshotting repository…").Start()
+	if cb != nil {
+		cb("Snapshotting repository…")
+	}
 	snapper := NewSnapshotter(repoRoot, nil, opts.Languages)
 	files, err := snapper.Snapshot()
 	if err != nil {
+		snapSpinner.Fail("Snapshot failed")
 		return fmt.Errorf("snapshot: %w", err)
 	}
-	log.logf("  %d files found", len(files))
+
+	// Count unique languages
+	langSet := map[string]struct{}{}
+	for _, f := range files {
+		if f.Language != "" {
+			langSet[f.Language] = struct{}{}
+		}
+	}
+	snapMsg := fmt.Sprintf("%d files found (%d languages)", len(files), len(langSet))
+	snapSpinner.Success(snapMsg)
+	if cb != nil {
+		cb(snapMsg)
+	}
 
 	if err := store.UpsertSnapshot(runID, files); err != nil {
 		return fmt.Errorf("store snapshot: %w", err)
 	}
 
 	// ── 2. Shard ───────────────────────────────────────────────────────────
-	log.logf("Planning shards…")
+	shardSpinner, _ := pterm.DefaultSpinner.WithText("Planning shards…").Start()
+	if cb != nil {
+		cb("Planning shards…")
+	}
 	planner := NewShardPlanner(0)
 	shards := planner.Plan(files)
-	log.logf("  %d shards planned", len(shards))
+	shardMsg := fmt.Sprintf("%d shards planned", len(shards))
+	shardSpinner.Success(shardMsg)
+	if cb != nil {
+		cb(shardMsg)
+	}
 
 	// ── 3. Extract shards in parallel ──────────────────────────────────────
-	log.logf("Extracting shards (up to %d parallel)…", maxShardWorkers)
+	if cb != nil {
+		cb(fmt.Sprintf("Extracting shards (up to %d parallel)…", maxShardWorkers))
+	}
 	mergedResults := make([]models.AnalysisResult, len(shards))
 	var resultsMu sync.Mutex
 
@@ -86,7 +116,7 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 	eg, egCtx := errgroup.WithContext(ctx)
 
 	reg := extractor.NewRegistry()
-	bar := newShardBar(len(shards))
+	bar, _ := newShardBar(len(shards))
 
 	for i, shard := range shards {
 		i, shard := i, shard
@@ -97,9 +127,13 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 			result, err := extractShard(egCtx, repoRoot, shard, reg)
 			resultsMu.Lock()
 			defer resultsMu.Unlock()
-			_ = bar.Add(1)
+			bar.Increment()
 			if err != nil {
-				log.logf("  ⚠ shard %s failed: %v", shard.ShardID, err)
+				warnMsg := fmt.Sprintf("shard %s failed: %v", shard.ShardID, err)
+				pterm.Warning.Println(warnMsg)
+				if cb != nil {
+					cb("⚠ " + warnMsg)
+				}
 				mergedResults[i] = models.AnalysisResult{
 					ShardID:     shard.ShardID,
 					FilesSeen:   []string{},
@@ -109,13 +143,19 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 				return nil // graceful — don't abort the whole run
 			}
 			mergedResults[i] = result
-			log.logf("  ✓ %s: %d symbols, %d rels", shard.ShardID, len(result.Symbols), len(result.Relationships))
+			if opts.Verbose {
+				pterm.Success.Printf("%s: %d symbols, %d rels\n", shard.ShardID, len(result.Symbols), len(result.Relationships))
+			}
+			if cb != nil {
+				cb(fmt.Sprintf("✓ %s: %d symbols, %d rels", shard.ShardID, len(result.Symbols), len(result.Relationships)))
+			}
 			return nil
 		})
 	}
 	if err := eg.Wait(); err != nil {
 		return err
 	}
+	bar.Stop()
 
 	// Persist results (SQLite writes must be serial)
 	for _, result := range mergedResults {
@@ -128,11 +168,18 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 	}
 
 	// ── 4. Combine + build diagrams ────────────────────────────────────────
-	log.logf("Building diagrams…")
+	diagSpinner, _ := pterm.DefaultSpinner.WithText("Building diagrams…").Start()
+	if cb != nil {
+		cb("Building diagrams…")
+	}
 	combined := combineResults(mergedResults)
 	db := synthesis.NewDiagramBuilder()
 	diagrams := db.Build(combined.Relationships, combined.EntryPoints)
-	log.logf("  %d diagram(s) built", len(diagrams))
+	diagMsg := fmt.Sprintf("%d diagram(s) built", len(diagrams))
+	diagSpinner.Success(diagMsg)
+	if cb != nil {
+		cb(diagMsg)
+	}
 
 	if mg, ok := diagrams["module-graph"]; ok {
 		combined.Evidence["pre_built_module_graph"] = mg[1]
@@ -142,17 +189,28 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 	}
 
 	// ── 5. Plan wiki structure ─────────────────────────────────────────────
-	log.logf("Planning wiki structure…")
+	planSpinner, _ := pterm.DefaultSpinner.WithText("Planning wiki structure (LLM)…").Start()
+	if cb != nil {
+		cb("Planning wiki structure (LLM)…")
+	}
 	llmClient := llm.New(opts.LLMConfig)
 	wikiPlanner := synthesis.NewPlannerAgent(llmClient)
 	plan, err := wikiPlanner.Plan(ctx, combined)
 	if err != nil {
+		planSpinner.Fail("Wiki planning failed")
 		return fmt.Errorf("plan wiki: %w", err)
 	}
-	log.logf("  %d pages planned", len(plan.Pages))
+	planMsg := fmt.Sprintf("%d pages planned", len(plan.Pages))
+	planSpinner.Success(planMsg)
+	if cb != nil {
+		cb(planMsg)
+	}
 
 	// ── 6. Generate wiki pages ─────────────────────────────────────────────
-	log.logf("Generating wiki pages…")
+	genSpinner, _ := pterm.DefaultSpinner.WithText(fmt.Sprintf("Generating %d wiki pages…", len(plan.Pages))).Start()
+	if cb != nil {
+		cb(fmt.Sprintf("Generating %d wiki pages…", len(plan.Pages)))
+	}
 	pageBuilder := synthesis.NewPageBuilder(llmClient)
 	diagMap := make(map[string][2]string)
 	for k, v := range diagrams {
@@ -160,12 +218,20 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 	}
 	pages, err := pageBuilder.BuildAll(ctx, plan, combined, diagMap)
 	if err != nil {
+		genSpinner.Fail("Page generation failed")
 		return fmt.Errorf("build pages: %w", err)
 	}
-	log.logf("  %d pages generated", len(pages))
+	genMsg := fmt.Sprintf("%d pages generated", len(pages))
+	genSpinner.Success(genMsg)
+	if cb != nil {
+		cb(genMsg)
+	}
 
 	// ── 7. Persist pages & export ──────────────────────────────────────────
-	log.logf("Persisting pages…")
+	persistSpinner, _ := pterm.DefaultSpinner.WithText("Persisting pages…").Start()
+	if cb != nil {
+		cb("Persisting pages…")
+	}
 	for slug, content := range pages {
 		title := slug
 		for _, spec := range plan.Pages {
@@ -175,6 +241,7 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 			}
 		}
 		if err := store.UpsertPage(runID, slug, title, content); err != nil {
+			persistSpinner.Fail("Failed to persist pages")
 			return fmt.Errorf("store page %q: %w", slug, err)
 		}
 	}
@@ -190,8 +257,23 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 			return fmt.Errorf("write page %q: %w", slug, err)
 		}
 	}
+	persistSpinner.Success("Pages persisted")
 
-	log.logf("✅ Done — run %s | %d pages in %s", runID[:8], len(pages), outputDir)
+	// ── Summary box ────────────────────────────────────────────────────────
+	elapsed := time.Since(start).Round(time.Millisecond)
+	totalSymbols := 0
+	for _, r := range mergedResults {
+		totalSymbols += len(r.Symbols)
+	}
+	summary := fmt.Sprintf(
+		"Run ID  : %s\nPages   : %d\nSymbols : %d\nElapsed : %s\nOutput  : %s",
+		runID[:8], len(pages), totalSymbols, elapsed, outputDir,
+	)
+	pterm.DefaultBox.WithTitle("✅ Scan Complete").Println(summary)
+	if cb != nil {
+		cb(fmt.Sprintf("✅ Done — run %s | %d pages in %s", runID[:8], len(pages), outputDir))
+	}
+
 	return nil
 }
 
@@ -247,59 +329,28 @@ func combineResults(results []models.AnalysisResult) models.AnalysisResult {
 	return combined
 }
 
-// progressLogger emits coloured messages to stderr and an optional callback.
+// progressLogger is kept for compatibility with the web server (SSE streaming).
+// Terminal output is handled directly by pterm in RunDigest.
 type progressLogger struct {
 	cb      func(string)
 	verbose bool
-
-	cyan    *color.Color
-	green   *color.Color
-	yellow  *color.Color
-	red     *color.Color
 }
 
 func newProgressLogger(cb func(string), verbose bool) *progressLogger {
-	return &progressLogger{
-		cb:      cb,
-		verbose: verbose,
-		cyan:    color.New(color.FgCyan, color.Bold),
-		green:   color.New(color.FgGreen),
-		yellow:  color.New(color.FgYellow),
-		red:     color.New(color.FgRed),
-	}
+	return &progressLogger{cb: cb, verbose: verbose}
 }
 
 func (l *progressLogger) logf(format string, args ...any) {
-	msg := fmt.Sprintf(format, args...)
 	if l.cb != nil {
-		l.cb(msg)
-	}
-	// Colour by content
-	switch {
-	case strings.HasPrefix(msg, "⚠") || strings.HasPrefix(msg, "  ⚠"):
-		l.yellow.Fprintln(os.Stderr, msg)
-	case strings.HasPrefix(msg, "  ✓") || strings.HasPrefix(msg, "✅"):
-		l.green.Fprintln(os.Stderr, msg)
-	case strings.HasPrefix(msg, "Error") || strings.HasPrefix(msg, "error"):
-		l.red.Fprintln(os.Stderr, msg)
-	default:
-		l.cyan.Fprintln(os.Stderr, msg)
+		l.cb(fmt.Sprintf(format, args...))
 	}
 }
 
-// newShardBar creates a progressbar for shard processing.
-func newShardBar(total int) *progressbar.ProgressBar {
-	return progressbar.NewOptions(total,
-		progressbar.OptionSetDescription("  extracting shards"),
-		progressbar.OptionSetWriter(os.Stderr),
-		progressbar.OptionShowCount(),
-		progressbar.OptionSetTheme(progressbar.Theme{
-			Saucer:        "=",
-			SaucerHead:    ">",
-			SaucerPadding: " ",
-			BarStart:      "[",
-			BarEnd:        "]",
-		}),
-		progressbar.OptionClearOnFinish(),
-	)
+// newShardBar creates a pterm progress bar for shard processing.
+func newShardBar(total int) (*pterm.ProgressbarPrinter, error) {
+	return pterm.DefaultProgressbar.
+		WithTotal(total).
+		WithTitle("Extracting shards").
+		WithRemoveWhenDone(true).
+		Start()
 }

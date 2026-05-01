@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/fatih/color"
@@ -43,7 +42,7 @@ var embedCmd = &cobra.Command{
 		if embedFlags.provider != "" {
 			cfg.EmbedProvider = embedFlags.provider
 		}
-		progress := func(msg string) { fmt.Fprintln(os.Stderr, msg) }
+		var progress func(string) // nil — terminal output handled by pterm in orchestrator
 		pipeline := rag.NewEmbedPipeline(outDir, cfg)
 		n, err := pipeline.Build(root, progress)
 		if err != nil {

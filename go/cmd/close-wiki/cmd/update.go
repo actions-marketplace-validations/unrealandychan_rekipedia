@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/fatih/color"
@@ -36,7 +35,7 @@ var updateCmd = &cobra.Command{
 		}
 		color.New(color.FgCyan, color.Bold).Fprintf(os.Stderr, "close-wiki update  ▸  %s\n", root)
 		cfg := loadLLMConfig(updateFlags.model, "", "")
-		progress := func(msg string) { fmt.Fprintln(os.Stderr, msg) }
+		var progress func(string) // nil — terminal output handled by pterm in orchestrator
 		return orchestrator.RunUpdate(cmd.Context(), root, outDir, orchestrator.UpdateOptions{
 			LLMConfig: cfg,
 			Progress:  progress,
@@ -52,4 +51,3 @@ func init() {
 	updateCmd.Flags().StringVar(&updateFlags.outputDir, "output-dir", "", "Output directory (default: .close-wiki)")
 	updateCmd.Flags().BoolVar(&updateFlags.noDocker, "no-docker", false, "Skip Docker, run extractors in-process")
 }
-

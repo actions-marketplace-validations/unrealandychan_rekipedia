@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -51,9 +50,7 @@ var scanCmd = &cobra.Command{
 
 		cfg := loadLLMConfig(scanFlags.model, scanFlags.apiKey, scanFlags.baseURL)
 
-		progress := func(msg string) {
-			fmt.Fprintln(os.Stderr, msg)
-		}
+	var progress func(string) // nil — terminal output handled by pterm in orchestrator
 
 		return orchestrator.RunDigest(cmd.Context(), root, outDir, orchestrator.DigestOptions{
 			LLMConfig: cfg,
