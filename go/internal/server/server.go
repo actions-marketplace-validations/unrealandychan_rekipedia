@@ -4,6 +4,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -13,6 +14,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -20,7 +22,11 @@ import (
 
 	"github.com/unrealandychan/close-wiki/internal/models"
 	"github.com/unrealandychan/close-wiki/internal/orchestrator"
+	"github.com/unrealandychan/close-wiki/internal/storage"
 )
+
+//go:embed templates/*.html
+var templateFS embed.FS
 
 // Server serves the close-wiki web UI.
 type Server struct {
@@ -28,6 +34,9 @@ type Server struct {
 	outputDir string
 	llmCfg    models.LLMConfig
 	addr      string
+
+	mu      sync.Mutex
+	history []models.QAHistory
 }
 
 // New creates a new Server.
@@ -40,10 +49,14 @@ func newRouter(s *Server) *chi.Mux {
 	r.Use(middleware.Recoverer)
 	r.Get("/", s.handleIndex)
 	r.Get("/wiki/{slug}", s.handleWikiPage)
+	r.Get("/ask", s.handleAskPage)
+	r.Post("/ask/stream", s.handleAskStream)
+	r.Get("/diagrams/{filename}", s.handleDiagram)
 	r.Get("/api/pages", s.handleAPIPages)
 	r.Get("/api/page/{slug}", s.handleAPIPage)
 	r.Post("/api/ask", s.handleAPIAsk)
 	r.Get("/api/ask/stream", s.handleAPIAskStream)
+	r.Get("/api/history", s.handleAPIHistory)
 	r.Get("/api/health", s.handleHealth)
 	return r
 }
@@ -71,29 +84,75 @@ func (s *Server) Start(ctx context.Context) error {
 	return err
 }
 
+// ── template helpers ──────────────────────────────────────────────────────────
+
+// templateFuncs provides helper functions used in templates.
+var templateFuncs = template.FuncMap{
+	"inc": func(i int) int { return i + 1 },
+}
+
+// loadTemplates parses all templates from the embedded FS.
+func loadTemplates() (*template.Template, error) {
+	tmpl := template.New("").Funcs(templateFuncs)
+	return tmpl.ParseFS(templateFS, "templates/*.html")
+}
+
+// baseData returns common fields for all templates.
+func (s *Server) baseData(activePage, activeSlug string) map[string]any {
+	repoName := filepath.Base(s.repoRoot)
+	pages := s.listPages()
+	return map[string]any{
+		"RepoName":   repoName,
+		"RepoPath":   s.repoRoot,
+		"ActivePage": activePage,
+		"ActiveSlug": activeSlug,
+		"Pages":      pages,
+	}
+}
+
 // ── handlers ──────────────────────────────────────────────────────────────────
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	pages := s.listPages()
+
+	// If no wiki exists yet, redirect to first page or show empty notice
 	if len(pages) == 0 {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprint(w, "<html><body><h1>No wiki yet</h1><p>Run <code>close-wiki scan .</code> first.</p></body></html>")
+		http.Redirect(w, r, "/wiki/_empty", http.StatusFound)
 		return
 	}
-	http.Redirect(w, r, "/wiki/"+pages[0].Slug, http.StatusFound)
+
+	tmpl, err := loadTemplates()
+	if err != nil {
+		http.Error(w, "template error: "+err.Error(), 500)
+		return
+	}
+
+	diagrams := s.listDiagrams()
+
+	// Gather stats
+	stats := s.gatherStats()
+
+	data := s.baseData("home", "")
+	data["Stats"] = stats
+	data["Diagrams"] = diagrams
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := tmpl.ExecuteTemplate(w, "index.html", data); err != nil {
+		http.Error(w, err.Error(), 500)
+	}
 }
 
 func (s *Server) handleWikiPage(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 	mdPath := filepath.Join(s.outputDir, "wiki", slug+".md")
-	data, err := os.ReadFile(mdPath)
+	mdData, err := os.ReadFile(mdPath)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 
 	var buf bytes.Buffer
-	if err := goldmark.Convert(data, &buf); err != nil {
+	if err := goldmark.Convert(mdData, &buf); err != nil {
 		http.Error(w, "render error", 500)
 		return
 	}
@@ -107,14 +166,178 @@ func (s *Server) handleWikiPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	tmpl := template.Must(template.New("page").Parse(htmlTemplate))
+	tmpl, err := loadTemplates()
+	if err != nil {
+		http.Error(w, "template error: "+err.Error(), 500)
+		return
+	}
+
+	data := s.baseData("wiki", slug)
+	data["Title"] = title
+	data["Content"] = template.HTML(buf.String())
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	tmpl.Execute(w, map[string]any{
-		"Title":   title,
-		"Content": template.HTML(buf.String()),
-		"Pages":   pages,
-		"Slug":    slug,
+	if err := tmpl.ExecuteTemplate(w, "wiki.html", data); err != nil {
+		http.Error(w, err.Error(), 500)
+	}
+}
+
+func (s *Server) handleAskPage(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := loadTemplates()
+	if err != nil {
+		http.Error(w, "template error: "+err.Error(), 500)
+		return
+	}
+
+	data := s.baseData("ask", "")
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := tmpl.ExecuteTemplate(w, "ask.html", data); err != nil {
+		http.Error(w, err.Error(), 500)
+	}
+}
+
+func (s *Server) handleAskStream(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Question string `json:"question"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Question == "" {
+		http.Error(w, "missing question", 400)
+		return
+	}
+
+	// Set SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.WriteHeader(http.StatusOK)
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming not supported", 500)
+		return
+	}
+
+	s.mu.Lock()
+	histCopy := make([]models.QAHistory, len(s.history))
+	copy(histCopy, s.history)
+	s.mu.Unlock()
+
+	var accumulated strings.Builder
+	err := orchestrator.StreamAsk(r.Context(), req.Question, s.repoRoot, s.outputDir,
+		orchestrator.AskOptions{LLMConfig: s.llmCfg, History: histCopy},
+		func(chunk string) {
+			accumulated.WriteString(chunk)
+			safe := strings.ReplaceAll(chunk, "\n", `\n`)
+			fmt.Fprintf(w, "data: %s\n\n", safe)
+			flusher.Flush()
+		},
+	)
+	if err != nil {
+		fmt.Fprintf(w, "data: [ERROR] %s\n\n", err.Error())
+	} else {
+		fmt.Fprint(w, "data: [DONE]\n\n")
+		answer := accumulated.String()
+		s.persistQA(req.Question, answer)
+	}
+	flusher.Flush()
+}
+
+func (s *Server) handleAPIAskStream(w http.ResponseWriter, r *http.Request) {
+	question := r.URL.Query().Get("question")
+	if question == "" {
+		http.Error(w, "missing question", 400)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.WriteHeader(http.StatusOK)
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming not supported", 500)
+		return
+	}
+
+	s.mu.Lock()
+	histCopy := make([]models.QAHistory, len(s.history))
+	copy(histCopy, s.history)
+	s.mu.Unlock()
+
+	var accumulated strings.Builder
+	err := orchestrator.StreamAsk(r.Context(), question, s.repoRoot, s.outputDir,
+		orchestrator.AskOptions{LLMConfig: s.llmCfg, History: histCopy},
+		func(chunk string) {
+			accumulated.WriteString(chunk)
+			safe := strings.ReplaceAll(chunk, "\n", `\n`)
+			fmt.Fprintf(w, "data: %s\n\n", safe)
+			flusher.Flush()
+		},
+	)
+	if err != nil {
+		fmt.Fprintf(w, "data: [ERROR] %s\n\n", err.Error())
+	} else {
+		fmt.Fprint(w, "data: [DONE]\n\n")
+		s.persistQA(question, accumulated.String())
+	}
+	flusher.Flush()
+}
+
+func (s *Server) handleAPIAsk(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Question string `json:"question"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", 400)
+		return
+	}
+
+	s.mu.Lock()
+	histCopy := make([]models.QAHistory, len(s.history))
+	copy(histCopy, s.history)
+	s.mu.Unlock()
+
+	result, err := orchestrator.RunAsk(r.Context(), req.Question, s.repoRoot, s.outputDir, orchestrator.AskOptions{
+		LLMConfig: s.llmCfg,
+		History:   histCopy,
 	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	s.persistQA(req.Question, result.Answer)
+	writeJSON(w, map[string]string{"answer": result.Answer})
+}
+
+func (s *Server) handleAPIHistory(w http.ResponseWriter, r *http.Request) {
+	dbPath := filepath.Join(s.outputDir, "store.db")
+	store, err := storage.Open(dbPath)
+	if err != nil {
+		writeJSON(w, []models.QAHistory{})
+		return
+	}
+	defer store.Close()
+
+	hist, err := store.GetQAHistory(s.repoRoot)
+	if err != nil || hist == nil {
+		writeJSON(w, []models.QAHistory{})
+		return
+	}
+	writeJSON(w, hist)
+}
+
+func (s *Server) handleDiagram(w http.ResponseWriter, r *http.Request) {
+	filename := chi.URLParam(r, "filename")
+	// Prevent path traversal
+	filename = filepath.Base(filename)
+	fpath := filepath.Join(s.outputDir, "diagrams", filename)
+	if _, err := os.Stat(fpath); err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeFile(w, r, fpath)
 }
 
 func (s *Server) handleAPIPages(w http.ResponseWriter, r *http.Request) {
@@ -140,69 +363,90 @@ func (s *Server) handleAPIPage(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{"slug": slug, "title": title, "content": string(data)})
 }
 
-func (s *Server) handleAPIAskStream(w http.ResponseWriter, r *http.Request) {
-	question := r.URL.Query().Get("question")
-	if question == "" {
-		http.Error(w, "missing question", 400)
-		return
-	}
-
-	// Set SSE headers
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusOK)
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "streaming not supported", 500)
-		return
-	}
-
-	err := orchestrator.StreamAsk(r.Context(), question, s.repoRoot, s.outputDir,
-		orchestrator.AskOptions{LLMConfig: s.llmCfg},
-		func(chunk string) {
-			// Escape newlines so each SSE data line is single-line
-			safe := strings.ReplaceAll(chunk, "\n", `\n`)
-			fmt.Fprintf(w, "data: %s\n\n", safe)
-			flusher.Flush()
-		},
-	)
-	if err != nil {
-		fmt.Fprintf(w, "data: [ERROR] %s\n\n", err.Error())
-	} else {
-		fmt.Fprint(w, "data: [DONE]\n\n")
-	}
-	flusher.Flush()
-}
-
-func (s *Server) handleAPIAsk(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Question string `json:"question"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "bad request", 400)
-		return
-	}
-	result, err := orchestrator.RunAsk(r.Context(), req.Question, s.repoRoot, s.outputDir, orchestrator.AskOptions{
-		LLMConfig: s.llmCfg,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	writeJSON(w, map[string]string{"answer": result.Answer})
-}
-
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]string{"status": "ok"})
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
+// persistQA saves Q&A to in-memory history and SQLite.
+func (s *Server) persistQA(question, answer string) {
+	entry := models.QAHistory{Question: question, Answer: answer}
+
+	s.mu.Lock()
+	s.history = append(s.history, entry)
+	s.mu.Unlock()
+
+	// Persist to SQLite (best effort)
+	dbPath := filepath.Join(s.outputDir, "store.db")
+	if store, err := storage.Open(dbPath); err == nil {
+		defer store.Close()
+		_ = store.SaveQAHistory(s.repoRoot, question, answer)
+	}
+}
+
 type pageInfo struct {
 	Slug  string `json:"slug"`
 	Title string `json:"title"`
+}
+
+type statsInfo struct {
+	PageCount   int    `json:"page_count"`
+	SymbolCount int    `json:"symbol_count"`
+	LastScan    string `json:"last_scan"`
+	RunID       string `json:"run_id"`
+}
+
+func (s *Server) gatherStats() statsInfo {
+	pages := s.listPages()
+	info := statsInfo{
+		PageCount: len(pages),
+		LastScan:  "—",
+		RunID:     "—",
+	}
+
+	dbPath := filepath.Join(s.outputDir, "store.db")
+	store, err := storage.Open(dbPath)
+	if err != nil {
+		return info
+	}
+	defer store.Close()
+
+	runID, err := store.GetLatestRunID(s.repoRoot)
+	if err != nil || runID == "" {
+		return info
+	}
+	info.RunID = runID
+
+	syms, _ := store.GetAllSymbols(runID)
+	info.SymbolCount = len(syms)
+
+	// Try to get last scan time from run record
+	var finishedAt string
+	_ = store.QueryRunTime(runID, &finishedAt)
+	if finishedAt != "" {
+		if len(finishedAt) >= 16 {
+			info.LastScan = strings.Replace(finishedAt[:16], "T", " ", 1)
+		} else {
+			info.LastScan = finishedAt
+		}
+	}
+	return info
+}
+
+func (s *Server) listDiagrams() []string {
+	diagDir := filepath.Join(s.outputDir, "diagrams")
+	entries, err := os.ReadDir(diagDir)
+	if err != nil {
+		return nil
+	}
+	var files []string
+	for _, e := range entries {
+		if !e.IsDir() {
+			files = append(files, e.Name())
+		}
+	}
+	return files
 }
 
 func (s *Server) listPages() []pageInfo {
@@ -212,8 +456,7 @@ func (s *Server) listPages() []pageInfo {
 		return nil
 	}
 
-	// Build a map of slug -> H1 title from disk
-	available := make(map[string]string) // slug -> title
+	available := make(map[string]string)
 	for _, e := range entries {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
 			continue
@@ -232,7 +475,6 @@ func (s *Server) listPages() []pageInfo {
 		available[slug] = title
 	}
 
-	// Load nav_order from manifest.json if available
 	var navOrder []string
 	manifestPath := filepath.Join(s.outputDir, "exports", "manifest.json")
 	if data, err := os.ReadFile(manifestPath); err == nil {
@@ -244,7 +486,6 @@ func (s *Server) listPages() []pageInfo {
 		}
 	}
 
-	// Build ordered slug list: nav_order first, then alphabetical remainder
 	seen := make(map[string]bool)
 	var orderedSlugs []string
 	for _, slug := range navOrder {
@@ -253,7 +494,6 @@ func (s *Server) listPages() []pageInfo {
 			seen[slug] = true
 		}
 	}
-	// Collect remainder and sort alphabetically
 	var remainder []string
 	for slug := range available {
 		if !seen[slug] {
@@ -263,14 +503,9 @@ func (s *Server) listPages() []pageInfo {
 	sort.Strings(remainder)
 	orderedSlugs = append(orderedSlugs, remainder...)
 
-	// Build final pageInfo list with #N · Title format
 	var pages []pageInfo
-	for i, slug := range orderedSlugs {
-		title := available[slug]
-		pages = append(pages, pageInfo{
-			Slug:  slug,
-			Title: fmt.Sprintf("#%d · %s", i+1, title),
-		})
+	for _, slug := range orderedSlugs {
+		pages = append(pages, pageInfo{Slug: slug, Title: available[slug]})
 	}
 	return pages
 }
@@ -279,72 +514,3 @@ func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(v)
 }
-
-// htmlTemplate is the full-page HTML template (dark theme).
-const htmlTemplate = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{.Title}} — close-wiki</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;height:100vh;overflow:hidden}
-#sidebar{width:240px;background:#16213e;padding:16px;overflow-y:auto;flex-shrink:0;border-right:1px solid #0f3460}
-#sidebar h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#a0a0b0;margin-bottom:12px}
-#sidebar a{display:block;padding:6px 8px;border-radius:4px;color:#c0c8e8;text-decoration:none;font-size:14px;margin-bottom:2px}
-#sidebar a:hover,#sidebar a.active{background:#0f3460;color:#e0e8ff}
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-#content{flex:1;padding:32px 40px;overflow-y:auto;max-width:860px}
-h1,h2,h3{color:#e8eaf6;margin:1.2em 0 .5em}
-p{line-height:1.7;margin-bottom:1em}
-code{background:#0d1b2a;padding:2px 6px;border-radius:3px;font-size:90%;color:#80cbc4}
-pre{background:#0d1b2a;padding:16px;border-radius:6px;overflow-x:auto;margin-bottom:1em}
-pre code{background:none;padding:0}
-#ask{background:#16213e;border-top:1px solid #0f3460;padding:12px 16px;display:flex;gap:8px}
-#ask input{flex:1;background:#1a1a2e;border:1px solid #0f3460;color:#e0e0e0;padding:8px 12px;border-radius:4px;font-size:14px}
-#ask button{background:#0f3460;color:#e0e8ff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:14px}
-#ask button:hover{background:#1a5276}
-#answer{padding:12px 16px;background:#0d1b2a;border-top:1px solid #0f3460;font-size:14px;white-space:pre-wrap;max-height:200px;overflow-y:auto;display:none}
-</style>
-</head>
-<body>
-<nav id="sidebar">
-  <h2>close-wiki</h2>
-  {{range .Pages}}
-  <a href="/wiki/{{.Slug}}"{{if eq $.Slug .Slug}} class="active"{{end}}>{{.Title}}</a>
-  {{end}}
-</nav>
-<div id="main">
-  <div id="content">{{.Content}}</div>
-  <div id="ask">
-    <input id="q" type="text" placeholder="Ask a question…">
-    <button onclick="ask()">Ask</button>
-  </div>
-  <div id="answer"></div>
-</div>
-<script>
-async function ask(){
-  const q=document.getElementById('q').value.trim();
-  if(!q)return;
-  const ans=document.getElementById('answer');
-  ans.style.display='block';
-  ans.textContent='Thinking…';
-
-  let accumulated='';
-  const url='/api/ask/stream?question='+encodeURIComponent(q);
-  const es=new EventSource(url);
-
-  es.onmessage=(e)=>{
-    if(e.data==='[DONE]'){es.close();return;}
-    if(e.data.startsWith('[ERROR]')){ans.textContent=e.data;es.close();return;}
-    accumulated+=e.data.replace(/\\n/g,'\n');
-    ans.textContent=accumulated;
-    ans.scrollTop=ans.scrollHeight;
-  };
-  es.onerror=()=>{if(!accumulated)ans.textContent='Stream error.';es.close();};
-}
-document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')ask();});
-</script>
-</body>
-</html>`

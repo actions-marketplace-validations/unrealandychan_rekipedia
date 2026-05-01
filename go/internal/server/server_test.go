@@ -108,8 +108,9 @@ func TestIndexRedirects(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/", nil)
 	r.ServeHTTP(rec, req)
-	if rec.Code != 302 {
-		t.Fatalf("expected 302 redirect, got %d", rec.Code)
+	// Index now renders a dashboard page (200) when wiki pages exist
+	if rec.Code != 200 {
+		t.Fatalf("expected 200 dashboard, got %d", rec.Code)
 	}
 }
 

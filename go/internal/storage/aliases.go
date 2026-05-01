@@ -87,3 +87,36 @@ func (s *Store) GetAllRelationships(runID string) ([]models.Relationship, error)
 func (s *Store) UpsertPage(runID, slug, title, content string) error {
 	return s.UpsertWikiPage(runID, slug, title, "", content, 0, 0)
 }
+
+// SaveQAHistory persists a Q&A pair keyed by repoRoot (stored as run_id="repo:<repoRoot>").
+func (s *Store) SaveQAHistory(repoRoot, question, answer string) error {
+	return s.SaveQA("repo:"+repoRoot, question, answer)
+}
+
+// GetQAHistory returns all Q&A pairs for a repo, oldest first.
+func (s *Store) GetQAHistory(repoRoot string) ([]models.QAHistory, error) {
+	rows, err := s.db.Query(
+		`SELECT question, answer, asked_at FROM qa_history WHERE run_id=? ORDER BY asked_at ASC`,
+		"repo:"+repoRoot,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var hist []models.QAHistory
+	for rows.Next() {
+		var h models.QAHistory
+		if err := rows.Scan(&h.Question, &h.Answer, &h.CreatedAt); err != nil {
+			return nil, err
+		}
+		hist = append(hist, h)
+	}
+	return hist, rows.Err()
+}
+
+// QueryRunTime fills dest with the finished_at (or started_at) time for a run.
+func (s *Store) QueryRunTime(runID string, dest *string) error {
+	return s.db.QueryRow(
+		`SELECT COALESCE(finished_at, started_at, '') FROM runs WHERE run_id=?`, runID,
+	).Scan(dest)
+}
