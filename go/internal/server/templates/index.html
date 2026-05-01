@@ -1,0 +1,55 @@
+{{template "base.html" .}}
+{{define "title"}}{{.RepoName}} — close-wiki{{end}}
+{{define "content"}}
+<h1>{{.RepoName}}</h1>
+<p style="color:#6b7280;margin-bottom:24px">Knowledge base for <code>{{.RepoPath}}</code></p>
+
+<div class="card-grid">
+  <div class="stat-card">
+    <div class="stat-label">Wiki Pages</div>
+    <div class="stat-value">{{.Stats.PageCount}}</div>
+    <div class="stat-sub">generated</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Symbols</div>
+    <div class="stat-value">{{.Stats.SymbolCount}}</div>
+    <div class="stat-sub">indexed</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Last Scan</div>
+    <div class="stat-value" style="font-size:15px;padding-top:4px">{{.Stats.LastScan}}</div>
+    <div class="stat-sub">{{.Stats.RunID}}</div>
+  </div>
+</div>
+
+{{if .Diagrams}}
+<h2>Diagrams</h2>
+<div class="card" style="margin-bottom:24px">
+  <ul class="page-list">
+    {{range .Diagrams}}
+    <li><a href="/diagrams/{{.}}"><span class="icon" style="font-size:14px">📊</span> {{.}}</a></li>
+    {{end}}
+  </ul>
+</div>
+{{end}}
+
+<h2>Wiki Pages</h2>
+<div class="card" style="margin-bottom:24px">
+  {{if .Pages}}
+  <ul class="page-list">
+    {{range $i, $p := .Pages}}
+    <li>
+      <a href="/wiki/{{$p.Slug}}">
+        <span class="page-num">#{{inc $i}}</span>
+        {{$p.Title}}
+      </a>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p style="color:#6b7280;padding:8px 0">No wiki pages yet. Run <code>close-wiki scan .</code> first.</p>
+  {{end}}
+</div>
+
+<a href="/ask" class="btn btn-primary">💬 Ask a Question</a>
+{{end}}

@@ -10,6 +10,7 @@ import (
 	"github.com/unrealandychan/close-wiki/internal/config"
 	"github.com/unrealandychan/close-wiki/internal/models"
 	"github.com/unrealandychan/close-wiki/internal/orchestrator"
+	"github.com/unrealandychan/close-wiki/internal/rag"
 )
 
 var scanFlags struct {
@@ -52,12 +53,31 @@ var scanCmd = &cobra.Command{
 
 	var progress func(string) // nil — terminal output handled by pterm in orchestrator
 
-		return orchestrator.RunDigest(cmd.Context(), root, outDir, orchestrator.DigestOptions{
+		if err := orchestrator.RunDigest(cmd.Context(), root, outDir, orchestrator.DigestOptions{
 			LLMConfig: cfg,
 			Verbose:   scanFlags.verbose,
 			Progress:  progress,
 			Languages: splitLanguages(scanFlags.languages),
-		})
+		}); err != nil {
+			return err
+		}
+
+		if scanFlags.embedModel != "" {
+			pterm.Info.Println("Auto-embedding after scan...")
+			cfg.EmbedModel = scanFlags.embedModel
+			if scanFlags.embedProvider != "" {
+				cfg.EmbedProvider = scanFlags.embedProvider
+			}
+			pipeline := rag.NewEmbedPipeline(outDir, cfg)
+			n, err := pipeline.Build(root, nil)
+			if err != nil {
+				pterm.Warning.Printfln("Auto-embed failed: %v", err)
+			} else {
+				pterm.Success.Printf("Embeddings ready (%d chunks)\n", n)
+			}
+		}
+
+		return nil
 	},
 }
 

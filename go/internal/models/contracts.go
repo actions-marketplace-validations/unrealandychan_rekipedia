@@ -91,8 +91,9 @@ type Shard struct {
 
 // QAHistory records a previous question-answer pair for multi-turn context.
 type QAHistory struct {
-	Question string `json:"question"`
-	Answer   string `json:"answer"`
+	Question  string `json:"question"`
+	Answer    string `json:"answer"`
+	CreatedAt string `json:"created_at,omitempty"`
 }
 
 // FileManifest records a file's identity for incremental updates.

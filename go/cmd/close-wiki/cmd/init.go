@@ -1,8 +1,10 @@
 package cmd
 
 import (
-	"fmt"
+	"os"
+	"path/filepath"
 
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/unrealandychan/close-wiki/internal/config"
 )
@@ -17,10 +19,27 @@ var initCmd = &cobra.Command{
 		if len(args) > 0 {
 			root = args[0]
 		}
+
+		// Check if already initialised before calling InitDir
+		cfgPath := filepath.Join(root, ".close-wiki", "config.yml")
+		_, statErr := os.Stat(cfgPath)
+		alreadyExists := statErr == nil
+
 		if err := config.InitDir(root); err != nil {
-			return fmt.Errorf("init failed: %w", err)
+			return err
 		}
-		fmt.Printf("✓ Initialised .close-wiki/ in %s\n", root)
+
+		if alreadyExists {
+			pterm.Warning.Println("Already initialised — skipping")
+			return nil
+		}
+
+		pterm.Success.Printfln("Initialised .close-wiki/ in %s", root)
+
+		boxContent := ".close-wiki/config.yml  ✓\n.gitignore updated      ✓"
+		pterm.DefaultBox.Println(boxContent)
+		pterm.Info.Println("Next: run `close-wiki scan .`")
+
 		return nil
 	},
 }
