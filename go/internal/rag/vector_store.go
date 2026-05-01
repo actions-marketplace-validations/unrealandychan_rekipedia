@@ -1,19 +1,20 @@
 package rag
 
 import (
-	"encoding/binary"
-	"encoding/json"
+	"context"
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
-	"sort"
+
+	chromem "github.com/philippgille/chromem-go"
 )
 
-// VectorStore is a pure in-memory cosine-similarity vector store.
+const collectionName = "close-wiki"
+
+// VectorStore wraps chromem-go for persistent vector search.
 type VectorStore struct {
-	chunks  []Chunk
-	vectors [][]float32
+	db  *chromem.DB
+	col *chromem.Collection
 }
 
 // SearchResult holds a matched chunk and its similarity score.
@@ -22,130 +23,96 @@ type SearchResult struct {
 	Score float32 `json:"score"`
 }
 
-// NewVectorStore creates an empty VectorStore.
+// NewVectorStore creates an empty in-memory VectorStore.
 func NewVectorStore() *VectorStore {
-	return &VectorStore{}
+	return &VectorStore{db: chromem.NewDB()}
 }
 
-// Add inserts a chunk with its embedding vector.
+// ensureCollection lazily creates the collection on first Add.
+func (v *VectorStore) ensureCollection() error {
+	if v.col != nil {
+		return nil
+	}
+	col, err := v.db.GetOrCreateCollection(collectionName, nil, nil)
+	if err != nil {
+		return err
+	}
+	v.col = col
+	return nil
+}
+
+// Add inserts a chunk with its pre-computed embedding vector.
 func (v *VectorStore) Add(chunk Chunk, embedding []float32) {
-	v.chunks = append(v.chunks, chunk)
-	v.vectors = append(v.vectors, embedding)
+	if err := v.ensureCollection(); err != nil {
+		return
+	}
+	doc := chromem.Document{
+		ID:        chunk.ID,
+		Content:   chunk.Text,
+		Embedding: embedding,
+		Metadata: map[string]string{
+			"file_path":  chunk.FilePath,
+			"start_line": chunk.StartLine,
+			"end_line":   chunk.EndLine,
+		},
+	}
+	_ = v.col.AddDocument(context.Background(), doc)
 }
 
 // Len returns the number of stored vectors.
-func (v *VectorStore) Len() int { return len(v.chunks) }
+func (v *VectorStore) Len() int {
+	if v.col == nil {
+		return 0
+	}
+	return v.col.Count()
+}
 
 // Search returns the top-K most similar chunks to the query vector.
 func (v *VectorStore) Search(query []float32, topK int) []SearchResult {
-	if len(v.chunks) == 0 {
+	if v.col == nil || v.col.Count() == 0 {
 		return nil
 	}
-	type scored struct {
-		idx   int
-		score float32
+	results, err := v.col.QueryEmbedding(context.Background(), query, topK, nil, nil)
+	if err != nil {
+		return nil
 	}
-	scores := make([]scored, len(v.chunks))
-	for i, vec := range v.vectors {
-		scores[i] = scored{i, cosine(query, vec)}
+	out := make([]SearchResult, 0, len(results))
+	for _, r := range results {
+		out = append(out, SearchResult{
+			Chunk: Chunk{
+				ID:        r.ID,
+				FilePath:  r.Metadata["file_path"],
+				StartLine: r.Metadata["start_line"],
+				EndLine:   r.Metadata["end_line"],
+				Text:      r.Content,
+			},
+			Score: r.Similarity,
+		})
 	}
-	sort.Slice(scores, func(a, b int) bool { return scores[a].score > scores[b].score })
-	if topK > len(scores) {
-		topK = len(scores)
-	}
-	results := make([]SearchResult, topK)
-	for i := 0; i < topK; i++ {
-		results[i] = SearchResult{Chunk: v.chunks[scores[i].idx], Score: scores[i].score}
-	}
-	return results
+	return out
 }
 
-// Save writes chunks.json and vectors.bin to dir.
+// Save persists the vector store to dir.
 func (v *VectorStore) Save(dir string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	// chunks.json
-	data, err := json.Marshal(v.chunks)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(filepath.Join(dir, "chunks.json"), data, 0o644); err != nil {
-		return err
-	}
-	// vectors.bin: [n uint32][dim uint32][n*dim float32]
-	f, err := os.Create(filepath.Join(dir, "vectors.bin"))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	n := uint32(len(v.vectors))
-	dim := uint32(0)
-	if n > 0 {
-		dim = uint32(len(v.vectors[0]))
-	}
-	if err := binary.Write(f, binary.LittleEndian, n); err != nil {
-		return err
-	}
-	if err := binary.Write(f, binary.LittleEndian, dim); err != nil {
-		return err
-	}
-	for _, vec := range v.vectors {
-		if uint32(len(vec)) != dim {
-			return fmt.Errorf("vector dimension mismatch: expected %d got %d", dim, len(vec))
-		}
-		if err := binary.Write(f, binary.LittleEndian, vec); err != nil {
-			return err
-		}
+	exportPath := filepath.Join(dir, "chromem.gob")
+	if err := v.db.ExportToFile(exportPath, true, ""); err != nil {
+		return fmt.Errorf("export chromem: %w", err)
 	}
 	return nil
 }
 
-// Load reads chunks.json and vectors.bin from dir.
+// Load reads a previously saved vector store from dir.
 func (v *VectorStore) Load(dir string) error {
-	data, err := os.ReadFile(filepath.Join(dir, "chunks.json"))
-	if err != nil {
-		return err
+	exportPath := filepath.Join(dir, "chromem.gob")
+	if err := v.db.ImportFromFile(exportPath, ""); err != nil {
+		return fmt.Errorf("import chromem: %w", err)
 	}
-	if err := json.Unmarshal(data, &v.chunks); err != nil {
-		return err
-	}
-	f, err := os.Open(filepath.Join(dir, "vectors.bin"))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	var n, dim uint32
-	if err := binary.Read(f, binary.LittleEndian, &n); err != nil {
-		return err
-	}
-	if err := binary.Read(f, binary.LittleEndian, &dim); err != nil {
-		return err
-	}
-	v.vectors = make([][]float32, n)
-	for i := range v.vectors {
-		vec := make([]float32, dim)
-		if err := binary.Read(f, binary.LittleEndian, vec); err != nil {
-			return err
-		}
-		v.vectors[i] = vec
+	v.col = v.db.GetCollection(collectionName, nil)
+	if v.col == nil {
+		return fmt.Errorf("collection %q not found after import", collectionName)
 	}
 	return nil
-}
-
-func cosine(a, b []float32) float32 {
-	if len(a) != len(b) || len(a) == 0 {
-		return 0
-	}
-	var dot, normA, normB float64
-	for i := range a {
-		dot += float64(a[i]) * float64(b[i])
-		normA += float64(a[i]) * float64(a[i])
-		normB += float64(b[i]) * float64(b[i])
-	}
-	denom := math.Sqrt(normA) * math.Sqrt(normB)
-	if denom == 0 {
-		return 0
-	}
-	return float32(dot / denom)
 }

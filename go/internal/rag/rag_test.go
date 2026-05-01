@@ -132,8 +132,10 @@ func TestVectorStore_SaveLoad(t *testing.T) {
 	if vs2.Len() != 1 {
 		t.Fatalf("expected 1 chunk after load, got %d", vs2.Len())
 	}
-	if vs2.chunks[0].ID != "x" {
-		t.Errorf("chunk ID mismatch")
+	// Verify round-trip via Search.
+	results := vs2.Search([]float32{0.5, 0.5}, 1)
+	if len(results) != 1 || results[0].Chunk.ID != "x" {
+		t.Errorf("chunk ID mismatch after load: %+v", results)
 	}
 }
 

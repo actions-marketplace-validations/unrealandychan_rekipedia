@@ -62,12 +62,15 @@ var scanCmd = &cobra.Command{
 			return err
 		}
 
+		// Auto-embed: flag overrides config; config.EmbedModel enables embed by default.
 		if scanFlags.embedModel != "" {
-			pterm.Info.Println("Auto-embedding after scan...")
 			cfg.EmbedModel = scanFlags.embedModel
-			if scanFlags.embedProvider != "" {
-				cfg.EmbedProvider = scanFlags.embedProvider
-			}
+		}
+		if scanFlags.embedProvider != "" {
+			cfg.EmbedProvider = scanFlags.embedProvider
+		}
+		if cfg.EmbedModel != "" {
+			pterm.Info.Println("Auto-embedding after scan...")
 			pipeline := rag.NewEmbedPipeline(outDir, cfg)
 			n, err := pipeline.Build(root, nil)
 			if err != nil {
