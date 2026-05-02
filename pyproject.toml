@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "close-wiki"
-version = "0.9.3"
+name = "rekipedia"
+version = "0.9.11"
 description = "Agentic repo-to-wiki: scan any repository into a knowledge store with wiki pages, diagrams, and grounded Q&A."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -44,12 +44,13 @@ dependencies = [
     "python-multipart>=0.0.9",
     "tqdm>=4.67.3",
     "pyfiglet>=1.0.4",
+    "numpy>=1.26",
 ]
 
 [project.optional-dependencies]
 rag = [
-    "faiss-cpu>=1.13.2",
-    "numpy>=2.4.4",
+    "faiss-cpu>=1.7",
+    "numpy>=1.26",
 ]
 dev = [
     "pytest>=8.0",
@@ -57,16 +58,17 @@ dev = [
 ]
 
 [project.scripts]
-close-wiki = "close_wiki.cli:main"
+rekipedia = "rekipedia.cli:main"
+reki = "rekipedia.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/unrealandychan/close-wiki"
-Repository = "https://github.com/unrealandychan/close-wiki"
-Issues = "https://github.com/unrealandychan/close-wiki/issues"
-Changelog = "https://github.com/unrealandychan/close-wiki/blob/main/RELEASE-NOTES.md"
+Homepage = "https://github.com/unrealandychan/rekipedia"
+Repository = "https://github.com/unrealandychan/rekipedia"
+Issues = "https://github.com/unrealandychan/rekipedia/issues"
+Changelog = "https://github.com/unrealandychan/rekipedia/blob/main/RELEASE-NOTES.md"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/close_wiki"]
+packages = ["src/rekipedia"]
 
 [dependency-groups]
 dev = [
@@ -80,11 +82,11 @@ testpaths = ["tests"]
 addopts = "-v"
 
 [tool.coverage.run]
-source = ["close_wiki"]
+source = ["rekipedia"]
 branch = true
 omit = [
-    "src/close_wiki/sandbox/tasks/analyze_shard.py",  # Docker entrypoint, not importable in tests
-    "src/close_wiki/__main__.py",
+    "src/rekipedia/sandbox/tasks/analyze_shard.py",  # Docker entrypoint, not importable in tests
+    "src/rekipedia/__main__.py",
 ]
 
 [tool.coverage.report]

@@ -1,4 +1,4 @@
-// Package config handles loading and writing .close-wiki/config.yml.
+// Package config handles loading and writing .rekipedia/config.yml.
 package config
 
 import (
@@ -7,10 +7,10 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/unrealandychan/close-wiki/internal/models"
+	"github.com/unrealandychan/rekipedia/internal/models"
 )
 
-// Config is the parsed .close-wiki/config.yml structure.
+// Config is the parsed .rekipedia/config.yml structure.
 type Config struct {
 	Version   int              `yaml:"version"`
 	Ignore    []string         `yaml:"ignore"`
@@ -22,17 +22,17 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		Version:   1,
-		Ignore:    []string{".git", "node_modules", "__pycache__", ".close-wiki"},
+		Ignore:    []string{".git", "node_modules", "__pycache__", ".rekipedia"},
 		Languages: []string{"python", "typescript"},
 		LLM:       models.DefaultLLMConfig(),
 	}
 }
 
-// Load reads .close-wiki/config.yml from repoRoot, falls back to defaults,
+// Load reads .rekipedia/config.yml from repoRoot, falls back to defaults,
 // then applies env var overrides — mirrors Python's _load_config().
 func Load(repoRoot string) (Config, error) {
 	cfg := DefaultConfig()
-	path := filepath.Join(repoRoot, ".close-wiki", "config.yml")
+	path := filepath.Join(repoRoot, ".rekipedia", "config.yml")
 	data, err := os.ReadFile(path)
 	if err == nil {
 		if uerr := yaml.Unmarshal(data, &cfg); uerr != nil {
@@ -43,13 +43,32 @@ func Load(repoRoot string) (Config, error) {
 	return cfg, nil
 }
 
-// applyEnvOverrides is intentionally removed — configuration is read from
-// .close-wiki/config.yml only. Use CLI flags to override at runtime.
-func applyEnvOverrides(_ *Config) {}
+// applyEnvOverrides applies environment variable overrides to the config.
+// Supported env vars:
+//   REKIPEDIA_API_KEY     — LLM API key (also reads OPENAI_API_KEY as fallback)
+//   REKIPEDIA_MODEL       — LLM model name
+//   REKIPEDIA_BASE_URL    — LLM base URL (for OpenAI-compatible endpoints)
+//   REKIPEDIA_EMBED_KEY   — Embedding API key
+func applyEnvOverrides(cfg *Config) {
+	if v := os.Getenv("REKIPEDIA_API_KEY"); v != "" {
+		cfg.LLM.APIKey = v
+	} else if v := os.Getenv("OPENAI_API_KEY"); v != "" {
+		cfg.LLM.APIKey = v
+	}
+	if v := os.Getenv("REKIPEDIA_MODEL"); v != "" {
+		cfg.LLM.Model = v
+	}
+	if v := os.Getenv("REKIPEDIA_BASE_URL"); v != "" {
+		cfg.LLM.BaseURL = v
+	}
+	if v := os.Getenv("REKIPEDIA_EMBED_KEY"); v != "" {
+		cfg.LLM.EmbedAPIKey = v
+	}
+}
 
-// InitDir scaffolds .close-wiki/ with a default config.yml and .gitignore entry.
+// InitDir scaffolds .rekipedia/ with a default config.yml and .gitignore entry.
 func InitDir(repoRoot string) error {
-	dir := filepath.Join(repoRoot, ".close-wiki")
+	dir := filepath.Join(repoRoot, ".rekipedia")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
@@ -72,7 +91,7 @@ func InitDir(repoRoot string) error {
 func ensureGitIgnore(repoRoot string) error {
 	path := filepath.Join(repoRoot, ".gitignore")
 	data, _ := os.ReadFile(path)
-	entries := []string{".close-wiki/store.db", ".close-wiki/rag/"}
+	entries := []string{".rekipedia/store.db", ".rekipedia/rag/"}
 	content := string(data)
 	for _, e := range entries {
 		found := false

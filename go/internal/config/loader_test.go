@@ -33,7 +33,7 @@ func TestLoadMissingFile(t *testing.T) {
 
 func TestLoadFromFile(t *testing.T) {
 	tmp := t.TempDir()
-	dir := filepath.Join(tmp, ".close-wiki")
+	dir := filepath.Join(tmp, ".rekipedia")
 	_ = os.MkdirAll(dir, 0o755)
 	yaml := "version: 1\nllm:\n  model: gpt-4o\n  temperature: 0.5\n"
 	_ = os.WriteFile(filepath.Join(dir, "config.yml"), []byte(yaml), 0o644)
@@ -51,18 +51,30 @@ func TestLoadFromFile(t *testing.T) {
 }
 
 func TestEnvOverride(t *testing.T) {
-	// Env var overrides were intentionally removed — config comes from config.yml
-	// + CLI flags only. This test verifies that env vars are NOT applied.
 	tmp := t.TempDir()
-	t.Setenv("CLOSE_WIKI_MODEL", "should-not-appear")
-	t.Setenv("CLOSE_WIKI_API_KEY", "should-not-appear")
+	t.Setenv("REKIPEDIA_MODEL", "gpt-override")
+	t.Setenv("REKIPEDIA_API_KEY", "sk-override")
+	t.Setenv("REKIPEDIA_BASE_URL", "https://custom.api/v1")
 
 	cfg, _ := Load(tmp)
-	if cfg.LLM.Model == "should-not-appear" {
-		t.Error("env var CLOSE_WIKI_MODEL should NOT override config (feature removed)")
+	if cfg.LLM.Model != "gpt-override" {
+		t.Errorf("expected REKIPEDIA_MODEL override, got %q", cfg.LLM.Model)
 	}
-	if cfg.LLM.APIKey == "should-not-appear" {
-		t.Error("env var CLOSE_WIKI_API_KEY should NOT override config (feature removed)")
+	if cfg.LLM.APIKey != "sk-override" {
+		t.Errorf("expected REKIPEDIA_API_KEY override, got %q", cfg.LLM.APIKey)
+	}
+	if cfg.LLM.BaseURL != "https://custom.api/v1" {
+		t.Errorf("expected REKIPEDIA_BASE_URL override, got %q", cfg.LLM.BaseURL)
+	}
+}
+
+func TestEnvOverrideFallbackOpenAI(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("OPENAI_API_KEY", "sk-openai-fallback")
+
+	cfg, _ := Load(tmp)
+	if cfg.LLM.APIKey != "sk-openai-fallback" {
+		t.Errorf("expected OPENAI_API_KEY fallback, got %q", cfg.LLM.APIKey)
 	}
 }
 
@@ -71,7 +83,7 @@ func TestInitDir(t *testing.T) {
 	if err := InitDir(tmp); err != nil {
 		t.Fatalf("InitDir error: %v", err)
 	}
-	cfgPath := filepath.Join(tmp, ".close-wiki", "config.yml")
+	cfgPath := filepath.Join(tmp, ".rekipedia", "config.yml")
 	if _, err := os.Stat(cfgPath); err != nil {
 		t.Errorf("config.yml not created: %v", err)
 	}
