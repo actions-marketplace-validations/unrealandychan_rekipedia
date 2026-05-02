@@ -1,0 +1,38 @@
+name: Python CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'pyproject.toml']
+  pull_request:
+    branches: [main]
+    paths: ['src/**', 'pyproject.toml']
+
+jobs:
+  test:
+    name: Build & smoke test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install build tools
+        run: pip install hatch
+
+      - name: Build wheel
+        run: hatch build
+
+      - name: Install built wheel
+        run: pip install dist/*.whl
+
+      - name: Smoke test
+        run: |
+          reki --version
+          rekipedia --version

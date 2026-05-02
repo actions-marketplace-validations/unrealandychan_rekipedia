@@ -60,12 +60,9 @@ release:
   prerelease: auto
   replace_existing_artifacts: true
 
-homebrew_casks:
+brews:
   - name: rekipedia
-    url:
-      template: "https://github.com/unrealandychan/rekipedia-releases/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
-    binaries:
-      - reki
+    url_template: "https://github.com/unrealandychan/rekipedia-releases/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     repository:
       owner: unrealandychan
       name: homebrew-tap
@@ -73,10 +70,14 @@ homebrew_casks:
     commit_author:
       name: HermesBot
       email: bot@rekipedia.dev
-    directory: Casks
+    directory: Formula
     homepage: "https://github.com/unrealandychan/rekipedia"
     description: "Agentic repo-to-wiki — scan any codebase into a structured knowledge base"
-    skip_upload: false
+    license: "MIT"
+    install: bin.install "reki"
+    test: |
+      system "#{bin}/reki", "--version"
+    skip_upload: true  # update-homebrew-tap.py handles Formula with correct per-arch sha256
 
 nfpms:
   - id: packages
