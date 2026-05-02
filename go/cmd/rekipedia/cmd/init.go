@@ -9,6 +9,8 @@ import (
 	"github.com/unrealandychan/rekipedia/internal/config"
 )
 
+var noAgentFiles bool
+
 var initCmd = &cobra.Command{
 	Use:   "init [repo-path]",
 	Short: "Initialise .rekipedia/ in a repository",
@@ -31,15 +33,33 @@ var initCmd = &cobra.Command{
 
 		if alreadyExists {
 			pterm.Warning.Println("Already initialised — skipping")
-			return nil
+		} else {
+			pterm.Success.Printfln("Initialised .rekipedia/ in %s", root)
+			boxContent := ".rekipedia/config.yml  ✓\n.gitignore updated      ✓"
+			pterm.DefaultBox.Println(boxContent)
+			pterm.Info.Println("Next: run `rekipedia scan .`")
 		}
 
-		pterm.Success.Printfln("Initialised .rekipedia/ in %s", root)
-
-		boxContent := ".rekipedia/config.yml  ✓\n.gitignore updated      ✓"
-		pterm.DefaultBox.Println(boxContent)
-		pterm.Info.Println("Next: run `rekipedia scan .`")
+		if !noAgentFiles {
+			pterm.Info.Println("Writing agent instruction files…")
+			results, err := config.WriteAgentFiles(root, false)
+			if err != nil {
+				return err
+			}
+			for _, r := range results {
+				if r.Created {
+					pterm.Success.Printfln("✔  Created %s (%s)", r.Path, r.Platform)
+				} else {
+					pterm.Warning.Printfln("⚠  %s already exists — skipping (%s)", r.Path, r.Platform)
+				}
+			}
+		}
 
 		return nil
 	},
 }
+
+func init() {
+	initCmd.Flags().BoolVar(&noAgentFiles, "no-agent-files", false, "Skip writing CLAUDE.md, AGENTS.md, and .github/copilot-instructions.md")
+}
+
