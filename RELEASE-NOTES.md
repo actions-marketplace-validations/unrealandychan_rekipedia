@@ -1,5 +1,85 @@
 # Release Notes
 
+## v0.9.12 — Agent File Injection & CI/CD Hardening
+
+### What's new
+
+#### `reki init` auto-writes AI agent instruction files
+- `reki init .` now writes three agent instruction files automatically:
+  - `CLAUDE.md` — Claude Code integration with full `reki` command reference
+  - `AGENTS.md` — Codex / OpenAI Agents integration
+  - `.github/copilot-instructions.md` — GitHub Copilot instructions
+- Each file contains: command table, when-to-use rules, first-time setup, litellm provider reference
+- Skip with `--no-agent-files` flag if not needed
+- AI coding tools in any rekipedia-initialised project will automatically know how to use `reki`
+
+#### CI/CD hardening
+- goreleaser ldflags now correctly point to `github.com/unrealandychan/rekipedia/cmd/rekipedia/cmd.*` — `reki --version` now shows the real version in releases (was always showing `dev`)
+- `go-ci.yml`: Go 1.24, CGO_ENABLED=0, removed stale branch triggers
+- `go-release.yml`: `if: success()` guard, `HOMEBREW_TAP_TOKEN` passed via env var (not CLI arg)
+- `update-homebrew-tap.py`: reads PAT from `os.environ["HOMEBREW_TAP_TOKEN"]`; Formula now correctly installs `reki` binary
+
+#### New workflows
+- `.github/workflows/npm-publish.yml` — tag-triggered npm publish using `NPM_TOKEN` secret
+- `.github/workflows/python-ci.yml` — Python 3.11 + 3.12 matrix CI with wheel smoke test
+
+#### Other
+- `LICENSE` — MIT License added
+- `package.json` — placeholder `your-org` URLs replaced with real repo URLs
+
+### Tests
+- 11/11 Go packages passing ✅
+
+---
+
+## v0.9.11 — Rebrand: rekipedia + reki CLI
+
+### What's new
+
+#### Full rebrand from `close-wiki` → `rekipedia`
+- CLI binary renamed: `rekipedia` (full) + `reki` (short alias)
+- PyPI package: `rekipedia`
+- npm package: `rekipedia`
+- Homebrew Formula: `brew tap unrealandychan/tap && brew install rekipedia`
+- All internal imports, config paths (`.rekipedia/`), env vars (`REKIPEDIA_*`) updated
+- Landing page: https://unrealandychan.github.io/rekipedia-releases/
+
+#### Go rewrite (feat/golang-rewrite → main)
+- Go binary supports: `init`, `scan`, `update`, `ask`, `serve`, `embed`, `export`
+- Zero Python dependency for Go binary (distributed via Homebrew)
+- Full Python package retains RAG / FAISS support
+
+#### `reki init` improvements
+- Creates `.rekipedia/config.yml` scaffold
+- Updates `.gitignore` with store.db, agent files
+- `ensureGitIgnore` now actually writes the file (was silent no-op)
+
+---
+
+## v0.8.0 — Multi-language Support & Performance
+
+### What's new
+
+#### Extended language support
+- Added Go, Rust, Java, C/C++ symbol extraction
+- Language auto-detection from file extensions
+- `languages` config key to restrict scanning scope
+
+#### Performance improvements
+- Parallel file processing with configurable worker count
+- Incremental hash-based change detection (skip unchanged files)
+- SQLite WAL mode for concurrent read access during `reki serve`
+
+#### Web UI (`reki serve`) enhancements
+- Full-text search across all wiki pages
+- Side-by-side source view with syntax highlighting
+- Dark/light theme toggle
+
+### Tests
+- 108/108 Python tests passing ✅
+
+---
+
 ## v0.7.3 — is_implementation Heuristic in Planner & Token-Aware File Skip
 
 ### What's new
