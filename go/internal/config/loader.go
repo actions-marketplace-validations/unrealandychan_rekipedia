@@ -4,6 +4,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -93,18 +94,15 @@ func ensureGitIgnore(repoRoot string) error {
 	data, _ := os.ReadFile(path)
 	entries := []string{".rekipedia/store.db", ".rekipedia/rag/"}
 	content := string(data)
+	changed := false
 	for _, e := range entries {
-		found := false
-		for _, line := range []string{content} {
-			if filepath.Base(line) == e || len(line) > 0 {
-				_ = line
-			}
-		}
-		// Simple check: just append if not found
-		if !found {
+		if !strings.Contains(content, e) {
 			content += "\n" + e
+			changed = true
 		}
 	}
-	_ = content // write back only if changed — simplified for now
-	return nil
+	if !changed {
+		return nil
+	}
+	return os.WriteFile(path, []byte(content), 0o644)
 }

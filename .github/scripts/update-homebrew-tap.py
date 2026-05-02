@@ -7,13 +7,14 @@ e.g.   python3 update-homebrew-tap.py 0.9.1 ghp_xxx
 """
 
 import sys
+import os
 import json
 import base64
 import hashlib
 import urllib.request
 
 VERSION = sys.argv[1].lstrip("v")
-PAT = sys.argv[2]
+PAT = os.environ["HOMEBREW_TAP_TOKEN"]
 TAG = f"v{VERSION}"
 BASE_URL = f"https://github.com/unrealandychan/rekipedia-releases/releases/download/{TAG}"
 TAP_REPO = "unrealandychan/homebrew-tap"
