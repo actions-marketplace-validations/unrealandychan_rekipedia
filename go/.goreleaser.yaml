@@ -2,9 +2,6 @@ version: 2
 
 project_name: rekipedia
 
-# Allow go/v* tag prefix (strips "go/" when computing semver version)
-tag_prefix: "go/"
-
 before:
   hooks:
     - go mod tidy
