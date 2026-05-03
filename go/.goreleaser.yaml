@@ -2,6 +2,9 @@ version: 2
 
 project_name: rekipedia
 
+# Allow go/v* tag prefix (strips "go/" when computing semver version)
+tag_prefix: "go/"
+
 before:
   hooks:
     - go mod tidy
@@ -73,7 +76,7 @@ brews:
     directory: Formula
     homepage: "https://github.com/unrealandychan/rekipedia"
     description: "Agentic repo-to-wiki — scan any codebase into a structured knowledge base"
-    license: "MIT"
+    license: "Proprietary"
     install: bin.install "reki"
     test: |
       system "#{bin}/reki", "--version"
