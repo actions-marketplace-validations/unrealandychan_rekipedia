@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import Iterator
+from typing import Iterator, Protocol, runtime_checkable
 
 import certifi
 import litellm
@@ -29,6 +29,28 @@ _RETRYABLE = (
     litellm.InternalServerError,
     litellm.RateLimitError,
 )
+
+
+@runtime_checkable
+class LLMCaller(Protocol):
+    """Interface for LLM callers — allows test injection via FakeCaller."""
+
+    def call(self, system: str, prompt: str) -> str: ...
+    def stream(self, system: str, prompt: str) -> Iterator[str]: ...
+
+
+class FakeCaller:
+    """Test double for LLMCaller. Set ``response`` to control return value."""
+
+    def __init__(self, response: str = "fake response", chunks: list[str] | None = None) -> None:
+        self.response = response
+        self.chunks = chunks or [response]
+
+    def call(self, _system: str, _prompt: str) -> str:
+        return self.response
+
+    def stream(self, _system: str, _prompt: str) -> Iterator[str]:
+        yield from self.chunks
 
 
 def _with_retry(fn, max_retries: int = _MAX_RETRIES):

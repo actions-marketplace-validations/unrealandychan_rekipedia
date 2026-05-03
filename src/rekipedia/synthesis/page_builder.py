@@ -5,7 +5,7 @@ import json
 import re
 from pathlib import Path
 
-from rekipedia.llm.client import LLMClient
+from rekipedia.llm.client import LLMClient, LLMCaller
 from rekipedia.models.contracts import AnalysisResult, LLMConfig
 
 _SYSTEM_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "digest_system.md"
@@ -204,8 +204,10 @@ class PageBuilder:
         prompt_overrides: dict[str, str] | None = None,
         exclude_pages: list[str] | None = None,
         wiki_dir: Path | None = None,
+        *,
+        caller: LLMCaller | None = None,
     ) -> None:
-        self._client = LLMClient(llm_config)
+        self._client: LLMCaller = caller if caller is not None else LLMClient(llm_config)
         self._overrides = prompt_overrides or {}
         self._exclude = set(exclude_pages or [])
         self._wiki_dir = wiki_dir

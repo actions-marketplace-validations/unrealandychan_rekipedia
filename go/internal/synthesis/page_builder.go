@@ -58,11 +58,11 @@ const maxPageWorkers = 4
 
 // PageBuilder builds wiki pages concurrently via the LLM.
 type PageBuilder struct {
-	client *llm.Client
+	client llm.Caller
 }
 
 // NewPageBuilder creates a PageBuilder backed by the given LLM client.
-func NewPageBuilder(client *llm.Client) *PageBuilder {
+func NewPageBuilder(client llm.Caller) *PageBuilder {
 	return &PageBuilder{client: client}
 }
 

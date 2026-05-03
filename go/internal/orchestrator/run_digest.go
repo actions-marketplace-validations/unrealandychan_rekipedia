@@ -25,6 +25,8 @@ const maxShardWorkers = 4
 // DigestOptions configures a full scan run.
 type DigestOptions struct {
 	LLMConfig models.LLMConfig
+	// Caller overrides the default LLM client — inject a llm.FakeCaller in tests.
+	Caller    llm.Caller
 	Verbose   bool
 	Progress  func(string) // optional progress callback (for non-terminal consumers, e.g. web SSE)
 	Languages []string     // nil = all languages
@@ -193,7 +195,10 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 	if cb != nil {
 		cb("Planning wiki structure (LLM)…")
 	}
-	llmClient := llm.New(opts.LLMConfig)
+	llmClient := opts.Caller
+	if llmClient == nil {
+		llmClient = llm.New(opts.LLMConfig)
+	}
 	wikiPlanner := synthesis.NewPlannerAgent(llmClient)
 	plan, err := wikiPlanner.Plan(ctx, combined)
 	if err != nil {

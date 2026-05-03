@@ -20,6 +20,34 @@ import (
 // ErrEmptyResponse is returned when the LLM returns no choices.
 var ErrEmptyResponse = errors.New("llm: empty response")
 
+// Caller is the interface accepted by orchestrators — allows test injection.
+type Caller interface {
+	Call(ctx context.Context, system, prompt string) (string, error)
+	StreamCall(ctx context.Context, system, prompt string, cb func(token string)) error
+}
+
+// FakeCaller is a test double for Caller.
+// Set Response to control what Call() returns; StreamChunks to control StreamCall().
+type FakeCaller struct {
+	Response     string
+	StreamChunks []string
+	CallErr      error
+	StreamErr    error
+}
+
+func (f *FakeCaller) Call(_ context.Context, _, _ string) (string, error) {
+	return f.Response, f.CallErr
+}
+func (f *FakeCaller) StreamCall(_ context.Context, _, _ string, cb func(string)) error {
+	if f.StreamErr != nil {
+		return f.StreamErr
+	}
+	for _, chunk := range f.StreamChunks {
+		cb(chunk)
+	}
+	return nil
+}
+
 // Client wraps go-openai and handles provider routing + retry.
 type Client struct {
 	oc    *openai.Client

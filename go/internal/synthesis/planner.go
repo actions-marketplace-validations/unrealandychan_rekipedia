@@ -75,11 +75,11 @@ For each page, write a detailed focus (3–6 sentences) specifying:
 
 // PlannerAgent decides the wiki structure from analysis data.
 type PlannerAgent struct {
-	client *llm.Client
+	client llm.Caller
 }
 
 // NewPlannerAgent creates a PlannerAgent backed by the given LLM client.
-func NewPlannerAgent(client *llm.Client) *PlannerAgent {
+func NewPlannerAgent(client llm.Caller) *PlannerAgent {
 	return &PlannerAgent{client: client}
 }
 

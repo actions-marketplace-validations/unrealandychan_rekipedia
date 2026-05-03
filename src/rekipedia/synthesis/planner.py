@@ -8,7 +8,7 @@ import re
 from collections.abc import Callable
 from pathlib import Path
 
-from rekipedia.llm.client import LLMClient
+from rekipedia.llm.client import LLMClient, LLMCaller
 from rekipedia.models.contracts import AnalysisResult, LLMConfig
 
 logger = logging.getLogger("rekipedia.planner")
@@ -157,8 +157,8 @@ class WikiPlan:
 class PlannerAgent:
     """One LLM call that designs the entire wiki structure."""
 
-    def __init__(self, llm_config: LLMConfig) -> None:
-        self._client = LLMClient(llm_config)
+    def __init__(self, llm_config: LLMConfig, *, caller: LLMCaller | None = None) -> None:
+        self._client: LLMCaller = caller if caller is not None else LLMClient(llm_config)
 
     def plan(
         self,

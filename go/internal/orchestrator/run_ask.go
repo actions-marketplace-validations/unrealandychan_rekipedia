@@ -33,6 +33,8 @@ Do NOT invent information not present in the context. Do NOT hallucinate file pa
 // AskOptions configures a Q&A session.
 type AskOptions struct {
 	LLMConfig models.LLMConfig
+	// Caller overrides the default LLM client — inject a llm.FakeCaller in tests.
+	Caller    llm.Caller
 	Stream    bool
 	History   []models.QAHistory
 }
@@ -89,8 +91,11 @@ func RunAsk(ctx context.Context, question, repoRoot, outputDir string, opts AskO
 	prompt := fmt.Sprintf("## Context\n\n%s\n\n## Question\n\n%s", contextStr, question)
 
 	// ── 6. Call LLM ──────────────────────────────────────────────────────
-	client := llm.New(opts.LLMConfig)
-	answer, err := client.Call(ctx, askSystemPrompt, prompt)
+	caller := opts.Caller
+	if caller == nil {
+		caller = llm.New(opts.LLMConfig)
+	}
+	answer, err := caller.Call(ctx, askSystemPrompt, prompt)
 	if err != nil {
 		return nil, fmt.Errorf("llm call: %w", err)
 	}
@@ -127,8 +132,11 @@ func StreamAsk(ctx context.Context, question, repoRoot, outputDir string, opts A
 	contextStr := strings.Join(contextParts, "\n\n---\n\n")
 	prompt := fmt.Sprintf("## Context\n\n%s\n\n## Question\n\n%s", contextStr, question)
 
-	client := llm.New(opts.LLMConfig)
-	return client.StreamCall(ctx, askSystemPrompt, prompt, onChunk)
+	caller := opts.Caller
+	if caller == nil {
+		caller = llm.New(opts.LLMConfig)
+	}
+	return caller.StreamCall(ctx, askSystemPrompt, prompt, onChunk)
 }
 
 // tryRAGSearch embeds the question and searches the vector store.
