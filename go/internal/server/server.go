@@ -347,7 +347,27 @@ func (s *Server) handleAPIPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, map[string]string{"status": "ok"})
+	dbPath := filepath.Join(s.outputDir, "store.db")
+	dbStatus := "ok"
+	if _, err := os.Stat(dbPath); err != nil {
+		dbStatus = "no_store"
+	} else if store, err := storage.Open(dbPath); err != nil {
+		dbStatus = "error: " + err.Error()
+	} else {
+		store.Close()
+	}
+
+	status := "ok"
+	if dbStatus != "ok" && dbStatus != "no_store" {
+		status = "degraded"
+	}
+	code := http.StatusOK
+	if status == "degraded" {
+		code = http.StatusServiceUnavailable
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": status, "db": dbStatus})
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────

@@ -238,4 +238,19 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
         with SqliteStore(db_path) as store:
             return JSONResponse(store.get_qa_history(str(repo_root)))
 
+    @app.get("/api/health", response_class=JSONResponse)
+    async def api_health():
+        db_path = output_dir / "store.db"
+        if not db_path.exists():
+            return JSONResponse({"status": "ok", "db": "no_store"})
+        try:
+            with SqliteStore(db_path) as store:
+                store.get_qa_history(str(repo_root))  # lightweight probe
+            return JSONResponse({"status": "ok", "db": "ok"})
+        except Exception as exc:
+            return JSONResponse(
+                {"status": "degraded", "db": f"error: {exc}"},
+                status_code=503,
+            )
+
     return app
