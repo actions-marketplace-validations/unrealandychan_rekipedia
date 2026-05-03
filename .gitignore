@@ -23,5 +23,5 @@ node_modules/
 # macOS
 .DS_Store
 
-# close-wiki store (for if this repo is scanned)
-.close-wiki/store.db
+# rekipedia store (for if this repo is scanned)
+.rekipedia/store.db
