@@ -9,6 +9,7 @@ from rekipedia.cli.export import export_cmd
 from rekipedia.cli.init import init_cmd
 from rekipedia.cli.scan import scan_cmd
 from rekipedia.cli.serve import serve_cmd
+from rekipedia.cli.hook import hook_cmd
 from rekipedia.cli.update import update_cmd
 
 
@@ -25,3 +26,4 @@ main.add_command(ask_cmd)
 main.add_command(embed_cmd)
 main.add_command(export_cmd)
 main.add_command(serve_cmd)
+main.add_command(hook_cmd, name="hook")
