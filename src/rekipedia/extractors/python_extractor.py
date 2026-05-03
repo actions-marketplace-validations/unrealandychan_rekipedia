@@ -2,12 +2,17 @@
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 from rekipedia.extractors.base import BaseExtractor
-from rekipedia.models.contracts import AnalysisResult, Relationship, Symbol
+from rekipedia.models.contracts import AnalysisResult, RationaleNote, Relationship, Symbol
 
 _PY_SUFFIXES = {".py", ".pyw"}
+
+_RATIONALE_RE = re.compile(
+    r"#\s*(NOTE|IMPORTANT|HACK|WHY|TODO):\s*(.*)", re.IGNORECASE
+)
 
 
 class PythonExtractor(BaseExtractor):
@@ -29,6 +34,16 @@ class PythonExtractor(BaseExtractor):
 
         symbols: list[Symbol] = []
         relationships: list[Relationship] = []
+        rationale_notes: list[RationaleNote] = []
+
+        # ── rationale notes from source lines ────────────────────────
+        for lineno, line in enumerate(source.splitlines(), start=1):
+            m = _RATIONALE_RE.search(line)
+            if m:
+                tag = m.group(1).upper()
+                rationale_notes.append(
+                    RationaleNote(tag=tag, content=m.group(2).strip(), file=rel, line=lineno)  # type: ignore[arg-type]
+                )
 
         # ── imports ──────────────────────────────────────────────────
         for node in ast.walk(tree):
@@ -36,14 +51,16 @@ class PythonExtractor(BaseExtractor):
                 for alias in node.names:
                     relationships.append(
                         Relationship.model_validate(
-                            {"from": rel, "to": alias.name, "kind": "import", "file": rel}
+                            {"from": rel, "to": alias.name, "kind": "import", "file": rel,
+                             "confidence": 1.0, "evidence_tag": "EXTRACTED"}
                         )
                     )
             elif isinstance(node, ast.ImportFrom):
                 module = node.module or ""
                 relationships.append(
                     Relationship.model_validate(
-                        {"from": rel, "to": module, "kind": "import", "file": rel}
+                        {"from": rel, "to": module, "kind": "import", "file": rel,
+                         "confidence": 1.0, "evidence_tag": "EXTRACTED"}
                     )
                 )
 
@@ -97,6 +114,8 @@ class PythonExtractor(BaseExtractor):
                                     "to": base_name,
                                     "kind": "inherits",
                                     "file": rel,
+                                    "confidence": 1.0,
+                                    "evidence_tag": "EXTRACTED",
                                 }
                             )
                         )
@@ -109,7 +128,9 @@ class PythonExtractor(BaseExtractor):
             entry_points=entry_points,
             symbols=symbols,
             relationships=relationships,
+            rationale_notes=rationale_notes,
         )
+
 
 
 # ── helpers ──────────────────────────────────────────────────────────

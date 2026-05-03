@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from rekipedia.extractors.base import BaseExtractor
-from rekipedia.models.contracts import AnalysisResult, Relationship, Symbol
+from rekipedia.models.contracts import AnalysisResult, RationaleNote, Relationship, Symbol
 
 _TS_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 
@@ -29,6 +29,7 @@ _RE_CLASS = re.compile(
 _RE_INTERFACE = re.compile(r"""(?:export\s+)?interface\s+(\w+)""", re.MULTILINE)
 _RE_TYPE = re.compile(r"""(?:export\s+)?type\s+(\w+)\s*=""", re.MULTILINE)
 _RE_JSDOC = re.compile(r"""/\*\*(.*?)\*/""", re.DOTALL)
+_RE_RATIONALE = re.compile(r"//\s*(NOTE|IMPORTANT|HACK|WHY|TODO):\s*(.*)", re.IGNORECASE)
 
 
 class TypeScriptExtractor(BaseExtractor):
@@ -44,6 +45,16 @@ class TypeScriptExtractor(BaseExtractor):
 
         symbols: list[Symbol] = []
         relationships: list[Relationship] = []
+        rationale_notes: list[RationaleNote] = []
+
+        # ── rationale notes ───────────────────────────────────────────
+        for lineno, line in enumerate(source.splitlines(), start=1):
+            m = _RE_RATIONALE.search(line)
+            if m:
+                tag = m.group(1).upper()
+                rationale_notes.append(
+                    RationaleNote(tag=tag, content=m.group(2).strip(), file=rel, line=lineno)  # type: ignore[arg-type]
+                )
 
         # strip comments to avoid false matches, keep line count stable
         clean = re.sub(r"//[^\n]*", "", source)
@@ -52,7 +63,8 @@ class TypeScriptExtractor(BaseExtractor):
         for m in _RE_IMPORT.finditer(clean):
             relationships.append(
                 Relationship.model_validate(
-                    {"from": rel, "to": m.group(1), "kind": "import", "file": rel}
+                    {"from": rel, "to": m.group(1), "kind": "import", "file": rel,
+                     "confidence": 1.0, "evidence_tag": "EXTRACTED"}
                 )
             )
 
@@ -86,7 +98,8 @@ class TypeScriptExtractor(BaseExtractor):
             if m.group(2):
                 relationships.append(
                     Relationship.model_validate(
-                        {"from": m.group(1), "to": m.group(2), "kind": "inherits", "file": rel}
+                        {"from": m.group(1), "to": m.group(2), "kind": "inherits", "file": rel,
+                         "confidence": 1.0, "evidence_tag": "EXTRACTED"}
                     )
                 )
 
@@ -106,6 +119,7 @@ class TypeScriptExtractor(BaseExtractor):
             entry_points=entry_points,
             symbols=symbols,
             relationships=relationships,
+            rationale_notes=rationale_notes,
         )
 
 

@@ -353,6 +353,8 @@ def _build_payload(combined: AnalysisResult, diagrams: dict | None = None) -> di
         "risks": combined.risks,
         "evidence": combined.evidence,
     }
+    if combined.rationale_notes:
+        payload["rationale_notes"] = [n.model_dump() for n in combined.rationale_notes[:200]]
     if diagrams:
         payload["pre_built_module_graph"] = diagrams.get("module-graph", ("", ""))[1]
         payload["pre_built_dependency_graph"] = diagrams.get("class-hierarchy", ("", ""))[1]

@@ -61,8 +61,17 @@ class Relationship(BaseModel):
     to: str
     kind: RelationshipKind
     file: str | None = None
+    confidence: float = 1.0
+    evidence_tag: Literal["EXTRACTED", "INFERRED", "AMBIGUOUS"] = "EXTRACTED"
 
     model_config = {"populate_by_name": True}
+
+
+class RationaleNote(BaseModel):
+    tag: Literal["NOTE", "IMPORTANT", "HACK", "WHY", "TODO"]
+    content: str
+    file: str
+    line: int
 
 
 class AnalysisResult(BaseModel):
@@ -76,6 +85,7 @@ class AnalysisResult(BaseModel):
     risks: list[str] = Field(default_factory=list)
     unknowns: list[str] = Field(default_factory=list)
     evidence: dict[str, str] = Field(default_factory=dict)
+    rationale_notes: list[RationaleNote] = Field(default_factory=list)
 
 
 # ─────────────────────────────────────────────

@@ -271,6 +271,8 @@ class SqliteStore:
                 "to" TEXT,
                 kind TEXT,
                 file TEXT,
+                confidence REAL DEFAULT 1.0,
+                evidence_tag TEXT DEFAULT 'EXTRACTED',
                 PRIMARY KEY(run_id, from_, "to", kind)
             )
             """
@@ -282,13 +284,15 @@ class SqliteStore:
                 r.get("to", ""),
                 r.get("kind", ""),
                 r.get("file"),
+                r.get("confidence", 1.0),
+                r.get("evidence_tag", "EXTRACTED"),
             )
             for r in relationships
         ]
         self._c.executemany(
             """
-            INSERT OR REPLACE INTO scan_relationships(run_id, from_, "to", kind, file)
-            VALUES(?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO scan_relationships(run_id, from_, "to", kind, file, confidence, evidence_tag)
+            VALUES(?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
@@ -369,6 +373,42 @@ class SqliteStore:
         return list(self._c.execute(
             "SELECT * FROM scan_relationships WHERE run_id = ?", [run_id]
         ).fetchall())
+
+    def upsert_rationale_notes(self, run_id: str, notes: list[dict[str, Any]]) -> None:
+        if not notes:
+            return
+        self._c.execute(
+            """
+            CREATE TABLE IF NOT EXISTS scan_rationale (
+                run_id TEXT,
+                tag TEXT,
+                content TEXT,
+                file TEXT,
+                line INTEGER,
+                PRIMARY KEY(run_id, file, line)
+            )
+            """
+        )
+        rows = [
+            (run_id, n.get("tag", ""), n.get("content", ""), n.get("file", ""), n.get("line", 0))
+            for n in notes
+        ]
+        self._c.executemany(
+            """
+            INSERT OR REPLACE INTO scan_rationale(run_id, tag, content, file, line)
+            VALUES(?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
+        self._c.commit()
+
+    def get_rationale_notes(self, run_id: str) -> list[dict[str, Any]]:
+        if "scan_rationale" not in self._table_names():
+            return []
+        rows = self._c.execute(
+            "SELECT tag, content, file, line FROM scan_rationale WHERE run_id = ?", [run_id]
+        ).fetchall()
+        return [{"tag": r[0], "content": r[1], "file": r[2], "line": r[3]} for r in rows]
 
     def get_pages(self, run_id: str) -> list[dict[str, Any]]:
         if "scan_wiki_pages" not in self._table_names():
