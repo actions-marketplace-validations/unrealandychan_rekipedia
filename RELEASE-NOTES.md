@@ -1,5 +1,71 @@
 # Release Notes
 
+## v0.9.13 — Security Hardening, Testability & DX Improvements
+
+### Security
+
+#### Path traversal protection (#19)
+- Go server: wiki slug validated against `^[a-zA-Z0-9_-]+$` before building filepath — rejects dots, slashes, and special characters with 404
+- Python FastAPI server: same regex guard added to `/wiki/{slug}` handler
+
+#### Go HTTP server timeouts (#20)
+- `http.Server` now sets `ReadTimeout=15s`, `WriteTimeout=60s`, `IdleTimeout=120s`
+- Prevents slow-loris DoS and resource exhaustion from idle connections
+
+### Reliability
+
+#### Real `/api/health` DB probe (#23)
+- `/api/health` now opens and probes `store.db` instead of returning a static `{"status":"ok"}`
+- Returns `{"status":"degraded","db":"error:..."}` + HTTP 503 when DB is unavailable
+- Returns `{"status":"ok","db":"no_store"}` when no scan has been run yet
+- Both Go and Python servers updated
+
+### Testability
+
+#### LLMCaller interface injection (#22)
+- **Go**: `llm.Caller` interface (`Call` + `StreamCall`) extracted from `*llm.Client`
+  - `llm.FakeCaller` test double with configurable `Response`/`StreamChunks`/`CallErr`
+  - `AskOptions.Caller` + `DigestOptions.Caller` fields for injection
+  - `synthesis.NewPlannerAgent` + `NewPageBuilder` now accept `llm.Caller` (was `*llm.Client`)
+- **Python**: `LLMCaller` runtime-checkable `Protocol` with `call`/`stream` methods
+  - `FakeCaller` test double
+  - `PlannerAgent` + `PageBuilder` accept `caller=` keyword argument
+
+### CI / CD
+
+#### Python CI: pytest + coverage gate (#21, #25)
+- Python CI now runs full `tests/` suite (was smoke test only)
+- `--cov-fail-under=60` enforced — PRs that drop coverage below 60% fail CI
+- Test deps (`pytest`, `pytest-asyncio`, `httpx`, `pytest-cov`) installed automatically
+- `tests/` directory added to path trigger
+
+#### Fix release tag namespace collision (#24)
+- Go release workflow now triggers on `go/v*` tags (e.g. `go/v1.3.0`)
+- Python release workflow now triggers on `py/v*` tags (e.g. `py/v1.3.0`)
+- Previously both triggered on `v*` causing race conditions on the same GitHub Release
+
+#### Go CI: bump to Go 1.25 (#18)
+- `go-ci.yml` + `go-release.yml` updated from Go 1.24 → 1.25
+- `golang.org/x/sync@v0.20.0` (transitive dep) requires Go ≥ 1.25 — CI was silently broken
+
+### Housekeeping
+
+#### Remove .bak backup files (#17)
+- Migration script artefacts (`*.bak.*`) removed from git tracking
+- `*.bak.*` pattern added to `.gitignore`
+
+#### CONTRIBUTING.md (#26)
+- Added comprehensive contributor guide covering:
+  - Go + Python dev setup with exact commands
+  - Project structure overview
+  - Conventional commits format
+  - Running tests (Go + Python with coverage)
+  - PR requirements and CI gates
+  - Release tag conventions (`go/v*` vs `py/v*`)
+  - Code style guidelines (including LLMCaller injection pattern)
+
+---
+
 ## v0.9.12 — Agent File Injection & CI/CD Hardening
 
 ### What's new
