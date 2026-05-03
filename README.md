@@ -306,4 +306,7 @@ make release-all PYPI_TOKEN=*** NPM_TOKEN=*** VERSION=0.5.0
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Proprietary and Confidential — Copyright © 2026 Eddie Chan. All Rights Reserved.
+
+Unauthorized copying, distribution, or modification of this software is strictly prohibited.
+See [LICENSE](LICENSE) for details.
