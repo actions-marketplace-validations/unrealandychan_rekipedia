@@ -62,10 +62,20 @@ type Symbol struct {
 
 // Relationship represents a directed dependency between two symbols/modules.
 type Relationship struct {
-	From string  `json:"from"`
-	To   string  `json:"to"`
-	Kind RelKind `json:"kind"`
-	File string  `json:"file,omitempty"`
+	From        string  `json:"from"`
+	To          string  `json:"to"`
+	Kind        RelKind `json:"kind"`
+	File        string  `json:"file,omitempty"`
+	Confidence  float64 `json:"confidence,omitempty"`
+	EvidenceTag string  `json:"evidence_tag,omitempty"`
+}
+
+// RationaleNote records an inline annotation comment found in source.
+type RationaleNote struct {
+	File    string `json:"file"`
+	Line    int    `json:"line"`
+	Tag     string `json:"tag"`     // NOTE, HACK, WHY, TODO, FIXME, OPTIMIZE
+	Content string `json:"content"`
 }
 
 // AnalysisResult is the output of extracting a repo shard.
@@ -77,9 +87,10 @@ type AnalysisResult struct {
 	Relationships []Relationship    `json:"relationships"`
 	BuildCommands []string          `json:"build_commands"`
 	TestCommands  []string          `json:"test_commands"`
-	Risks         []string          `json:"risks"`
-	Unknowns      []string          `json:"unknowns"`
-	Evidence      map[string]string `json:"evidence"`
+	Risks          []string          `json:"risks"`
+	Unknowns       []string          `json:"unknowns"`
+	Evidence       map[string]string `json:"evidence"`
+	RationaleNotes []RationaleNote   `json:"rationale_notes,omitempty"`
 }
 
 // Shard is a slice of files assigned to one extraction worker.

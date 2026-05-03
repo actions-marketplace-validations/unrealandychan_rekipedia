@@ -66,5 +66,6 @@ func init() {
 		serveCmd,
 		embedCmd,
 		exportCmd,
+		hookCmd,
 	)
 }

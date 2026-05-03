@@ -77,6 +77,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <a href="/ask" {{if eq .ActivePage "ask"}}class="active"{{end}}>
       <span class="icon">💬</span> Ask
     </a>
+    <a href="/graph" {{if eq .ActivePage "graph"}}class="active"{{end}}>
+      <span class="icon">🕸</span> Graph
+    </a>
     {{if .Sections}}
     {{range .Sections}}
     <div class="nav-section">{{.Title}}</div>

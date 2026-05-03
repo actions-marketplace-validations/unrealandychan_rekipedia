@@ -25,6 +25,7 @@ import (
 	"github.com/unrealandychan/rekipedia/internal/models"
 	"github.com/unrealandychan/rekipedia/internal/orchestrator"
 	"github.com/unrealandychan/rekipedia/internal/storage"
+	"github.com/unrealandychan/rekipedia/internal/graph"
 )
 
 //go:embed templates/*.html
@@ -60,6 +61,8 @@ func newRouter(s *Server) *chi.Mux {
 	r.Get("/api/ask/stream", s.handleAPIAskStream)
 	r.Get("/api/history", s.handleAPIHistory)
 	r.Get("/api/health", s.handleHealth)
+	r.Get("/api/graph", s.handleAPIGraph)
+	r.Get("/graph", s.handleGraphPage)
 	return r
 }
 
@@ -613,6 +616,93 @@ func (s *Server) listPagesAndSections() ([]pageInfo, []sectionGroup) {
 func (s *Server) listPages() []pageInfo {
 	pages, _ := s.listPagesAndSections()
 	return pages
+}
+
+func (s *Server) handleGraphPage(w http.ResponseWriter, r *http.Request) {
+	data := s.baseData("graph", "")
+	s.renderTemplate(w, "graph.html", data)
+}
+
+type graphNode struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Kind string `json:"kind"`
+	IsGod bool  `json:"is_god"`
+}
+
+type graphEdge struct {
+	Source string `json:"source"`
+	Target string `json:"target"`
+	Kind   string `json:"kind"`
+}
+
+type graphData struct {
+	Nodes    []graphNode      `json:"nodes"`
+	Edges    []graphEdge      `json:"edges"`
+	GodNodes []graph.GodNode  `json:"god_nodes"`
+}
+
+func (s *Server) handleAPIGraph(w http.ResponseWriter, r *http.Request) {
+	dbPath := filepath.Join(s.outputDir, "store.db")
+	store, err := storage.Open(dbPath)
+	if err != nil {
+		writeJSON(w, graphData{Nodes: []graphNode{}, Edges: []graphEdge{}, GodNodes: []graph.GodNode{}})
+		return
+	}
+	defer store.Close()
+
+	runID, err := store.GetLatestRunID(s.repoRoot)
+	if err != nil || runID == "" {
+		writeJSON(w, graphData{Nodes: []graphNode{}, Edges: []graphEdge{}, GodNodes: []graph.GodNode{}})
+		return
+	}
+
+	syms, _ := store.GetAllSymbols(runID)
+	rels, _ := store.GetAllRelationships(runID)
+
+	// Count how many times each node is referenced to detect "god" nodes
+	refCount := make(map[string]int)
+	for _, rel := range rels {
+		refCount[rel.From]++
+		refCount[rel.To]++
+	}
+	avgRef := 0
+	if len(refCount) > 0 {
+		total := 0
+		for _, c := range refCount { total += c }
+		avgRef = total / len(refCount)
+	}
+	godThreshold := avgRef * 3
+	if godThreshold < 5 { godThreshold = 5 }
+
+	nodeSet := make(map[string]bool)
+	var nodes []graphNode
+	for _, sym := range syms {
+		id := sym.Name
+		if nodeSet[id] { continue }
+		nodeSet[id] = true
+		nodes = append(nodes, graphNode{
+			ID:    id,
+			Name:  sym.Name,
+			Kind:  string(sym.Kind),
+			IsGod: refCount[id] >= godThreshold,
+		})
+	}
+
+	var edges []graphEdge
+	for _, rel := range rels {
+		edges = append(edges, graphEdge{
+			Source: rel.From,
+			Target: rel.To,
+			Kind:   string(rel.Kind),
+		})
+	}
+
+	if nodes == nil { nodes = []graphNode{} }
+	if edges == nil { edges = []graphEdge{} }
+	godNodes := graph.GetGodNodes(rels, 10)
+	if godNodes == nil { godNodes = []graph.GodNode{} }
+	writeJSON(w, graphData{Nodes: nodes, Edges: edges, GodNodes: godNodes})
 }
 
 func writeJSON(w http.ResponseWriter, v any) {
