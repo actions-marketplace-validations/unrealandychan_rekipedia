@@ -7,6 +7,11 @@ rekipedia scans any repository into a portable SQLite knowledge store and gives 
 No hallucinations, no guessing — every answer is grounded in your actual codebase.
 
 ### Key features
+- **Relationship confidence scoring**: every extracted relationship tagged as EXTRACTED/INFERRED/AMBIGUOUS with confidence score
+- **Design rationale extraction**: `# NOTE:`, `# HACK:`, `# WHY:` comments extracted as knowledge nodes
+- **God nodes**: highest-degree symbols surfaced in index.md and highlighted in the graph UI
+- **Interactive dependency graph**: `rekipedia serve` now includes a `/graph` route with D3.js force-directed visualization
+- **Git hooks**: `rekipedia hook install` triggers auto-rebuild on every commit
 - **Agentic wiki orchestration**: `PlannerAgent` designs the wiki structure dynamically based on your repo
 - **Page importance scoring**: planner assigns each page an importance score (0–100); nav sidebar sorts by priority
 - **DeepWiki-style sections**: pages grouped into logical sections (`getting-started`, `architecture`, `core-components`, etc.)
@@ -62,6 +67,7 @@ brew install rekipedia
 | `rekipedia serve [REPO]` | Start a local web UI to browse wiki pages and ask questions |
 | `rekipedia embed [REPO]` | Build (or rebuild) the FAISS semantic search index for hybrid RAG Q&A |
 | `rekipedia export [REPO]` | Bundle the wiki to a single file (`--format md\|zip\|json`) |
+| `rekipedia hook install/uninstall/status` | Manage git post-commit hook for auto wiki rebuild |
 
 ---
 

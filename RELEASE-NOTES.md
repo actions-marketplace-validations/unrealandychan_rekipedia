@@ -1,6 +1,40 @@
 # Release Notes
 
+## v0.9.14 — Phase 5 & 6: Graph UI + Extraction Quality
+
+### Phase 5: Interactive Dependency Graph
+
+#### `/graph` route with D3.js force-directed visualization (#27)
+- `rekipedia serve` now exposes a `/graph` route rendering the full symbol dependency graph
+- D3.js force-directed layout with dark theme and zoom/pan support
+- God nodes (highest-degree symbols) highlighted with a distinct colour and larger radius
+
+### Phase 6: Extraction Quality
+
+#### Relationship confidence scoring (#28)
+- Every extracted `Relationship` now carries a `confidence: float` (0.0–1.0) and an `evidence_tag: Literal["EXTRACTED", "INFERRED", "AMBIGUOUS"]`
+- Default values are `1.0` / `"EXTRACTED"` so existing code is fully backward-compatible
+- LLM-inferred edges receive `INFERRED`; ambiguous cross-shard edges receive `AMBIGUOUS`
+
+#### Design rationale extraction (#29)
+- Python extractor now collects `# NOTE:`, `# HACK:`, `# WHY:` (and `# IMPORTANT:`, `# TODO:`) inline comments
+- Each comment is stored as a `RationaleNote` inside `AnalysisResult.rationale_notes`
+- Rationale notes appear as lightweight knowledge nodes on the `/graph` route and in wiki pages
+
+#### God nodes ranking (#30)
+- `rekipedia.analysis.graph_analysis.compute_god_nodes()` computes in+out degree for every symbol
+- Top-10 god nodes are surfaced in `index.md` under a **Key Symbols** section
+- `/graph` highlights them for at-a-glance architectural understanding
+
+#### Git hooks auto-rebuild (#31)
+- `rekipedia hook install` writes a `post-commit` hook that runs `rekipedia update` in the background after every commit
+- `rekipedia hook uninstall` removes only hooks managed by rekipedia (safe for pre-existing hooks)
+- `rekipedia hook status` shows install state and last-modified timestamp
+
+---
+
 ## v0.9.13 — Security Hardening, Testability & DX Improvements
+
 
 ### Security
 
