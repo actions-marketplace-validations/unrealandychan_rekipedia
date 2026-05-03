@@ -3,7 +3,7 @@ name: Go Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'go/v*'   # e.g. go/v1.2.3 — triggers Go binary release only
 
 jobs:
   release:
