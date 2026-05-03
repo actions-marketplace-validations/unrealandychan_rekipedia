@@ -204,6 +204,9 @@
     return;
   }
 
+  // Build a set of god node names for quick lookup
+  const godNodeNames = new Set((graphData.god_nodes || []).map(g => g.name));
+
   // ── reactive filter state ────────────────────────────────────────────
   let filterKind = "";
   let filterRel  = "";
@@ -293,10 +296,10 @@
         );
 
     nodeG.append("circle")
-      .attr("r", 9)
+      .attr("r", d => godNodeNames.has(d.label) ? 16 : 9)
       .attr("fill", d => nodeColor(d.kind))
-      .attr("stroke", "#1a1a2e")
-      .attr("stroke-width", 2);
+      .attr("stroke", d => godNodeNames.has(d.label) ? "#ffd700" : "#1a1a2e")
+      .attr("stroke-width", d => godNodeNames.has(d.label) ? 3 : 2);
 
     nodeG.append("text")
       .attr("class", "node-label")

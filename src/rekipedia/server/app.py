@@ -251,6 +251,7 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                     return JSONResponse({"nodes": [], "edges": []})
                 raw_symbols = store.get_all_symbols(run_id)
                 raw_rels = store.get_all_relationships(run_id)
+                god_nodes = store.get_god_nodes(run_id, top_n=10)
 
             # raw_symbols rows: (run_id, name, kind, file, line_start, line_end, signature, docstring)
             seen_ids: set[str] = set()
@@ -276,9 +277,11 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                 tgt = next((n["id"] for n in nodes if n["label"] == to_), to_)
                 edges.append({"source": src, "target": tgt, "kind": kind or "unknown"})
 
-            return JSONResponse({"nodes": nodes, "edges": edges})
+            god_nodes_data = [{"name": name, "degree": degree} for name, degree in god_nodes]
+
+            return JSONResponse({"nodes": nodes, "edges": edges, "god_nodes": god_nodes_data})
         except Exception as exc:
-            return JSONResponse({"nodes": [], "edges": [], "error": str(exc)})
+            return JSONResponse({"nodes": [], "edges": [], "god_nodes": [], "error": str(exc)})
 
     @app.get("/graph", response_class=HTMLResponse)
     async def graph_page(request: Request):

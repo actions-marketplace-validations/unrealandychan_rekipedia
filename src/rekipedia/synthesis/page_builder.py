@@ -326,6 +326,11 @@ class PageBuilder:
             content = f"# {title}\n\n> *LLM synthesis failed: {exc}*\n"
 
         content = _ensure_frontmatter(slug, title, content)
+
+        # Inject god nodes section into the index page
+        if slug == "index":
+            content = _inject_god_nodes_section(content, combined)
+
         return (title, content)
 
 
@@ -406,3 +411,21 @@ def _ensure_frontmatter(slug: str, title: str, content: str, tags: list[str] | N
     section_line = f"section: {section}\n" if section else ""
     fm = f"---\nslug: {slug}\ntitle: \"{title}\"\n{section_line}{tags_line}pin: false\n---\n\n"
     return fm + content
+
+
+def _inject_god_nodes_section(content: str, combined: "AnalysisResult") -> str:
+    """Append a God Nodes / Symbol Importance Ranking section to the index page."""
+    from rekipedia.analysis.graph_analysis import compute_god_nodes
+
+    god_nodes = compute_god_nodes(combined.relationships, top_n=10)
+    if not god_nodes:
+        return content
+
+    lines = ["\n\n## ⭐ God Nodes — Top Symbols by Connectivity\n"]
+    lines.append("| Symbol | Degree (in + out) |")
+    lines.append("|--------|-------------------|")
+    for name, degree in god_nodes:
+        lines.append(f"| `{name}` | {degree} |")
+    lines.append("\n> *God nodes are the most connected symbols in the codebase — high degree indicates central importance.*\n")
+
+    return content + "\n".join(lines)

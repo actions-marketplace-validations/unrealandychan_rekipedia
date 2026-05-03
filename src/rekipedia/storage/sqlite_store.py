@@ -410,6 +410,32 @@ class SqliteStore:
         ).fetchall()
         return [{"tag": r[0], "content": r[1], "file": r[2], "line": r[3]} for r in rows]
 
+    def get_relationships_for_run(self, run_id: str) -> list[dict]:
+        """Return all scan_relationships rows for *run_id* as plain dicts."""
+        if "scan_relationships" not in self._table_names():
+            return []
+        rows = self._c.execute(
+            'SELECT from_, "to", kind FROM scan_relationships WHERE run_id = ?',
+            [run_id],
+        ).fetchall()
+        return [{"from_": r[0], "to": r[1], "kind": r[2]} for r in rows]
+
+    def get_god_nodes(self, run_id: str, top_n: int = 10) -> list[tuple[str, int]]:
+        """Return top_n god nodes (symbol name, degree) for the given run."""
+        from rekipedia.analysis.graph_analysis import compute_god_nodes
+
+        rels = self.get_relationships_for_run(run_id)
+
+        # Create lightweight proxy objects compatible with compute_god_nodes
+        class _Rel:
+            __slots__ = ("from_", "to")
+
+            def __init__(self, d: dict) -> None:
+                self.from_ = d["from_"]
+                self.to = d["to"]
+
+        return compute_god_nodes([_Rel(r) for r in rels], top_n=top_n)
+
     def get_pages(self, run_id: str) -> list[dict[str, Any]]:
         if "scan_wiki_pages" not in self._table_names():
             return []
