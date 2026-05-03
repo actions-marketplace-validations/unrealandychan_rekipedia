@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -71,7 +72,12 @@ func (s *Server) Start(ctx context.Context) error {
 		return fmt.Errorf("listen %s: %w", s.addr, err)
 	}
 
-	srv := &http.Server{Handler: r}
+	srv := &http.Server{
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
 	go func() {
 		<-ctx.Done()
 		srv.Close()
