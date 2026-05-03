@@ -23,5 +23,8 @@ node_modules/
 # macOS
 .DS_Store
 
+# Backup files created by migration scripts
+*.bak.*
+
 # rekipedia store (for if this repo is scanned)
 .rekipedia/store.db
