@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Annotated, AsyncIterator
 
 import markdown as md
-from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from rekipedia.models.contracts import LLMConfig
@@ -129,8 +130,12 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                  file_count=_file_count()),
         )
 
+    _SLUG_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+
     @app.get("/wiki/{slug}", response_class=HTMLResponse)
     async def wiki_page(request: Request, slug: str):
+        if not _SLUG_RE.match(slug):
+            return HTMLResponse("<h1>Page not found</h1>", status_code=404)
         path = output_dir / "wiki" / f"{slug}.md"
         if not path.exists():
             return HTMLResponse("<h1>Page not found</h1>", status_code=404)

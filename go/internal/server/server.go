@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -130,8 +131,15 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	s.renderTemplate(w, "index.html", data)
 }
 
+// slugRe validates wiki page slugs — only alphanumeric, hyphens, and underscores allowed.
+var slugRe = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+
 func (s *Server) handleWikiPage(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
+	if !slugRe.MatchString(slug) {
+		http.NotFound(w, r)
+		return
+	}
 	mdPath := filepath.Join(s.outputDir, "wiki", slug+".md")
 	mdData, err := os.ReadFile(mdPath)
 	if err != nil {
