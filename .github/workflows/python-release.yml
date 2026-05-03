@@ -22,6 +22,13 @@ jobs:
       - name: Install build tools
         run: pip install hatch twine
 
+      - name: Sync version from tag
+        run: |
+          TAG=${GITHUB_REF#refs/tags/py/v}
+          sed -i "s/^version = .*/version = \"$TAG\"/" pyproject.toml
+          echo "Building version: $TAG"
+          grep "^version" pyproject.toml
+
       - name: Build distribution
         run: hatch build
 
