@@ -199,15 +199,61 @@ exclude_pages:
 
 ---
 
-## Roadmap (Future)
+## Phase 5 — Serve UI 🚧 IN PROGRESS
+
+**Goal:** `rekipedia serve` — local web UI to browse wiki pages and ask questions.
+
+| Item | Status |
+|---|---|
+| Dark-themed wiki browser (page nav, sidebar sorted by importance score) | 🚧 |
+| Grounded Q&A via web (streaming answers) | 🚧 |
+| Q&A history stored in SQLite | 🚧 |
+| Interactive dependency graph (`graph.html`) — inspired by graphify | 📋 |
+
+---
+
+## Phase 6 — Extraction Quality Upgrades
+
+**Goal:** Richer knowledge extraction inspired by [graphify](https://github.com/safishamsi/graphify) (40k ⭐). Improve signal quality without increasing token cost.
+
+| Item | Status | Notes |
+|---|---|---|
+| **Relationship confidence scoring** — tag each relationship as `EXTRACTED` (1.0) / `INFERRED` (0.0–1.0) / `AMBIGUOUS` | 📋 | SQLite schema + extractor change |
+| **Design rationale extraction** — parse `# NOTE:`, `# IMPORTANT:`, `# HACK:`, `# WHY:` comments into knowledge nodes | 📋 | Python/TS/Go extractors |
+| **God nodes / symbol importance ranking** — surface highest-degree symbols in `index.md` and prioritise in RAG retrieval | 📋 | Post-extraction graph analysis |
+| **Git hooks auto-rebuild** — `rekipedia hook install` triggers `rekipedia update` on commit/branch switch | 📋 | Lightweight alt to CI integration |
+
+---
+
+## Phase 7 — Multi-Repo & CI
+
+**Goal:** Federation and automation across repos and CI pipelines.
+
+| Item | Status | Notes |
+|---|---|---|
+| Multi-repo federation — cross-repo symbol references | 📋 | Inspired by graphify `merge-graphs` |
+| GitHub Action — runs `rekipedia update` on push | 📋 | |
+| Shortest-path structural query — `rekipedia ask --path "A" "B"` | 📋 | How does A connect to B? |
+
+---
+
+## Phase 8 — Scale & Ecosystem
 
 | Phase | Feature | Notes |
 |---|---|---|
-| 5 | `rekipedia serve` — local web UI | Read-only wiki browser, search, ask box |
-| 6 | Multi-repo federation | Cross-repo symbol references |
-| 7 | CI integration | GitHub Action that runs `update` on push |
 | 8 | Vector search for `ask` | Embedding index for large repos (>100K symbols) |
 | 9 | Language servers | Go, Rust, Java extractors |
+| 10 | MCP server | Expose knowledge graph to AI coding agents |
+
+---
+
+## Roadmap (Future — Unscheduled)
+
+| Feature | Notes |
+|---|---|
+| Leiden community detection for page grouping | Graph-topology clustering, no embeddings needed |
+| `--obsidian` export | Obsidian vault output |
+| `--neo4j-push` export | Cypher export for Neo4j |
 
 ---
 
