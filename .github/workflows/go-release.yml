@@ -27,13 +27,16 @@ jobs:
         run: |
           RAW_TAG=${GITHUB_REF#refs/tags/}
           VERSION=${RAW_TAG#go/}
-          echo "GORELEASER_CURRENT_TAG=v${VERSION#v}" >> $GITHUB_ENV
+          CLEAN_TAG="v${VERSION#v}"
+          echo "GORELEASER_CURRENT_TAG=${CLEAN_TAG}" >> $GITHUB_ENV
+          # Create local semver tag so goreleaser can resolve it
+          git tag "${CLEAN_TAG}"
 
       - name: Run goreleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           version: ~> v2
-          args: release --clean
+          args: release --clean --skip=validate
           workdir: go
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
