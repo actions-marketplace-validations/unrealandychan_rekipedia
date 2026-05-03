@@ -3,14 +3,14 @@ name: Python CI
 on:
   push:
     branches: [main]
-    paths: ['src/**', 'pyproject.toml']
+    paths: ['src/**', 'tests/**', 'pyproject.toml']
   pull_request:
     branches: [main]
-    paths: ['src/**', 'pyproject.toml']
+    paths: ['src/**', 'tests/**', 'pyproject.toml']
 
 jobs:
   test:
-    name: Build & smoke test (Python ${{ matrix.python-version }})
+    name: Build & test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -29,10 +29,19 @@ jobs:
       - name: Build wheel
         run: hatch build
 
-      - name: Install built wheel
-        run: pip install dist/*.whl
+      - name: Install built wheel + test deps
+        run: |
+          pip install dist/*.whl
+          pip install pytest pytest-asyncio httpx pytest-cov
 
       - name: Smoke test
         run: |
           reki --version
           rekipedia --version
+
+      - name: Run test suite with coverage
+        run: |
+          pytest tests/ -v --timeout=60 \
+            --cov=src/rekipedia \
+            --cov-report=term-missing \
+            --cov-fail-under=60
