@@ -31,8 +31,8 @@ jobs:
 
       - name: Install built wheel + test deps
         run: |
-          pip install "$(ls dist/*.whl)[rag]"
-          pip install pytest pytest-asyncio httpx pytest-cov pytest-timeout
+          pip install dist/*.whl
+          pip install pytest pytest-asyncio httpx pytest-cov pytest-timeout numpy faiss-cpu
 
       - name: Smoke test
         run: |
