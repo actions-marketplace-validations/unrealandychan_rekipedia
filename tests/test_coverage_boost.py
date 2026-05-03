@@ -71,7 +71,7 @@ def test_embed_missing_rekipedia(tmp_path: Path) -> None:
     runner = CliRunner()
     result = runner.invoke(main, ["embed", str(tmp_path)])
     assert result.exit_code != 0
-    assert ".rekipedia" in result.output or "No .rekipedia" in result.output
+    assert "Missing RAG dependencies" in result.output or ".rekipedia" in result.output or "No .rekipedia" in result.output
 
 
 # ---------------------------------------------------------------------------

@@ -27,13 +27,13 @@ try:
     _NUMPY_AVAILABLE = True
 except ImportError:
     _NUMPY_AVAILABLE = False
+    np = None  # type: ignore[assignment]
 
 try:
     import faiss  # noqa: F401
     _RAG_AVAILABLE = _NUMPY_AVAILABLE
 except ImportError:
     _RAG_AVAILABLE = False
-    np = None  # type: ignore[assignment]
 
 from rekipedia.models.contracts import LLMConfig
 
@@ -303,6 +303,9 @@ class EmbedPipeline:
             # Respect rate limits
             time.sleep(0.1)
 
+        if not all_vecs:
+            logger.warning("No embeddings produced — nothing to index.")
+            return 0
         matrix = np.vstack(all_vecs)  # (N, D)
         dim = matrix.shape[1]
 
@@ -422,7 +425,7 @@ class EmbedPipeline:
             return None
 
     def is_built(self) -> bool:
-        return (self._out / _INDEX_FILE).exists()
+        return (self._out / _INDEX_FILE).exists() or (self._out / (_INDEX_FILE + ".npy")).exists()
 
 
 # ---------------------------------------------------------------------------

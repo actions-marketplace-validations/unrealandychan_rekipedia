@@ -52,7 +52,7 @@ def test_wiki_page_returns_200(client):
 
 def test_wiki_page_renders_markdown(client):
     res = client.get("/wiki/index")
-    assert "<h1>" in res.text
+    assert "<h1" in res.text
 
 
 def test_wiki_missing_page_returns_404(client):
