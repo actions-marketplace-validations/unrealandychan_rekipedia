@@ -210,3 +210,154 @@ func TestOpenInvalidPath(t *testing.T) {
 	}
 	_ = os.Remove("/nonexistent/path/store.db")
 }
+
+// ── Alias / extra method tests ─────────────────────────────────────────────
+
+func TestGetAllRelationships(t *testing.T) {
+	s := openTestStore(t)
+	_ = s.CreateRun("rRel", "/repo", "m")
+	rels := []models.Relationship{
+		{From: "a", To: "b", Kind: models.RelCall, File: "f.go"},
+		{From: "b", To: "c", Kind: models.RelImport, File: "g.go"},
+	}
+	if err := s.SaveRelationships("rRel", rels); err != nil {
+		t.Fatalf("SaveRelationships: %v", err)
+	}
+	got, err := s.GetAllRelationships("rRel")
+	if err != nil {
+		t.Fatalf("GetAllRelationships: %v", err)
+	}
+	if len(got) != 2 {
+		t.Errorf("expected 2 relationships, got %d", len(got))
+	}
+}
+
+func TestGetAllRelationshipsMissingRun(t *testing.T) {
+	s := openTestStore(t)
+	got, err := s.GetAllRelationships("no-such-run")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("expected empty slice, got %d", len(got))
+	}
+}
+
+func TestSaveAndGetQAHistory(t *testing.T) {
+	s := openTestStore(t)
+	if err := s.SaveQAHistory("/myrepo", "what is X?", "X is Y."); err != nil {
+		t.Fatalf("SaveQAHistory: %v", err)
+	}
+	if err := s.SaveQAHistory("/myrepo", "what is Z?", "Z is W."); err != nil {
+		t.Fatalf("SaveQAHistory 2: %v", err)
+	}
+	hist, err := s.GetQAHistory("/myrepo")
+	if err != nil {
+		t.Fatalf("GetQAHistory: %v", err)
+	}
+	if len(hist) != 2 {
+		t.Errorf("expected 2 history entries, got %d", len(hist))
+	}
+}
+
+func TestGetQAHistoryEmpty(t *testing.T) {
+	s := openTestStore(t)
+	hist, err := s.GetQAHistory("/norepo")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(hist) != 0 {
+		t.Errorf("expected empty history, got %d", len(hist))
+	}
+}
+
+func TestQueryRunTime(t *testing.T) {
+	s := openTestStore(t)
+	_ = s.CreateRun("rTime", "/repo", "m")
+	_ = s.FinishRun("rTime", 3)
+	var ts string
+	if err := s.QueryRunTime("rTime", &ts); err != nil {
+		t.Fatalf("QueryRunTime: %v", err)
+	}
+	if ts == "" {
+		t.Error("expected non-empty timestamp")
+	}
+}
+
+func TestUpsertSnapshotAndGetAllSymbols(t *testing.T) {
+	s := openTestStore(t)
+	_ = s.CreateRun("rSnap", "/repo", "m")
+
+	files := []models.FileManifest{
+		{Path: "a.py", SHA256: "h1", Language: "python", SizeBytes: 100},
+		{Path: "b.go", SHA256: "h2", Language: "go", SizeBytes: 200},
+	}
+	if err := s.UpsertSnapshot("rSnap", files); err != nil {
+		t.Fatalf("UpsertSnapshot: %v", err)
+	}
+
+	syms := []models.Symbol{
+		{Name: "Foo", Kind: models.SymbolFunction, File: "a.py"},
+	}
+	if err := s.UpsertSymbols("rSnap", syms); err != nil {
+		t.Fatalf("UpsertSymbols: %v", err)
+	}
+	got, err := s.GetAllSymbols("rSnap")
+	if err != nil {
+		t.Fatalf("GetAllSymbols: %v", err)
+	}
+	if len(got) != 1 {
+		t.Errorf("expected 1, got %d", len(got))
+	}
+}
+
+func TestUpsertRelationships(t *testing.T) {
+	s := openTestStore(t)
+	_ = s.CreateRun("rRelAlias", "/repo", "m")
+	rels := []models.Relationship{{From: "x", To: "y", Kind: models.RelCall}}
+	if err := s.UpsertRelationships("rRelAlias", rels); err != nil {
+		t.Fatalf("UpsertRelationships: %v", err)
+	}
+}
+
+func TestUpsertRunAndGetLatestRunID(t *testing.T) {
+	s := openTestStore(t)
+	if err := s.UpsertRun("rAlias", "/alias-repo"); err != nil {
+		t.Fatalf("UpsertRun: %v", err)
+	}
+	id, err := s.GetLatestRunID("/alias-repo")
+	if err != nil {
+		t.Fatalf("GetLatestRunID: %v", err)
+	}
+	if id != "rAlias" {
+		t.Errorf("expected rAlias, got %s", id)
+	}
+}
+
+func TestUpsertPageAlias(t *testing.T) {
+	s := openTestStore(t)
+	_ = s.CreateRun("rPage", "/repo", "m")
+	if err := s.UpsertPage("rPage", "overview", "Overview", "# Content"); err != nil {
+		t.Fatalf("UpsertPage: %v", err)
+	}
+	title, _, content, err := s.GetWikiPage("rPage", "overview")
+	if err != nil {
+		t.Fatalf("GetWikiPage: %v", err)
+	}
+	if title != "Overview" || content != "# Content" {
+		t.Errorf("unexpected values: %q %q", title, content)
+	}
+}
+
+func TestListWikiPagesEmpty(t *testing.T) {
+	s := openTestStore(t)
+	_ = s.CreateRun("rEmpty", "/repo", "m")
+	pages, err := s.ListWikiPages("rEmpty")
+	if err != nil {
+		t.Fatalf("ListWikiPages: %v", err)
+	}
+	if len(pages) != 0 {
+		t.Errorf("expected 0 pages, got %d", len(pages))
+	}
+}
+

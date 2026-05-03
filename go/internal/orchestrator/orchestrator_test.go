@@ -215,3 +215,88 @@ func must(t *testing.T, err error) {
 		t.Fatal(err)
 	}
 }
+
+// ── detectLanguage / fileTokenEstimate / topLevelDir unit tests ───────────────
+
+func TestDetectLanguage(t *testing.T) {
+	cases := map[string]string{
+		"foo.py":     "python",
+		"main.go":    "go",
+		"app.ts":     "typescript",
+		"app.tsx":    "typescript",
+		"index.js":   "javascript",
+		"server.rs":  "rust",
+		"App.java":   "java",
+		"Dockerfile": "docker",
+		"infra.tf":   "terraform",
+		"styles.css": "css",
+		"unknown.xyz": "",
+	}
+	for path, want := range cases {
+		got := detectLanguage(path)
+		if got != want {
+			t.Errorf("detectLanguage(%q) = %q, want %q", path, got, want)
+		}
+	}
+}
+
+func TestFileTokenEstimate(t *testing.T) {
+	if fileTokenEstimate(0) != 1 {
+		t.Error("zero bytes should return 1 token")
+	}
+	if fileTokenEstimate(400) != 100 {
+		t.Errorf("400 bytes / 4 = 100 tokens, got %d", fileTokenEstimate(400))
+	}
+	if fileTokenEstimate(1) != 1 {
+		t.Errorf("1 byte should return 1 token (min), got %d", fileTokenEstimate(1))
+	}
+}
+
+func TestTopLevelDir(t *testing.T) {
+	cases := map[string]string{
+		"src/main.go":       "src",
+		"Makefile":          ".",
+		"a/b/c/d.py":        "a",
+		"dir/sub/file.ts":   "dir",
+	}
+	for path, want := range cases {
+		got := topLevelDir(path)
+		if got != want {
+			t.Errorf("topLevelDir(%q) = %q, want %q", path, got, want)
+		}
+	}
+}
+
+func TestSnapshotterLanguageFilter(t *testing.T) {
+	dir := t.TempDir()
+	must(t, os.WriteFile(filepath.Join(dir, "app.py"), []byte("print('hi')"), 0o644))
+	must(t, os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main"), 0o644))
+
+	snapper := NewSnapshotter(dir, nil, []string{"python"})
+	files, err := snapper.Snapshot()
+	if err != nil {
+		t.Fatalf("Snapshot error: %v", err)
+	}
+	if len(files) != 1 || files[0].Language != "python" {
+		t.Errorf("expected only python file, got %d files: %v", len(files), files)
+	}
+}
+
+func TestSnapshotterEmptyDir(t *testing.T) {
+	dir := t.TempDir()
+	snapper := NewSnapshotter(dir, nil, nil)
+	files, err := snapper.Snapshot()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(files) != 0 {
+		t.Errorf("expected 0 files, got %d", len(files))
+	}
+}
+
+func TestShardPlannerDefaultBudget(t *testing.T) {
+	sp := NewShardPlanner(0)
+	if sp.budget != defaultTokenBudget {
+		t.Errorf("expected default budget %d, got %d", defaultTokenBudget, sp.budget)
+	}
+}

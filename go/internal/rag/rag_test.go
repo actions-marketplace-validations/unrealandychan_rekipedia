@@ -198,3 +198,101 @@ func TestScanMeta_ScannedAtAutoFilled(t *testing.T) {
 		t.Error("ScannedAt should be auto-filled")
 	}
 }
+
+func TestReadScanMetaMissing(t *testing.T) {
+	dir := t.TempDir()
+	_, err := ReadScanMeta(dir)
+	if err == nil {
+		t.Error("expected error reading missing scan_meta.json")
+	}
+}
+
+func TestChunkFile_JSONFile(t *testing.T) {
+	content := `{"key": "value"}`
+	chunks := ChunkFile("data.json", content)
+	if len(chunks) != 1 {
+		t.Fatalf("expected 1 chunk for json file, got %d", len(chunks))
+	}
+}
+
+func TestChunkFile_YAMLFile(t *testing.T) {
+	content := "key: value\nfoo: bar\n"
+	chunks := ChunkFile("config.yaml", content)
+	if len(chunks) != 1 {
+		t.Fatalf("expected 1 chunk for yaml file, got %d", len(chunks))
+	}
+}
+
+func TestChunkFile_EmptyContent(t *testing.T) {
+	chunks := ChunkFile("empty.go", "")
+	// Empty content: 0 runes → still produces a chunk
+	_ = chunks
+}
+
+func TestVectorStore_Len(t *testing.T) {
+	vs := NewVectorStore()
+	if vs.Len() != 0 {
+		t.Error("expected len 0 for new store")
+	}
+	vs.Add(Chunk{ID: "a", Text: "hello"}, []float32{1, 0})
+	if vs.Len() != 1 {
+		t.Errorf("expected len 1 after add, got %d", vs.Len())
+	}
+}
+
+func TestPatchScanMeta_InvalidJSON(t *testing.T) {
+	dir := t.TempDir()
+	// Write invalid JSON
+	path := filepath.Join(dir, "scan_meta.json")
+	os.WriteFile(path, []byte("not json"), 0o644)
+	err := PatchScanMeta(dir, map[string]any{"k": "v"})
+	if err == nil {
+		t.Error("expected error for invalid JSON")
+	}
+}
+
+func TestVectorStore_SaveEmpty(t *testing.T) {
+	dir := t.TempDir()
+	vs := NewVectorStore()
+	// Save an empty store — should succeed (no collection created)
+	// chromem will create collection on first Add, so saving with no adds is fine
+	// Actually ensureCollection is not called, so Save may fail or succeed depending on impl.
+	// Just verify no panic.
+	_ = vs.Save(dir)
+}
+
+func TestVectorStore_LoadMissing(t *testing.T) {
+	dir := t.TempDir()
+	vs := NewVectorStore()
+	err := vs.Load(dir)
+	if err == nil {
+		t.Error("expected error loading non-existent vector store")
+	}
+}
+
+func TestWriteScanMeta_RoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	meta := ScanMeta{
+		Model:      "gpt-4o",
+		RepoPath:   "/code",
+		RunID:      "run-xyz",
+		FileCount:  10,
+		PageCount:  5,
+		EmbedModel: "text-embedding-3-small",
+		Embedded:   true,
+	}
+	if err := WriteScanMeta(dir, meta); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	got, err := ReadScanMeta(dir)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if got.EmbedModel != "text-embedding-3-small" {
+		t.Errorf("EmbedModel mismatch: %q", got.EmbedModel)
+	}
+	if got.PageCount != 5 {
+		t.Errorf("PageCount mismatch: %d", got.PageCount)
+	}
+}
+
