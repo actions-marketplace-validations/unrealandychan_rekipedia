@@ -238,6 +238,56 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
         with SqliteStore(db_path) as store:
             return JSONResponse(store.get_qa_history(str(repo_root)))
 
+    @app.get("/api/graph", response_class=JSONResponse)
+    async def api_graph():
+        """Return dependency graph data as {nodes, edges}."""
+        db_path = output_dir / "store.db"
+        if not db_path.exists():
+            return JSONResponse({"nodes": [], "edges": []})
+        try:
+            with SqliteStore(db_path) as store:
+                run_id = store.get_latest_run_id(str(repo_root))
+                if not run_id:
+                    return JSONResponse({"nodes": [], "edges": []})
+                raw_symbols = store.get_all_symbols(run_id)
+                raw_rels = store.get_all_relationships(run_id)
+
+            # raw_symbols rows: (run_id, name, kind, file, line_start, line_end, signature, docstring)
+            seen_ids: set[str] = set()
+            nodes: list[dict] = []
+            for row in raw_symbols:
+                name = row[1] if isinstance(row, (list, tuple)) else row["name"]
+                kind = row[2] if isinstance(row, (list, tuple)) else row["kind"]
+                file_ = row[3] if isinstance(row, (list, tuple)) else row["file"]
+                node_id = f"{file_}::{name}" if file_ else name
+                if node_id not in seen_ids:
+                    seen_ids.add(node_id)
+                    nodes.append({"id": node_id, "label": name, "kind": kind or "unknown", "file": file_ or ""})
+
+            # raw_rels rows: (run_id, from_, to, kind, file)
+            edges: list[dict] = []
+            for row in raw_rels:
+                from_ = row[1] if isinstance(row, (list, tuple)) else row["from_"]
+                to_ = row[2] if isinstance(row, (list, tuple)) else row["to"]
+                kind = row[3] if isinstance(row, (list, tuple)) else row["kind"]
+                file_ = row[4] if isinstance(row, (list, tuple)) else row.get("file", "")
+                # Try to match to node ids; fall back to bare name
+                src = next((n["id"] for n in nodes if n["label"] == from_), from_)
+                tgt = next((n["id"] for n in nodes if n["label"] == to_), to_)
+                edges.append({"source": src, "target": tgt, "kind": kind or "unknown"})
+
+            return JSONResponse({"nodes": nodes, "edges": edges})
+        except Exception as exc:
+            return JSONResponse({"nodes": [], "edges": [], "error": str(exc)})
+
+    @app.get("/graph", response_class=HTMLResponse)
+    async def graph_page(request: Request):
+        pages = _wiki_pages()
+        return templates.TemplateResponse(
+            request, "graph.html",
+            _ctx(request, pages=pages, project_name=_project_name()),
+        )
+
     @app.get("/api/health", response_class=JSONResponse)
     async def api_health():
         db_path = output_dir / "store.db"
