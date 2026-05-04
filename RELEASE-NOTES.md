@@ -1,5 +1,24 @@
 # Release Notes
 
+## v0.9.25 — Graph Intelligence & Developer Tools
+
+### New Features
+- **Knowledge Gap Detection** (#43): Identifies untested hotspots — high call-count symbols with no test coverage. `knowledge_gaps` injected into wiki payload.
+- **Graph Diff / Snapshot Comparison** (#44): `reki diff` compares two timestamped scan snapshots. Auto-saves snapshots in `.rekipedia/snapshots/`.
+- **Hub & Bridge Node Detection** (#45): Degree-based centrality analysis. `hub_nodes` injected into wiki payload. Bridge nodes (high in+out degree) flagged.
+- **Blast-Radius / Impact Analysis** (#46): `reki impact <file>` — BFS traversal shows all affected files, symbols, and tests for a changed file.
+- **D3.js Interactive Graph** (#47): `/graph` route in `reki serve` — force-directed graph with edge filter, node search, section colour-coding.
+- **MCP Server** (#48): `reki mcp` starts a JSON-RPC 2.0 MCP stdio server with 6 tools: get_context, search_nodes, get_relationships, get_knowledge_gaps, get_hub_nodes, get_impact.
+- **Multi-Repo Watch Daemon** (#49): `reki watch add/start/list/remove` — background file watcher with debounced auto-indexing via `watchdog`.
+- **Cross-Repo Search** (#50): `reki search <query> [--all-repos]` — parallel fan-out search across all registered repo DBs.
+- **Graph Export** (#51): `reki export --format graphml|cypher|obsidian` — export to GraphML, Neo4j Cypher, and Obsidian wikilink vaults.
+
+### Fixes
+- Snapshot timestamp now uses microseconds to avoid collision when saving multiple snapshots in the same second.
+- `tree-sitter-go`, `tree-sitter-java`, `tree-sitter-python`, `tree-sitter-typescript` installed in dev venv for full test suite.
+
+---
+
 ## v0.9.24 — Fix Python CI: Add `_build_cross_module_summary` + slug/frontmatter hardening
 
 ### Fix: Python CI ImportError (`_build_cross_module_summary` missing)

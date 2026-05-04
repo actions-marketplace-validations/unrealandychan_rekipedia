@@ -11,7 +11,7 @@ def save_snapshot(combined: AnalysisResult, output_dir: Path) -> Path:
     """Serialise combined into a timestamped JSON snapshot."""
     snap_dir = output_dir / SNAPSHOT_DIR_NAME
     snap_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     snap_path = snap_dir / f"{ts}.json"
     data = {
         "timestamp": ts,

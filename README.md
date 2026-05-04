@@ -68,6 +68,12 @@ brew install rekipedia
 | `rekipedia embed [REPO]` | Build (or rebuild) the FAISS semantic search index for hybrid RAG Q&A |
 | `rekipedia export [REPO]` | Bundle the wiki to a single file (`--format md\|zip\|json`) |
 | `rekipedia hook install/uninstall/status` | Manage git post-commit hook for auto wiki rebuild |
+| `rekipedia diff [A] [B]` | Compare two graph snapshots (defaults to last two) |
+| `rekipedia impact <file>` | Show blast-radius — all affected files, symbols, tests for a changed file |
+| `rekipedia search <query>` | Search symbols (`--all-repos` for cross-repo parallel search) |
+| `rekipedia export --format graphml\|cypher\|obsidian` | Export graph to GraphML / Neo4j Cypher / Obsidian wikilinks |
+| `rekipedia mcp` | Start JSON-RPC 2.0 MCP stdio server (6 tools for AI coding assistants) |
+| `rekipedia watch add\|start\|list\|remove` | Watch repos and auto-index on file change |
 
 ---
 
