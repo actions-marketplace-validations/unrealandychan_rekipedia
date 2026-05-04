@@ -129,15 +129,25 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
         return 0
 
 
+    def _strip_yaml_frontmatter(text: str) -> str:
+        """Strip a leading YAML frontmatter block delimited by exact `---` lines."""
+        lines = text.splitlines(keepends=True)
+        if not lines or lines[0] not in ("---\n", "---\r\n", "---"):
+            return text
+
+        for idx in range(1, len(lines)):
+            if lines[idx] in ("---\n", "---\r\n", "---"):
+                return "".join(lines[idx + 1:]).lstrip("\r\n")
+
+        # Missing closing delimiter: leave the content unchanged.
+        return text
+
     def _render_md(path: Path) -> str:
         text = path.read_text(encoding="utf-8")
         # Strip YAML frontmatter (--- ... ---) before rendering.
         # If the closing delimiter is missing the content is malformed; skip
         # stripping entirely so nothing is lost.
-        if text.startswith("---\n") or text.startswith("---\r\n"):
-            end = text.find("\n---", 3)
-            if end != -1:
-                text = text[end + 4:].lstrip("\n")
+        text = _strip_yaml_frontmatter(text)
         return md.markdown(
             text,
             extensions=["fenced_code", "tables", "toc"],
