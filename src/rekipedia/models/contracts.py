@@ -43,7 +43,7 @@ SymbolKind = Literal[
     "interface", "enum", "module", "other",
 ]
 
-RelationshipKind = Literal["import", "call", "inherits", "uses", "re-exports"]
+RelationshipKind = Literal["import", "imports", "call", "calls", "inherits", "uses", "re-exports"]
 
 
 class Symbol(BaseModel):

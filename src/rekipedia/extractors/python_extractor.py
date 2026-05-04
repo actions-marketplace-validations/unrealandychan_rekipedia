@@ -36,6 +36,12 @@ class PythonExtractor(BaseExtractor):
         relationships: list[Relationship] = []
         rationale_notes: list[RationaleNote] = []
 
+        # ── derive module name from file path ─────────────────────────
+        module_name = _path_to_module(rel)
+
+        # ── emit module symbol ────────────────────────────────────────
+        symbols.append(Symbol(name=module_name, kind="module", file=rel, line_start=1, line_end=1))
+
         # ── rationale notes from source lines ────────────────────────
         for lineno, line in enumerate(source.splitlines(), start=1):
             m = _RATIONALE_RE.search(line)
@@ -51,7 +57,7 @@ class PythonExtractor(BaseExtractor):
                 for alias in node.names:
                     relationships.append(
                         Relationship.model_validate(
-                            {"from": rel, "to": alias.name, "kind": "import", "file": rel,
+                            {"from": module_name, "to": alias.name, "kind": "imports", "file": rel,
                              "confidence": 1.0, "evidence_tag": "EXTRACTED"}
                         )
                     )
@@ -59,7 +65,7 @@ class PythonExtractor(BaseExtractor):
                 module = node.module or ""
                 relationships.append(
                     Relationship.model_validate(
-                        {"from": rel, "to": module, "kind": "import", "file": rel,
+                        {"from": module_name, "to": module, "kind": "imports", "file": rel,
                          "confidence": 1.0, "evidence_tag": "EXTRACTED"}
                     )
                 )
@@ -78,6 +84,17 @@ class PythonExtractor(BaseExtractor):
                         signature=_func_sig(node),
                     )
                 )
+                # calls inside top-level function
+                for call_node in ast.walk(node):
+                    if isinstance(call_node, ast.Call):
+                        callee = _call_name(call_node)
+                        if callee:
+                            relationships.append(
+                                Relationship.model_validate(
+                                    {"from": node.name, "to": callee, "kind": "calls",
+                                     "file": rel, "confidence": 0.8, "evidence_tag": "EXTRACTED"}
+                                )
+                            )
             elif isinstance(node, ast.ClassDef):
                 symbols.append(
                     Symbol(
@@ -92,9 +109,10 @@ class PythonExtractor(BaseExtractor):
                 # methods
                 for child in ast.iter_child_nodes(node):
                     if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        method_name = f"{node.name}.{child.name}"
                         symbols.append(
                             Symbol(
-                                name=f"{node.name}.{child.name}",
+                                name=method_name,
                                 kind="function",
                                 file=rel,
                                 line_start=child.lineno,
@@ -103,6 +121,17 @@ class PythonExtractor(BaseExtractor):
                                 signature=_func_sig(child),
                             )
                         )
+                        # calls inside method
+                        for call_node in ast.walk(child):
+                            if isinstance(call_node, ast.Call):
+                                callee = _call_name(call_node)
+                                if callee:
+                                    relationships.append(
+                                        Relationship.model_validate(
+                                            {"from": method_name, "to": callee, "kind": "calls",
+                                             "file": rel, "confidence": 0.8, "evidence_tag": "EXTRACTED"}
+                                        )
+                                    )
                 # inheritance
                 for base in node.bases:
                     base_name = _name_to_str(base)
@@ -147,6 +176,27 @@ def _name_to_str(node: ast.expr) -> str:
         return node.id
     if isinstance(node, ast.Attribute):
         return f"{_name_to_str(node.value)}.{node.attr}"
+    return ""
+
+
+def _path_to_module(rel: str) -> str:
+    """Convert a relative file path to a dotted module name."""
+    p = rel
+    if p.startswith("src/"):
+        p = p[4:]
+    if p.endswith(".py"):
+        p = p[:-3]
+    elif p.endswith(".pyw"):
+        p = p[:-4]
+    return p.replace("/", ".")
+
+
+def _call_name(node: ast.Call) -> str:
+    """Return the simple name of a called function, or empty string for complex expressions."""
+    if isinstance(node.func, ast.Name):
+        return node.func.id
+    if isinstance(node.func, ast.Attribute):
+        return node.func.attr
     return ""
 
 

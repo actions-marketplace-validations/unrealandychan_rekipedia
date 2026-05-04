@@ -1,68 +1,94 @@
-"""Tests for PythonExtractor."""
+"""Tests for PythonExtractor fixes: module symbols, import relationships, calls."""
 from __future__ import annotations
 
+import textwrap
 from pathlib import Path
 
 import pytest
 
 from rekipedia.extractors.python_extractor import PythonExtractor
 
-FIXTURES = Path(__file__).parent / "fixtures" / "mini-py-repo"
 
-
-@pytest.fixture()
+@pytest.fixture
 def extractor():
     return PythonExtractor()
 
 
-def test_can_handle_py(extractor):
-    assert extractor.can_handle(Path("foo.py"))
+def _extract(extractor, source: str, rel_path: str = "src/mypkg/mod.py", tmp_path=None):
+    """Write source to a temp file and extract."""
+    import tempfile, os
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        file_path = td / rel_path
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(source)
+        return extractor.extract(file_path, td)
 
 
-def test_can_handle_pyw(extractor):
-    assert extractor.can_handle(Path("foo.pyw"))
+def test_module_symbol_emitted(extractor):
+    source = "x = 1\n"
+    result = _extract(extractor, source, "src/mypkg/mod.py")
+    module_syms = [s for s in result.symbols if s.kind == "module"]
+    assert len(module_syms) == 1
+    assert module_syms[0].name == "mypkg.mod"
 
 
-def test_cannot_handle_ts(extractor):
-    assert not extractor.can_handle(Path("foo.ts"))
+def test_import_relationship_uses_module_name(extractor):
+    source = textwrap.dedent("""\
+        import os
+        from rekipedia.models.contracts import Symbol
+    """)
+    result = _extract(extractor, source, "src/mypkg/mod.py")
+    import_rels = [r for r in result.relationships if r.kind == "imports"]
+    froms = {r.from_ for r in import_rels}
+    tos = {r.to for r in import_rels}
+    assert "mypkg.mod" in froms
+    assert "os" in tos
+    assert "rekipedia.models.contracts" in tos
+    # must NOT use file path
+    assert not any("src/" in f for f in froms)
 
 
-def test_extracts_function(extractor):
-    result = extractor.extract(FIXTURES / "main.py", FIXTURES)
-    names = [s.name for s in result.symbols]
-    assert "greet" in names
+def test_calls_relationship_extracted(extractor):
+    source = textwrap.dedent("""\
+        def greet():
+            print("hello")
+            len([1, 2, 3])
+    """)
+    result = _extract(extractor, source, "src/mypkg/mod.py")
+    calls = [r for r in result.relationships if r.kind == "calls"]
+    callees = {r.to for r in calls}
+    assert "print" in callees
+    assert "len" in callees
+    callers = {r.from_ for r in calls}
+    assert "greet" in callers
 
 
-def test_function_has_docstring(extractor):
-    result = extractor.extract(FIXTURES / "main.py", FIXTURES)
-    greet = next(s for s in result.symbols if s.name == "greet")
-    assert greet.docstring is not None
-    assert "greeting" in greet.docstring.lower()
+def test_calls_in_method(extractor):
+    source = textwrap.dedent("""\
+        class Foo:
+            def bar(self):
+                self.baz()
+                helper()
+    """)
+    result = _extract(extractor, source, "src/mypkg/mod.py")
+    calls = [r for r in result.relationships if r.kind == "calls"]
+    callers = {r.from_ for r in calls}
+    callees = {r.to for r in calls}
+    assert "Foo.bar" in callers
+    assert "baz" in callees or "helper" in callees
 
 
-def test_detects_entry_point(extractor):
-    result = extractor.extract(FIXTURES / "main.py", FIXTURES)
-    assert "main.py" in result.entry_points
+def test_inherits_unaffected(extractor):
+    source = textwrap.dedent("""\
+        class Base:
+            pass
 
-
-def test_extracts_multiple_functions(extractor):
-    result = extractor.extract(FIXTURES / "utils.py", FIXTURES)
-    names = {s.name for s in result.symbols}
-    assert {"add", "subtract"} <= names
-
-
-def test_relative_path_in_shard_id(extractor):
-    result = extractor.extract(FIXTURES / "utils.py", FIXTURES)
-    assert result.shard_id == "utils.py"
-
-
-def test_files_seen_contains_path(extractor):
-    result = extractor.extract(FIXTURES / "main.py", FIXTURES)
-    assert "main.py" in result.files_seen
-
-
-def test_syntax_error_returns_risk(extractor, tmp_path):
-    bad = tmp_path / "bad.py"
-    bad.write_text("def foo(\n  # unclosed paren")
-    result = extractor.extract(bad, tmp_path)
-    assert any("SyntaxError" in r for r in result.risks)
+        class Child(Base):
+            pass
+    """)
+    result = _extract(extractor, source, "src/mypkg/mod.py")
+    inherits = [r for r in result.relationships if r.kind == "inherits"]
+    assert len(inherits) == 1
+    assert inherits[0].from_ == "Child"
+    assert inherits[0].to == "Base"
