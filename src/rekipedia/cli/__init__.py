@@ -10,6 +10,7 @@ from rekipedia.cli.init import init_cmd
 from rekipedia.cli.scan import scan_cmd
 from rekipedia.cli.serve import serve_cmd
 from rekipedia.cli.context import context_cmd
+from rekipedia.cli.diff import diff_cmd
 from rekipedia.cli.hook import hook_cmd
 from rekipedia.cli.update import update_cmd
 
@@ -29,3 +30,4 @@ main.add_command(export_cmd)
 main.add_command(serve_cmd)
 main.add_command(hook_cmd, name="hook")
 main.add_command(context_cmd)
+main.add_command(diff_cmd)

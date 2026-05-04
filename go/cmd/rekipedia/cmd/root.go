@@ -68,5 +68,6 @@ func init() {
 		exportCmd,
 		hookCmd,
 		contextCmd,
+		diffCmd,
 	)
 }
