@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.9.19 — Diagram & Relationship Bug Fixes
+
+### Fix: diagram builder showing empty for all projects (#41)
+- **Bug 1 — Storage layer**: `get_all_relationships()` returned raw SQLite tuples; `dict(row)` on a flat tuple raises `TypeError` which was silently caught, making every relationship an empty dict. Fixed with explicit column selection and named dict construction
+- **Bug 2 — Go struct embedding**: Struct embedding (Go's form of composition/inheritance) was never extracted. Fixed by detecting `field_declaration` nodes without `field_identifier` and emitting `kind="inherits"` relationships for direct (`Animal`), pointer (`*Dog`), and cross-package (`pkg.Bar`) embedding
+- **Go stdlib filter**: Added common Go stdlib packages (`fmt`, `strings`, `sync`, `net`, `context`, etc.) to external prefix filter in `diagram_builder.py` — previously shown as internal module relationships
+
+---
+
 ## v0.9.18 — Knowledge Diff, D3 Graph Filter & Homebrew License Fix
 
 ### `reki diff` command — commit-level knowledge diff (#38)
