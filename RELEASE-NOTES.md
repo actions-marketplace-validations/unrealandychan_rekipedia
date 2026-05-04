@@ -1,5 +1,18 @@
 # Release Notes
 
+## v0.9.23 — Fix Go Release CI & Remove close-wiki Branding
+
+### Fix: Go Release CI Homebrew tap 404
+- `update-homebrew-tap.py` BASE_URL was pointing to `rekipedia-releases` repo → corrected to `rekipedia` main repo
+- `.goreleaser.yaml` release target + brew url_template also updated to `rekipedia` repo
+
+### Fix: Remove all `close-wiki` branding
+- `base.html` sidebar title/subtitle: `close-wiki` → `rekipedia`
+- `index.html` quick-start example: `close-wiki scan .` → `rekipedia scan .`
+- All 4 occurrences removed (verified via grep)
+
+---
+
 ## v0.9.22 — Mermaid Diagrams Now Render in Wiki Pages
 
 ### Mermaid.js rendering in wiki pages (Python + Go)
