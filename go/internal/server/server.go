@@ -157,7 +157,7 @@ func (s *Server) handleWikiPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	if err := goldmark.Convert(mdData, &buf); err != nil {
+	if err := goldmark.Convert(stripFrontmatter(mdData), &buf); err != nil {
 		http.Error(w, "render error", 500)
 		return
 	}
@@ -750,4 +750,19 @@ func (s *Server) handleAPIGraph(w http.ResponseWriter, r *http.Request) {
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(v)
+}
+
+// stripFrontmatter removes a leading YAML frontmatter block (--- ... ---) from
+// markdown content so it is not rendered as visible text.
+func stripFrontmatter(content []byte) []byte {
+	s := string(content)
+	if !strings.HasPrefix(s, "---") {
+		return content
+	}
+	end := strings.Index(s[3:], "---")
+	if end == -1 {
+		return content
+	}
+	body := strings.TrimLeft(s[3+end+3:], "\n")
+	return []byte(body)
 }

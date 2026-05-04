@@ -103,6 +103,65 @@ func TestWikiPageRendered(t *testing.T) {
 	}
 }
 
+func TestWikiPageFrontmatterNotRendered(t *testing.T) {
+	dir := t.TempDir()
+	wikiDir := filepath.Join(dir, "wiki")
+	os.MkdirAll(wikiDir, 0o755)
+	content := "---\nslug: arch\ntitle: \"Architecture\"\nsection: core\ntags: [arch]\npin: false\n---\n\n# Architecture\n\nPage body.\n"
+	os.WriteFile(filepath.Join(wikiDir, "arch.md"), []byte(content), 0o644)
+	s := New(".", dir, ":0", models.DefaultLLMConfig())
+	r := makeRouter(s)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/wiki/arch", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if strings.Contains(body, "slug: arch") {
+		t.Error("rendered wiki page must not contain raw frontmatter 'slug:' field")
+	}
+	if strings.Contains(body, "pin: false") {
+		t.Error("rendered wiki page must not contain raw frontmatter 'pin:' field")
+	}
+	if !strings.Contains(body, "Page body") {
+		t.Error("rendered wiki page must contain the page body text")
+	}
+}
+
+func TestStripFrontmatter(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "with frontmatter",
+			input: "---\nslug: foo\ntitle: \"Foo\"\n---\n\n# Foo\n\nBody text.\n",
+			want:  "# Foo\n\nBody text.\n",
+		},
+		{
+			name:  "without frontmatter",
+			input: "# Foo\n\nBody text.\n",
+			want:  "# Foo\n\nBody text.\n",
+		},
+		{
+			name:  "empty",
+			input: "",
+			want:  "",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := string(stripFrontmatter([]byte(tc.input)))
+			if got != tc.want {
+				t.Errorf("stripFrontmatter(%q) = %q, want %q", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestIndexRedirects(t *testing.T) {
 	s, _ := makeTestServer(t)
 	r := makeRouter(s)

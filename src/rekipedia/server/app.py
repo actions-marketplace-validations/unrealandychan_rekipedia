@@ -81,7 +81,20 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                 raw = p.read_text(encoding="utf-8")
                 # Take just the intro paragraph (before first ##)
                 lines, snippet = raw.splitlines(), []
+                in_frontmatter = False
+                frontmatter_done = False
                 for line in lines:
+                    # Skip YAML frontmatter block (--- ... ---)
+                    if not frontmatter_done and line.strip() == "---":
+                        if not in_frontmatter:
+                            in_frontmatter = True
+                            continue
+                        else:
+                            in_frontmatter = False
+                            frontmatter_done = True
+                            continue
+                    if in_frontmatter:
+                        continue
                     if line.startswith("## ") and snippet:
                         break
                     if not line.startswith("# "):
@@ -107,8 +120,14 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
 
 
     def _render_md(path: Path) -> str:
+        text = path.read_text(encoding="utf-8")
+        # Strip YAML frontmatter (--- ... ---) before rendering
+        if text.startswith("---"):
+            end = text.find("---", 3)
+            if end != -1:
+                text = text[end + 3:].lstrip("\n")
         return md.markdown(
-            path.read_text(encoding="utf-8"),
+            text,
             extensions=["fenced_code", "tables", "toc"],
         )
 

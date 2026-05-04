@@ -2247,7 +2247,7 @@ wheels = [
 
 [[package]]
 name = "rekipedia"
-version = "0.9.22"
+version = "0.9.24"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
