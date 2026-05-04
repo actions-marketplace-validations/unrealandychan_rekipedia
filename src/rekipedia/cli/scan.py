@@ -69,7 +69,7 @@ def scan_cmd(
         embed_model=embed_model or llm_cfg_raw.get("embed_model", ""),
         embed_provider=embed_provider or llm_cfg_raw.get("embed_provider", ""),
         embed_api_key=llm_cfg_raw.get("embed_api_key") or llm_cfg_raw.get("api_key", ""),
-        embed_base_url=llm_cfg_raw.get("embed_base_url") or llm_cfg_raw.get("base_url", ""),
+        embed_base_url=llm_cfg_raw.get("embed_base_url") or "",
     )
 
     console.print(f"[bold green]rekipedia scan[/bold green] {repo}")
