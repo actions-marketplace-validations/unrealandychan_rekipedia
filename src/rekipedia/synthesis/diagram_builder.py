@@ -105,9 +105,9 @@ def _build_module_graph(rows: list[dict], entry_points: list[str] | None = None)
     for frm, to in call_edges[:15]:
         lines.append(f"  {node_id(frm)} -.->|calls| {node_id(to)}")
 
-    # Inheritance edges (limit 10)
+    # Inheritance edges (limit 10) — use flowchart arrow syntax, NOT classDiagram <|--
     for child, parent in inherit_edges[:10]:
-        lines.append(f"  {node_id(parent)} <|-- {node_id(child)} : inherits")
+        lines.append(f"  {node_id(child)} -->|inherits| {node_id(parent)}")
 
     lines.append("")
 

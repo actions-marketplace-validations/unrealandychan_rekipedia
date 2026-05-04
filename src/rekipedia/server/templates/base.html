@@ -148,6 +148,9 @@
       <div class="sidebar-subtitle">rekipedia</div>
     </div>
   </div>
+  <div class="search-wrap" style="padding:0.75rem 0.75rem 0.5rem; border-bottom:1px solid var(--border-subtle);">
+    <input id="wiki-search" class="search-input" type="search" placeholder="🔍 Search pages…" autocomplete="off">
+  </div>
   <div class="sidebar-nav">
     <div class="nav-section">
       <a href="/" class="{% if request.url.path == '/' %}active{% endif %}">
@@ -156,9 +159,6 @@
     </div>
     {% if pages %}
     <div class="nav-section">
-    <div class="search-wrap">
-      <input id="wiki-search" class="search-input" type="search" placeholder="🔍 Search pages…" autocomplete="off">
-    </div>
     <div id="wiki-nav">
     {% if pages %}
       {%- set ns = namespace(current_section=None) %}
