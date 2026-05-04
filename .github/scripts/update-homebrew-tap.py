@@ -16,7 +16,7 @@ import urllib.request
 VERSION = sys.argv[1].lstrip("v")
 PAT = os.environ["HOMEBREW_TAP_TOKEN"]
 TAG = f"v{VERSION}"
-BASE_URL = f"https://github.com/unrealandychan/rekipedia-releases/releases/download/{TAG}"
+BASE_URL = f"https://github.com/unrealandychan/rekipedia/releases/download/{TAG}"
 TAP_REPO = "unrealandychan/homebrew-tap"
 
 PLATFORMS = {

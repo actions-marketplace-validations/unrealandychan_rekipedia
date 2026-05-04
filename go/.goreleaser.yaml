@@ -54,7 +54,7 @@ changelog:
 release:
   github:
     owner: unrealandychan
-    name: rekipedia-releases
+    name: rekipedia
   name_template: "{{.ProjectName}} v{{.Version}}"
   draft: false
   prerelease: auto
@@ -62,7 +62,7 @@ release:
 
 brews:
   - name: rekipedia
-    url_template: "https://github.com/unrealandychan/rekipedia-releases/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    url_template: "https://github.com/unrealandychan/rekipedia/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     repository:
       owner: unrealandychan
       name: homebrew-tap
