@@ -29,8 +29,8 @@ jobs:
           VERSION=${RAW_TAG#go/}
           CLEAN_TAG="v${VERSION#v}"
           echo "GORELEASER_CURRENT_TAG=${CLEAN_TAG}" >> $GITHUB_ENV
-          # Create local semver tag so goreleaser can resolve it
-          git tag "${CLEAN_TAG}"
+          # Create local semver tag so goreleaser can resolve it (force in case of retries)
+          git tag -f "${CLEAN_TAG}"
 
       - name: Run goreleaser
         uses: goreleaser/goreleaser-action@v6
