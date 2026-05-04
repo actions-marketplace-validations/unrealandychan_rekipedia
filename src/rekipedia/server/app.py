@@ -56,16 +56,32 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                 ordered_slugs.append(slug)
 
         pages = []
-        for i, slug in enumerate(ordered_slugs, start=1):
-            # Extract H1 title from the markdown file for a nicer display name
+        for slug in ordered_slugs:
             raw = available[slug].read_text(encoding="utf-8")
             title = slug.replace("-", " ").title()
-            for line in raw.splitlines():
-                line = line.strip()
-                if line.startswith("# "):
-                    title = line[2:].strip()
-                    break
-            pages.append({"slug": slug, "title": f"#{i} · {title}"})
+            section = "general"
+            # Parse frontmatter for title + section
+            if raw.startswith("---"):
+                end = raw.find("\n---", 3)
+                if end != -1:
+                    fm_text = raw[3:end]
+                    for line in fm_text.splitlines():
+                        if line.startswith("title:"):
+                            t = line.split(":", 1)[1].strip().strip('"').strip("'")
+                            if t:
+                                title = t
+                        elif line.startswith("section:"):
+                            s = line.split(":", 1)[1].strip()
+                            if s:
+                                section = s
+            # Fallback: extract H1 title
+            if title == slug.replace("-", " ").title():
+                for line in raw.splitlines():
+                    line = line.strip()
+                    if line.startswith("# "):
+                        title = line[2:].strip()
+                        break
+            pages.append({"slug": slug, "title": title, "section": section})
         return pages
 
     def _project_name() -> str:

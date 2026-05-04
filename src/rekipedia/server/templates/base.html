@@ -81,6 +81,31 @@
     }
     .sidebar hr { border: none; border-top: 1px solid var(--border-subtle); margin: 0.4rem 0; }
 
+    /* ── Search ──────────────────────────────────────────────────────── */
+    .search-wrap { padding: 0.6rem 0.75rem 0; }
+    .search-input {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 0.38rem 0.65rem;
+      font-size: 0.82rem; color: var(--text); outline: none;
+    }
+    .search-input::placeholder { color: var(--muted2); }
+    .search-input:focus { border-color: var(--accent); }
+
+    /* ── Category groups ─────────────────────────────────────────────── */
+    .cat-group { margin-bottom: 0.1rem; }
+    .cat-header {
+      font-size: 0.67rem; text-transform: uppercase; letter-spacing: 1.2px;
+      color: var(--muted2); padding: 0.55rem 0.6rem 0.2rem;
+      display: flex; align-items: center; gap: 0.35rem;
+      cursor: pointer; user-select: none; font-weight: 600;
+    }
+    .cat-header:hover { color: var(--muted); }
+    .cat-arrow { font-size: 0.55rem; transition: transform 0.15s; }
+    .cat-group.collapsed .cat-arrow { transform: rotate(-90deg); }
+    .cat-group.collapsed .cat-pages { display: none; }
+    .cat-pages { }
+    .no-results { font-size: 0.8rem; color: var(--muted2); padding: 0.5rem 0.6rem; }
+
     /* ── Main ─────────────────────────────────────────────────────────── */
     .main { flex: 1; padding: 2.5rem 3rem; min-width: 0; max-width: 900px; }
 
@@ -131,12 +156,32 @@
     </div>
     {% if pages %}
     <div class="nav-section">
-      <span class="nav-label">Wiki</span>
-      {% for page in pages %}
-      <a href="/wiki/{{ page.slug }}" {% if slug is defined and slug == page.slug %}class="active"{% endif %}>
-        <span class="icon">◦</span> {{ page.title }}
-      </a>
-      {% endfor %}
+    <div class="search-wrap">
+      <input id="wiki-search" class="search-input" type="search" placeholder="🔍 Search pages…" autocomplete="off">
+    </div>
+    <div id="wiki-nav">
+    {% if pages %}
+      {%- set ns = namespace(current_section=None) %}
+      {%- for page in pages %}
+        {%- if page.section != ns.current_section %}
+          {%- if ns.current_section is not none %}</div></div>{% endif %}
+          {%- set ns.current_section = page.section %}
+          <div class="cat-group" data-cat="{{ page.section }}">
+            <div class="cat-header" onclick="toggleCat(this.parentElement)">
+              <span class="cat-arrow">▾</span> {{ page.section | replace('-',' ') | replace('_',' ') | title }}
+            </div>
+            <div class="cat-pages">
+        {%- endif %}
+        <a href="/wiki/{{ page.slug }}" data-title="{{ page.title | lower }}" data-section="{{ page.section | lower }}"
+           {% if slug is defined and slug == page.slug %}class="active"{% endif %}>
+          <span class="icon">◦</span> {{ page.title }}
+        </a>
+      {%- endfor %}
+      {%- if ns.current_section is not none %}</div></div>{% endif %}
+    {% else %}
+      <p class="no-results">No wiki pages yet.</p>
+    {% endif %}
+    </div>
     </div>
     {% endif %}
     <hr>
@@ -152,5 +197,45 @@
 <main class="main">
 {% block content %}{% endblock %}
 </main>
+<script>
+  // Toggle category collapse
+  function toggleCat(el) {
+    el.classList.toggle('collapsed');
+  }
+
+  // Search filter
+  const searchInput = document.getElementById('wiki-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const q = this.value.trim().toLowerCase();
+      const groups = document.querySelectorAll('#wiki-nav .cat-group');
+      let anyVisible = false;
+      groups.forEach(group => {
+        let groupHasMatch = false;
+        group.querySelectorAll('a').forEach(a => {
+          const title = a.dataset.title || '';
+          const section = a.dataset.section || '';
+          const match = !q || title.includes(q) || section.includes(q);
+          a.style.display = match ? '' : 'none';
+          if (match) groupHasMatch = true;
+        });
+        group.style.display = groupHasMatch ? '' : 'none';
+        if (groupHasMatch) {
+          anyVisible = true;
+          if (q) group.classList.remove('collapsed'); // expand on search
+        }
+      });
+      let noRes = document.getElementById('wiki-no-results');
+      if (!noRes) {
+        noRes = document.createElement('p');
+        noRes.id = 'wiki-no-results';
+        noRes.className = 'no-results';
+        noRes.textContent = 'No pages found.';
+        document.getElementById('wiki-nav').appendChild(noRes);
+      }
+      noRes.style.display = (!anyVisible && q) ? '' : 'none';
+    });
+  }
+</script>
 </body>
 </html>

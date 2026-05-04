@@ -15,6 +15,8 @@ No hallucinations, no guessing — every answer is grounded in your actual codeb
 - **Agentic wiki orchestration**: `PlannerAgent` designs the wiki structure dynamically based on your repo
 - **Page importance scoring**: planner assigns each page an importance score (0–100); nav sidebar sorts by priority
 - **DeepWiki-style sections**: pages grouped into logical sections (`getting-started`, `architecture`, `core-components`, etc.)
+- **Wiki sidebar categories**: `reki serve` sidebar groups pages by `section` field with collapsible headers
+- **Live search**: type in the sidebar search box to filter wiki pages by title or category instantly
 - **Context slicing**: each page only receives the data it needs (~40–60% token reduction vs fixed-layout approach)
 - **Hybrid RAG Q&A**: FAISS-indexed code chunks + wiki pages give the LLM full codebase context when answering questions
 - **Embed provider choice**: `--embed-provider openai|ollama|azure|...` — any litellm-compatible embedding model

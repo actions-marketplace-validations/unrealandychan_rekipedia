@@ -1,5 +1,30 @@
 # Release Notes
 
+## v0.9.32 — Wiki Categories & Search
+
+### New Features
+- **Sidebar category grouping**: Wiki pages are now grouped by their `section` frontmatter field in the sidebar. Each group has a collapsible header — click to expand/collapse.
+- **Live search filter**: Search box at the top of the wiki nav filters pages by title or section as you type. Matching groups auto-expand; empty groups are hidden.
+- **Frontmatter `section` read by server**: `_wiki_pages()` now parses frontmatter YAML to extract both `title` and `section` fields, passing them to templates.
+
+---
+
+## v0.9.31 — Scan skip + Ask positional arg
+
+### New Features
+- **Scan skip-if-scanned** (Python + Go): `reki scan` skips if a `status='success'` run already exists in the DB. Use `--force`/`-f` to rescan.
+- **`reki ask` positional arg**: `reki ask "your question"` now works directly without `-q` flag (Python + Go aligned).
+
+---
+
+## v0.9.30 — Frontmatter integrity fix
+
+### Bug Fixes
+- **`_ensure_frontmatter` always strips+rebuilds**: Prevents LLM hallucination garbage fields (e.g. `created_at: 0.9.23`) from surviving in wiki frontmatter.
+- **`_strip_yaml_frontmatter` handles malformed FM**: Strips frontmatter even if closing `---` is missing; fallback to first blank line or `#` heading.
+
+---
+
 ## v0.9.29 — Agent & MCP integration
 
 ### New Features
