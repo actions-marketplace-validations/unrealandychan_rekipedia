@@ -51,14 +51,7 @@ Step-by-step description of how data moves through the system. Use a Mermaid seq
 ## Key Design Decisions
 Notable patterns used (e.g. plugin architecture, event-driven, pipeline, sandbox isolation). Reference actual code evidence with source citations.
 ## Inter-Module Dependencies
-If a pre-built dependency graph is provided in `pre_built_dependency_graph`, embed it. Otherwise describe the major import relationships.
-## Cross-Module Dependency Map
-Using `cross_module_summary` from the analysis data, generate a complete Mermaid `flowchart LR` showing ALL internal module-to-module import and call relationships. Then produce the cross-module table:
-| Module | Imports From | Calls Into | Inherited By |
-|--------|-------------|------------|-------------|
-This section is MANDATORY — do not skip it even if data is sparse.
-## Module Coupling Analysis
-Identify tightly coupled pairs (high bidirectional deps) and isolated modules. Flag circular imports if any.""",
+If a pre-built dependency graph is provided in `pre_built_dependency_graph`, embed it. Otherwise describe the major import relationships.""",
 
     "core-modules": """Document every significant module/package. For each one:
 ### Module Name (`path/to/module`)
@@ -66,12 +59,7 @@ Identify tightly coupled pairs (high bidirectional deps) and isolated modules. F
 - **Public API**: list key exported classes and functions with their signatures
 - **Key Classes**: brief description of each class, its constructor, and main methods
 - **Key Functions**: signature + one-line description
-- **Imports From**: list every internal module this module imports (from `cross_module_summary[module].imports`)
-- **Imported By**: list every internal module that imports this one (from `cross_module_summary[module].imported_by`)
-- **Calls**: key functions this module calls in other modules
-- **Called By**: key functions in other modules that call into this module
-- **Coupling Score**: high/medium/low based on total in+out edges
-At the end of the core-modules page, include a summary cross-module dependency table covering ALL documented modules.
+- **Interactions**: which other modules it imports from / is imported by
 Include a Mermaid `classDiagram` showing class hierarchies if applicable.""",
 
     "algorithms": """Document the core algorithms and data processing logic. Include:
@@ -305,7 +293,7 @@ class PageBuilder:
             title = title_hint
             content = f"# {title}\n\n> *LLM synthesis failed: {exc}*\n"
 
-        content = _ensure_frontmatter(slug, title, content, tags=spec.get("tags", []), section=spec.get("section"), importance=spec.get("importance"))
+        content = _ensure_frontmatter(slug, title, content, tags=spec.get("tags", []), section=spec.get("section"))
         return (title, content)
 
     def build_one(self, slug: str, combined: AnalysisResult, _payload: dict | None = None) -> tuple[str, str] | None:
@@ -338,71 +326,10 @@ class PageBuilder:
             content = f"# {title}\n\n> *LLM synthesis failed: {exc}*\n"
 
         content = _ensure_frontmatter(slug, title, content)
-
-        # Inject god nodes section into the index page
-        if slug == "index":
-            content = _inject_god_nodes_section(content, combined)
-
         return (title, content)
 
 
 # ── helpers ──────────────────────────────────────────────────────────
-
-def _build_cross_module_summary(relationships: list, symbols: list, files_seen: list) -> dict:
-    """
-    Pre-compute a human-readable cross-module dependency map.
-    Returns dict: {module_name: {imports: [], imported_by: [], calls: [], called_by: [], inherits: [], inherited_by: []}}
-    Only includes INTERNAL relationships (from_ and to both appear in files_seen or symbol files).
-    """
-    # Build set of known internal module names from symbols
-    internal_names = set()
-    for s in symbols:
-        internal_names.add(s.get('name', ''))
-        if s.get('file'):
-            # Add module-style name derived from file
-            f = s['file']
-            # strip src/ prefix
-            if f.startswith('src/'):
-                f = f[4:]
-            # convert path to dotted module name
-            mod = f.replace('/', '.').replace('\\', '.').removesuffix('.py').removesuffix('.go').removesuffix('.ts').removesuffix('.rs').removesuffix('.java')
-            internal_names.add(mod)
-
-    summary = {}
-    for r in relationships:
-        from_ = r.get('from_') or r.get('from', '')
-        to = r.get('to', '')
-        kind = r.get('kind', '')
-
-        # Only internal relationships
-        if not from_ or not to:
-            continue
-
-        if from_ not in summary:
-            summary[from_] = {'imports': [], 'imported_by': [], 'calls': [], 'called_by': [], 'inherits': [], 'inherited_by': []}
-        if to not in summary:
-            summary[to] = {'imports': [], 'imported_by': [], 'calls': [], 'called_by': [], 'inherits': [], 'inherited_by': []}
-
-        if kind in ('import', 'imports'):
-            if to not in summary[from_]['imports']:
-                summary[from_]['imports'].append(to)
-            if from_ not in summary[to]['imported_by']:
-                summary[to]['imported_by'].append(from_)
-        elif kind == 'calls':
-            if to not in summary[from_]['calls']:
-                summary[from_]['calls'].append(to)
-            if from_ not in summary[to]['called_by']:
-                summary[to]['called_by'].append(from_)
-        elif kind == 'inherits':
-            if to not in summary[from_]['inherits']:
-                summary[from_]['inherits'].append(to)
-            if from_ not in summary[to]['inherited_by']:
-                summary[to]['inherited_by'].append(from_)
-
-    # Trim to top 100 most connected modules to keep payload size reasonable
-    scored = sorted(summary.items(), key=lambda x: sum(len(v) for v in x[1].values()), reverse=True)
-    return dict(scored[:100])
-
 
 def _build_payload(combined: AnalysisResult, diagrams: dict | None = None) -> dict:
     # Build a compact symbol index: name -> {file, line_start, line_end, kind}
@@ -415,44 +342,17 @@ def _build_payload(combined: AnalysisResult, diagrams: dict | None = None) -> di
         }
         for s in combined.symbols[:600]
     }
-    all_rels = [r.model_dump(by_alias=True) for r in combined.relationships]
-    # Relationship stats by kind
-    rel_by_kind: dict[str, int] = {}
-    for r in all_rels:
-        k = r.get("kind", "unknown")
-        rel_by_kind[k] = rel_by_kind.get(k, 0) + 1
-    relationship_stats = {"total": len(all_rels), "by_kind": rel_by_kind}
-    # Internal relationships: both from_ and to look like internal symbols (no stdlib, no dotted-only names)
-    def _is_internal(name: str) -> bool:
-        if not name:
-            return False
-        # Exclude stdlib-style single words or fully-qualified external names
-        if name.startswith(("os.", "sys.", "re.", "io.", "json.", "typing.", "collections.", "pathlib.", "abc.", "builtins.")):
-            return False
-        return True
-    internal_relationships = [
-        r for r in all_rels
-        if _is_internal(r.get("from_") or r.get("from", "")) and _is_internal(r.get("to", ""))
-    ][:800]
-    # Cross-module summary
-    symbols_dicts = [s.model_dump() for s in combined.symbols]
-    cross_module_summary = _build_cross_module_summary(all_rels, symbols_dicts, combined.files_seen)
     payload = {
         "files_seen": combined.files_seen[:500],
         "entry_points": combined.entry_points,
         "symbols": [s.model_dump() for s in combined.symbols[:600]],
         "symbol_index": symbol_index,
-        "relationships": all_rels[:1500],
-        "internal_relationships": internal_relationships,
-        "relationship_stats": relationship_stats,
-        "cross_module_summary": cross_module_summary,
+        "relationships": [r.model_dump(by_alias=True) for r in combined.relationships[:600]],
         "build_commands": combined.build_commands,
         "test_commands": combined.test_commands,
         "risks": combined.risks,
         "evidence": combined.evidence,
     }
-    if combined.rationale_notes:
-        payload["rationale_notes"] = [n.model_dump() for n in combined.rationale_notes[:200]]
     if diagrams:
         payload["pre_built_module_graph"] = diagrams.get("module-graph", ("", ""))[1]
         payload["pre_built_dependency_graph"] = diagrams.get("class-hierarchy", ("", ""))[1]
@@ -497,56 +397,34 @@ def _parse_llm_response(raw: str, slug: str) -> tuple[str, str]:
     return title, raw
 
 
-def _ensure_frontmatter(
-    slug: str,
-    title: str,
-    content: str,
-    tags: list[str] | None = None,
-    section: str | None = None,
-    importance: int | None = None,
-) -> str:
+_ALLOWED_FRONTMATTER_KEYS = {"slug", "title", "section", "tags", "pin", "importance"}
+
+
+def _sanitize_slug(slug: str) -> str:
+    """Normalise a slug: lowercase, replace bad chars with hyphens, collapse runs."""
+    slug = slug.lower().strip()
+    slug = re.sub(r"[^a-z0-9_-]+", "-", slug)
+    slug = re.sub(r"-{2,}", "-", slug).strip("-")
+    return slug or "untitled"
+
+
+def _ensure_frontmatter(slug: str, title: str, content: str, tags: list[str] | None = None, section: str | None = None) -> str:
+    """Inject or repair YAML frontmatter.
+
+    If the LLM already produced frontmatter we strip it and rebuild from the
+    canonical fields so that hallucinated keys (created_at, date, author …)
+    are dropped and ``slug`` / ``title`` always match the planned values.
+    """
+    slug = _sanitize_slug(slug)
+
+    # Strip any existing frontmatter so we can rebuild it cleanly
+    body = content
     if content.startswith("---"):
-        return content
-    import importlib.metadata
-    from datetime import datetime, timezone
+        end = content.find("---", 3)
+        if end != -1:
+            body = content[end + 3:].lstrip("\n")
 
-    try:
-        version = importlib.metadata.version("rekipedia")
-    except importlib.metadata.PackageNotFoundError:
-        version = "0.9.16"
-
-    created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    importance_val = importance if importance is not None else 50
-    section_val = section if section else "general"
     tags_line = f"tags: [{', '.join(tags)}]\n" if tags else ""
-    fm = (
-        f"---\n"
-        f"slug: {slug}\n"
-        f"title: \"{title}\"\n"
-        f"created_at: {created_at}\n"
-        f"rekipedia_version: {version}\n"
-        f"importance: {importance_val}\n"
-        f"section: {section_val}\n"
-        f"{tags_line}"
-        f"pin: false\n"
-        f"---\n\n"
-    )
-    return fm + content
-
-
-def _inject_god_nodes_section(content: str, combined: "AnalysisResult") -> str:
-    """Append a God Nodes / Symbol Importance Ranking section to the index page."""
-    from rekipedia.analysis.graph_analysis import compute_god_nodes
-
-    god_nodes = compute_god_nodes(combined.relationships, top_n=10)
-    if not god_nodes:
-        return content
-
-    lines = ["\n\n## ⭐ God Nodes — Top Symbols by Connectivity\n"]
-    lines.append("| Symbol | Degree (in + out) |")
-    lines.append("|--------|-------------------|")
-    for name, degree in god_nodes:
-        lines.append(f"| `{name}` | {degree} |")
-    lines.append("\n> *God nodes are the most connected symbols in the codebase — high degree indicates central importance.*\n")
-
-    return content + "\n".join(lines)
+    section_line = f"section: {section}\n" if section else ""
+    fm = f"---\nslug: {slug}\ntitle: \"{title}\"\n{section_line}{tags_line}pin: false\n---\n\n"
+    return fm + body

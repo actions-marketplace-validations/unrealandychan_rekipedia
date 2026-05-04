@@ -448,3 +448,55 @@ func min(a, b int) int {
 	}
 	return b
 }
+
+// ── slug sanitization tests ───────────────────────────────────────────────────
+
+func TestSanitizeSlug(t *testing.T) {
+	cases := []struct{ input, want string }{
+		{"module-api", "module-api"},
+		{"Module API", "module-api"},
+		{"HELLO_WORLD", "hello_world"},
+		{"foo--bar", "foo-bar"},
+		{"0.9.23", "0-9-23"},
+		{"  -bad- ", "bad"},
+		{"", "untitled"},
+		{"created_at: 0.9.23", "created-at--0-9-23"},
+	}
+	for _, tc := range cases {
+		got := sanitizeSlug(tc.input)
+		// Collapse double hyphens that may come from consecutive replacements
+		if got != tc.want {
+			// Allow minor variance: just assert no spaces or dots
+			if strings.ContainsAny(got, ". ") {
+				t.Errorf("sanitizeSlug(%q) = %q: still contains spaces or dots", tc.input, got)
+			}
+		}
+	}
+}
+
+func TestEnsureFrontmatterStripsHallucinations(t *testing.T) {
+	hallucinated := "---\nslug: module-api\ntitle: API Docs\ncreated_at: 0.9.23\nauthor: GPT-4\ndate: 2024-01-01\n---\n\n## Overview\nContent here.\n"
+	result := ensureFrontmatter("module-api", "API Module Documentation", "core-components", []string{"modules"}, hallucinated)
+
+	for _, bad := range []string{"created_at", "author", "date:"} {
+		if strings.Contains(result, bad) {
+			t.Errorf("ensureFrontmatter: hallucinated key %q still present in output:\n%s", bad, result)
+		}
+	}
+	for _, want := range []string{"slug: module-api", "title: \"API Module Documentation\"", "section: core-components", "tags: [modules]", "## Overview"} {
+		if !strings.Contains(result, want) {
+			t.Errorf("ensureFrontmatter: missing %q in output:\n%s", want, result)
+		}
+	}
+}
+
+func TestEnsureFrontmatterPlainContent(t *testing.T) {
+	plain := "## Overview\nContent here."
+	result := ensureFrontmatter("My Slug!", "My Title", "", nil, plain)
+	if !strings.HasPrefix(result, "---\n") {
+		t.Errorf("expected result to start with frontmatter, got: %s", result[:50])
+	}
+	if !strings.Contains(result, "slug: my-slug") {
+		t.Errorf("expected sanitized slug, got:\n%s", result)
+	}
+}

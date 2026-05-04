@@ -197,6 +197,23 @@ func buildPlanningSummary(result models.AnalysisResult) planningSummary {
 
 var reFenceStrip = regexp.MustCompile("(?s)```(?:json)?\\s*(.*?)```")
 
+// sanitizeSlug normalises a planner-generated slug to lowercase-hyphenated form.
+// It drops any character that isn't alphanumeric, hyphen, or underscore, then
+// collapses consecutive hyphens and trims leading/trailing hyphens.
+var reSlugBadChars = regexp.MustCompile(`[^a-z0-9_-]+`)
+var reSlugRunHyphen = regexp.MustCompile(`-{2,}`)
+
+func sanitizeSlug(slug string) string {
+	s := strings.ToLower(strings.TrimSpace(slug))
+	s = reSlugBadChars.ReplaceAllString(s, "-")
+	s = reSlugRunHyphen.ReplaceAllString(s, "-")
+	s = strings.Trim(s, "-")
+	if s == "" {
+		return "untitled"
+	}
+	return s
+}
+
 func parsePlanJSON(raw string) (models.WikiPlan, error) {
 	// Strip markdown code fences if present
 	if m := reFenceStrip.FindStringSubmatch(raw); m != nil {
@@ -216,6 +233,14 @@ func parsePlanJSON(raw string) (models.WikiPlan, error) {
 	}
 	if len(plan.Pages) == 0 {
 		return models.WikiPlan{}, fmt.Errorf("planner returned zero pages")
+	}
+	// Sanitize all slugs so LLM hallucinations don't leak into file names or URLs
+	plan.IndexSlug = sanitizeSlug(plan.IndexSlug)
+	for i := range plan.Pages {
+		plan.Pages[i].Slug = sanitizeSlug(plan.Pages[i].Slug)
+	}
+	for i := range plan.NavOrder {
+		plan.NavOrder[i] = sanitizeSlug(plan.NavOrder[i])
 	}
 	return plan, nil
 }

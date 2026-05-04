@@ -13,6 +13,14 @@ from rekipedia.models.contracts import AnalysisResult, LLMConfig
 
 logger = logging.getLogger("rekipedia.planner")
 
+
+def _sanitize_slug(slug: str) -> str:
+    """Normalise a slug: lowercase, replace bad chars with hyphens, collapse runs."""
+    slug = slug.lower().strip()
+    slug = re.sub(r"[^a-z0-9_-]+", "-", slug)
+    slug = re.sub(r"-{2,}", "-", slug).strip("-")
+    return slug or "untitled"
+
 _SYSTEM_PROMPT = """\
 You are a technical documentation architect for software repositories. Your task: analyse a repo's static-analysis data and design the OPTIMAL wiki structure — like DeepWiki does for open-source projects.
 
@@ -233,6 +241,14 @@ class PlannerAgent:
         raw = re.sub(r"\n?```\s*$", "", raw)
         try:
             data = json.loads(raw)
+            # Sanitize all slugs before constructing the plan
+            for page in data.get("pages", []):
+                if "slug" in page:
+                    page["slug"] = _sanitize_slug(page["slug"])
+            if "index_slug" in data:
+                data["index_slug"] = _sanitize_slug(data["index_slug"])
+            if "nav_order" in data:
+                data["nav_order"] = [_sanitize_slug(s) for s in data["nav_order"]]
             plan = WikiPlan(data)
         except Exception as exc:
             logger.warning("PlannerAgent JSON parse failed (%s) — using default plan", exc)
