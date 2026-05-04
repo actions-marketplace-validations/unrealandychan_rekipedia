@@ -113,6 +113,7 @@ def _answer_streaming(
 
 
 @click.command("ask")
+@click.argument("question_arg", metavar="QUESTION", default=None, required=False)
 @click.option("--question", "-q", default=None, help="Single question (non-interactive mode).")
 @click.option(
     "--repo",
@@ -126,6 +127,7 @@ def _answer_streaming(
 @click.option("--no-save-session", is_flag=True, default=False, help="Do not save session history to disk.")
 @click.option("--no-rewrite", is_flag=True, default=False, help="Disable silent query rewriting.")
 def ask_cmd(
+    question_arg: str | None,
     question: str | None,
     repo: Path,
     model: str | None,
@@ -136,15 +138,17 @@ def ask_cmd(
 ) -> None:
     """Interactive grounded Q&A about the scanned repository.
 
-    Starts a REPL loop — ask questions until you press Ctrl+C.
+    Optionally pass QUESTION directly as a positional argument for single-shot mode.
+    Starts a REPL loop if no question is provided — ask until you press Ctrl+C.
     Answers are streamed in real-time from the LLM.
     Conversation history is kept for multi-turn context (--history-limit turns).
 
     \b
     Examples:
-        rekipedia ask
+        rekipedia ask                                   # interactive REPL
+        rekipedia ask "How does the auth flow work?"    # positional single-shot
+        rekipedia ask -q "What are the entry points?"  # flag single-shot
         rekipedia ask --repo ./my-project
-        rekipedia ask -q "What are the entry points?"   # single-shot
         rekipedia ask --history-limit 20
     """
     import datetime, json as _json  # noqa: PLC0415
@@ -156,6 +160,9 @@ def ask_cmd(
     if no_rewrite:
         import os
         os.environ["REKIPEDIA_QUERY_REWRITE"] = "0"
+
+    # Resolve question: positional arg takes precedence over -q flag
+    single_question = question_arg or question
 
     # Conversation history: [{role, content}, ...]
     history: list[dict] = []
@@ -181,10 +188,10 @@ def ask_cmd(
         )
         console.print(f"[dim]Session saved → {session_file}[/dim]")
 
-    if question:
+    if single_question:
         # Single-shot mode (no session save)
         _print_banner()
-        _answer_streaming(question, repo, output_dir, llm_config, history=[])
+        _answer_streaming(single_question, repo, output_dir, llm_config, history=[])
         return
 
     # Interactive REPL

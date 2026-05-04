@@ -33,6 +33,7 @@ def _load_config(repo: Path) -> dict:
 @click.option("--embed-model", default=None, envvar="REKIPEDIA_EMBED_MODEL", help="Embedding model for RAG index (e.g. text-embedding-3-small). If set, auto-embeds after scan.")
 @click.option("--embed-provider", default=None, envvar="REKIPEDIA_EMBED_PROVIDER", help="Embedding provider prefix (e.g. openai, ollama, azure). Combined with --embed-model as 'provider/model'.")
 @click.option("--languages", "-l", default=None, help="Comma-separated list of languages to include, e.g. python,typescript,go. Default: all.")
+@click.option("--force", "-f", is_flag=True, default=False, help="Force re-scan even if a completed scan already exists in the DB.")
 def scan_cmd(
     repo: Path,
     model: str | None,
@@ -42,21 +43,44 @@ def scan_cmd(
     embed_model: str | None,
     embed_provider: str | None,
     languages: str | None,
+    force: bool,
 ) -> None:
     """Scan REPO and (re)build the rekipedia knowledge store.
 
     Produces wiki pages in OUTPUT_DIR/wiki/, diagrams in OUTPUT_DIR/diagrams/,
     and a JSON manifest in OUTPUT_DIR/exports/manifest.json.
 
+    By default, scan is skipped if a completed scan already exists in the DB.
+    Use --force to re-scan regardless.
+
     \b
     Examples:
         rekipedia scan .
         rekipedia scan ./my-project --no-docker
         rekipedia scan . --verbose
+        rekipedia scan . --force       # force re-scan even if DB exists
         REKIPEDIA_MODEL=gpt-4o rekipedia scan .
     """
     repo = repo.resolve()
     output_dir = (output_dir or repo / ".rekipedia").resolve()
+
+    # ── Skip if already scanned (unless --force) ──────────────────────────────
+    if not force:
+        db_path = output_dir / "store.db"
+        if db_path.exists():
+            try:
+                from rekipedia.storage.sqlite_store import SqliteStore  # noqa: PLC0415
+                with SqliteStore(db_path) as _store:
+                    _existing = _store.get_latest_run_id(str(repo))
+                if _existing:
+                    console.print(
+                        f"[bold yellow]⏭  Scan skipped[/bold yellow] — completed scan already exists "
+                        f"([dim]{db_path}[/dim])\n"
+                        f"  Use [bold]--force[/bold] / [bold]-f[/bold] to re-scan."
+                    )
+                    return
+            except Exception:
+                pass  # DB unreadable — proceed with scan
 
     cfg = _load_config(repo)
     llm_cfg_raw = cfg.get("llm", {})

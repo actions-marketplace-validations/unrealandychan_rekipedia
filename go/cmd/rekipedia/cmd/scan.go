@@ -11,6 +11,7 @@ import (
 	"github.com/unrealandychan/rekipedia/internal/models"
 	"github.com/unrealandychan/rekipedia/internal/orchestrator"
 	"github.com/unrealandychan/rekipedia/internal/rag"
+	"github.com/unrealandychan/rekipedia/internal/storage"
 )
 
 var scanFlags struct {
@@ -22,6 +23,7 @@ var scanFlags struct {
 	embedModel    string
 	embedProvider string
 	languages     string
+	force         bool
 }
 
 var scanCmd = &cobra.Command{
@@ -31,7 +33,10 @@ var scanCmd = &cobra.Command{
   1. Walk files and extract symbols/relationships
   2. Run PlannerAgent to design wiki structure
   3. Build wiki pages concurrently via LLM
-  4. Save results to .rekipedia/store.db and .rekipedia/wiki/`,
+  4. Save results to .rekipedia/store.db and .rekipedia/wiki/
+
+By default, scan is skipped if a completed scan already exists in the DB.
+Use --force / -f to re-scan regardless.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		root := "."
@@ -45,6 +50,22 @@ var scanCmd = &cobra.Command{
 		}
 		if err := os.MkdirAll(outDir, 0o755); err != nil {
 			return err
+		}
+
+		// ── Skip if already scanned (unless --force) ──────────────────────
+		if !scanFlags.force {
+			dbPath := outDir + "/store.db"
+			if _, err := os.Stat(dbPath); err == nil {
+				store, err := storage.Open(dbPath)
+				if err == nil {
+					runID, _ := store.LatestRunID(root)
+					store.Close()
+					if runID != "" {
+						pterm.Info.Printfln("Scan skipped — completed scan already exists (%s)\n  Use --force / -f to re-scan.", dbPath)
+						return nil
+					}
+				}
+			}
 		}
 
 		pterm.DefaultHeader.WithFullWidth(false).WithBackgroundStyle(pterm.NewStyle(pterm.BgDarkGray)).WithTextStyle(pterm.NewStyle(pterm.FgWhite)).Println("rekipedia scan ▸ " + root)
@@ -93,6 +114,7 @@ func init() {
 	scanCmd.Flags().StringVar(&scanFlags.embedModel, "embed-model", "", "Embedding model")
 	scanCmd.Flags().StringVar(&scanFlags.embedProvider, "embed-provider", "", "Embedding provider")
 	scanCmd.Flags().StringVarP(&scanFlags.languages, "languages", "l", "", "Comma-separated languages to include, e.g. python,typescript,go (default: all)")
+	scanCmd.Flags().BoolVarP(&scanFlags.force, "force", "f", false, "Force re-scan even if a completed scan already exists in the DB")
 }
 
 // loadLLMConfig merges flags with config file defaults.
