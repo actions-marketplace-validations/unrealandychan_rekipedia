@@ -68,3 +68,35 @@ At the end of every `##` section that references specific symbols or files, add 
 - If a symbol has no line number, still cite the file: [`Symbol`](path/to/file.py)
 - Do NOT invent file paths — only cite files that appear in `files_seen` or `symbols[].file`
 - Every `##` section that mentions any symbol MUST end with a Sources block
+
+---
+
+## Cross-Module Relationship Rules (MANDATORY)
+
+Every wiki page that covers modules, architecture, or code structure MUST include:
+
+### Cross-Module Dependency Table
+When documenting modules, always include a table showing inter-module relationships:
+| Module | Imports From | Called By | Calls Into | Inherits From |
+|--------|-------------|-----------|------------|---------------|
+
+Use the `cross_module_summary` field in the analysis data — it is pre-computed and accurate.
+
+### Relationship Coverage Rules
+- The `architecture` page MUST include a complete inter-module dependency section with a Mermaid `flowchart LR` showing all major module-to-module imports
+- The `core-modules` page MUST include for EACH module: (1) what it imports, (2) what imports it, (3) what it calls, (4) what calls it
+- The `algorithms` page MUST show cross-module call chains (e.g. CLI → Orchestrator → LLM → Storage)
+- Use `relationship_stats` to mention total relationship counts and breakdown by kind
+
+### Call Chain Documentation
+For the most important code paths, trace the full call chain across modules:
+```
+entry_point → module_A.function → module_B.function → module_C.function
+```
+Use sequence diagrams for complex flows.
+
+### Module Coupling Analysis
+In the `architecture` page, add a section: **Module Coupling**
+- List tightly coupled module pairs (high bidirectional calls/imports)
+- List loosely coupled or isolated modules
+- Flag any circular dependencies if detected

@@ -51,7 +51,14 @@ Step-by-step description of how data moves through the system. Use a Mermaid seq
 ## Key Design Decisions
 Notable patterns used (e.g. plugin architecture, event-driven, pipeline, sandbox isolation). Reference actual code evidence with source citations.
 ## Inter-Module Dependencies
-If a pre-built dependency graph is provided in `pre_built_dependency_graph`, embed it. Otherwise describe the major import relationships.""",
+If a pre-built dependency graph is provided in `pre_built_dependency_graph`, embed it. Otherwise describe the major import relationships.
+## Cross-Module Dependency Map
+Using `cross_module_summary` from the analysis data, generate a complete Mermaid `flowchart LR` showing ALL internal module-to-module import and call relationships. Then produce the cross-module table:
+| Module | Imports From | Calls Into | Inherited By |
+|--------|-------------|------------|-------------|
+This section is MANDATORY — do not skip it even if data is sparse.
+## Module Coupling Analysis
+Identify tightly coupled pairs (high bidirectional deps) and isolated modules. Flag circular imports if any.""",
 
     "core-modules": """Document every significant module/package. For each one:
 ### Module Name (`path/to/module`)
@@ -59,7 +66,12 @@ If a pre-built dependency graph is provided in `pre_built_dependency_graph`, emb
 - **Public API**: list key exported classes and functions with their signatures
 - **Key Classes**: brief description of each class, its constructor, and main methods
 - **Key Functions**: signature + one-line description
-- **Interactions**: which other modules it imports from / is imported by
+- **Imports From**: list every internal module this module imports (from `cross_module_summary[module].imports`)
+- **Imported By**: list every internal module that imports this one (from `cross_module_summary[module].imported_by`)
+- **Calls**: key functions this module calls in other modules
+- **Called By**: key functions in other modules that call into this module
+- **Coupling Score**: high/medium/low based on total in+out edges
+At the end of the core-modules page, include a summary cross-module dependency table covering ALL documented modules.
 Include a Mermaid `classDiagram` showing class hierarchies if applicable.""",
 
     "algorithms": """Document the core algorithms and data processing logic. Include:
@@ -336,6 +348,62 @@ class PageBuilder:
 
 # ── helpers ──────────────────────────────────────────────────────────
 
+def _build_cross_module_summary(relationships: list, symbols: list, files_seen: list) -> dict:
+    """
+    Pre-compute a human-readable cross-module dependency map.
+    Returns dict: {module_name: {imports: [], imported_by: [], calls: [], called_by: [], inherits: [], inherited_by: []}}
+    Only includes INTERNAL relationships (from_ and to both appear in files_seen or symbol files).
+    """
+    # Build set of known internal module names from symbols
+    internal_names = set()
+    for s in symbols:
+        internal_names.add(s.get('name', ''))
+        if s.get('file'):
+            # Add module-style name derived from file
+            f = s['file']
+            # strip src/ prefix
+            if f.startswith('src/'):
+                f = f[4:]
+            # convert path to dotted module name
+            mod = f.replace('/', '.').replace('\\', '.').removesuffix('.py').removesuffix('.go').removesuffix('.ts').removesuffix('.rs').removesuffix('.java')
+            internal_names.add(mod)
+
+    summary = {}
+    for r in relationships:
+        from_ = r.get('from_') or r.get('from', '')
+        to = r.get('to', '')
+        kind = r.get('kind', '')
+
+        # Only internal relationships
+        if not from_ or not to:
+            continue
+
+        if from_ not in summary:
+            summary[from_] = {'imports': [], 'imported_by': [], 'calls': [], 'called_by': [], 'inherits': [], 'inherited_by': []}
+        if to not in summary:
+            summary[to] = {'imports': [], 'imported_by': [], 'calls': [], 'called_by': [], 'inherits': [], 'inherited_by': []}
+
+        if kind in ('import', 'imports'):
+            if to not in summary[from_]['imports']:
+                summary[from_]['imports'].append(to)
+            if from_ not in summary[to]['imported_by']:
+                summary[to]['imported_by'].append(from_)
+        elif kind == 'calls':
+            if to not in summary[from_]['calls']:
+                summary[from_]['calls'].append(to)
+            if from_ not in summary[to]['called_by']:
+                summary[to]['called_by'].append(from_)
+        elif kind == 'inherits':
+            if to not in summary[from_]['inherits']:
+                summary[from_]['inherits'].append(to)
+            if from_ not in summary[to]['inherited_by']:
+                summary[to]['inherited_by'].append(from_)
+
+    # Trim to top 100 most connected modules to keep payload size reasonable
+    scored = sorted(summary.items(), key=lambda x: sum(len(v) for v in x[1].values()), reverse=True)
+    return dict(scored[:100])
+
+
 def _build_payload(combined: AnalysisResult, diagrams: dict | None = None) -> dict:
     # Build a compact symbol index: name -> {file, line_start, line_end, kind}
     symbol_index = {
@@ -347,12 +415,37 @@ def _build_payload(combined: AnalysisResult, diagrams: dict | None = None) -> di
         }
         for s in combined.symbols[:600]
     }
+    all_rels = [r.model_dump(by_alias=True) for r in combined.relationships]
+    # Relationship stats by kind
+    rel_by_kind: dict[str, int] = {}
+    for r in all_rels:
+        k = r.get("kind", "unknown")
+        rel_by_kind[k] = rel_by_kind.get(k, 0) + 1
+    relationship_stats = {"total": len(all_rels), "by_kind": rel_by_kind}
+    # Internal relationships: both from_ and to look like internal symbols (no stdlib, no dotted-only names)
+    def _is_internal(name: str) -> bool:
+        if not name:
+            return False
+        # Exclude stdlib-style single words or fully-qualified external names
+        if name.startswith(("os.", "sys.", "re.", "io.", "json.", "typing.", "collections.", "pathlib.", "abc.", "builtins.")):
+            return False
+        return True
+    internal_relationships = [
+        r for r in all_rels
+        if _is_internal(r.get("from_") or r.get("from", "")) and _is_internal(r.get("to", ""))
+    ][:800]
+    # Cross-module summary
+    symbols_dicts = [s.model_dump() for s in combined.symbols]
+    cross_module_summary = _build_cross_module_summary(all_rels, symbols_dicts, combined.files_seen)
     payload = {
         "files_seen": combined.files_seen[:500],
         "entry_points": combined.entry_points,
         "symbols": [s.model_dump() for s in combined.symbols[:600]],
         "symbol_index": symbol_index,
-        "relationships": [r.model_dump(by_alias=True) for r in combined.relationships[:600]],
+        "relationships": all_rels[:1500],
+        "internal_relationships": internal_relationships,
+        "relationship_stats": relationship_stats,
+        "cross_module_summary": cross_module_summary,
         "build_commands": combined.build_commands,
         "test_commands": combined.test_commands,
         "risks": combined.risks,
