@@ -1,5 +1,12 @@
 # Release Notes
 
+## v0.9.28 — Embed base URL isolation fix
+
+### Bug Fixes
+- **`embed_base_url` no longer falls back to `base_url`**: `reki embed` and `reki scan` previously used the LLM chat endpoint as the embedding base URL when `embed_base_url` was unset. This caused proxy misrouting. Both `embed.py` and `scan.py` now default to `""` (use provider default) unless `embed_base_url` / `REKIPEDIA_EMBED_BASE_URL` is explicitly set.
+
+---
+
 ## v0.9.27 — Embedding refactor + test fixes
 
 ### Changes
