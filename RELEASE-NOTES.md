@@ -1,5 +1,28 @@
 # Release Notes
 
+## v0.9.20 — Richer Wiki Generation with Cross-Module Relationship Analysis
+
+### Pre-computed cross-module summary in payload
+- `_build_payload()` now pre-computes a `cross_module_summary` map grouping all internal `imports`, `calls`, and `inherits` relationships by module — top 100 most connected modules
+- Added `relationship_stats` field `{total, by_kind}` so LLM knows relationship coverage
+- Added `internal_relationships` field (stdlib-filtered, up to 800 internal edges)
+- Relationship limit increased from 600 → **1500** (Python + Go)
+
+### Stronger prompts for architecture and core-modules pages
+- `architecture` page focus now requires: Cross-Module Dependency Map (Mermaid `flowchart LR` + table), Module Coupling Analysis (tightly coupled pairs, isolated modules, circular imports)
+- `core-modules` page focus now requires per-module: Imports From, Imported By, Calls, Called By, Coupling Score — plus a summary cross-module table covering all documented modules
+
+### digest_system.md — mandatory cross-module rules
+- New "Cross-Module Relationship Rules" section: dependency table format, per-slug coverage rules, call chain tracing, coupling analysis
+- LLM now required to use `cross_module_summary` data directly instead of inferring from raw edges
+
+### Go page builder upgraded to match Python quality
+- `pageSystemPrompt` rewritten with full Mermaid rules, source citation rules, cross-module rules
+- Added `pageExtraFocus` entries for `architecture`, `core-modules`, `algorithms`, `cli-and-api` slugs
+- Go `buildPayload()` relationship limit 200 → 1500, added `cross_module_summary` and `relationship_stats`
+
+---
+
 ## v0.9.19 — Diagram & Relationship Bug Fixes
 
 ### Fix: diagram builder showing empty for all projects (#41)
