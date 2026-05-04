@@ -212,7 +212,6 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 	}
 
 	// ── 6. Generate wiki pages ─────────────────────────────────────────────
-	genSpinner, _ := pterm.DefaultSpinner.WithText(fmt.Sprintf("Generating %d wiki pages…", len(plan.Pages))).Start()
 	if cb != nil {
 		cb(fmt.Sprintf("Generating %d wiki pages…", len(plan.Pages)))
 	}
@@ -221,13 +220,15 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 	for k, v := range diagrams {
 		diagMap[k] = [2]string(v)
 	}
+
+	pageBar, _ := newPageBar(len(plan.Pages))
 	pages, err := pageBuilder.BuildAll(ctx, plan, combined, diagMap)
+	pageBar.Stop()
 	if err != nil {
-		genSpinner.Fail("Page generation failed")
 		return fmt.Errorf("build pages: %w", err)
 	}
 	genMsg := fmt.Sprintf("%d pages generated", len(pages))
-	genSpinner.Success(genMsg)
+	pterm.Success.Println(genMsg)
 	if cb != nil {
 		cb(genMsg)
 	}
@@ -356,6 +357,15 @@ func newShardBar(total int) (*pterm.ProgressbarPrinter, error) {
 	return pterm.DefaultProgressbar.
 		WithTotal(total).
 		WithTitle("Extracting shards").
+		WithRemoveWhenDone(true).
+		Start()
+}
+
+// newPageBar creates a pterm progress bar for wiki page generation.
+func newPageBar(total int) (*pterm.ProgressbarPrinter, error) {
+	return pterm.DefaultProgressbar.
+		WithTotal(total).
+		WithTitle("Generating wiki pages").
 		WithRemoveWhenDone(true).
 		Start()
 }

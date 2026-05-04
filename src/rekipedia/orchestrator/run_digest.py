@@ -17,6 +17,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable
 
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeRemainingColumn,
+)
+
 from rekipedia.models.contracts import AnalysisResult, LLMConfig
 from rekipedia.orchestrator.sharding import ShardPlanner
 from rekipedia.orchestrator.snapshotter import Snapshotter
@@ -64,8 +73,6 @@ def run_digest(
     else:
         logging.basicConfig(level=logging.WARNING)
 
-    from tqdm import tqdm  # noqa: PLC0415
-
     llm_config = llm_config or LLMConfig()
     _log = progress or (lambda _: None)
 
@@ -107,37 +114,48 @@ def run_digest(
         merged_results: list[AnalysisResult] = [None] * len(shards)  # type: ignore[list-item]
         shard_errors: list[str] = []
 
-        shard_bar = tqdm(
-            total=len(shards),
-            desc="🔍 Extracting shards",
-            unit="shard",
-            dynamic_ncols=True,
-            leave=True,
+        _rich_progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[bold cyan]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
+            transient=False,
         )
 
-        with ThreadPoolExecutor(max_workers=_MAX_SHARD_WORKERS) as executor:
-            future_to_idx = {
-                executor.submit(runner.run, shard, repo_root): (i, shard)
-                for i, shard in enumerate(shards)
-            }
-            for future in as_completed(future_to_idx):
-                i, shard = future_to_idx[future]
-                shard_bar.set_postfix(id=shard.shard_id[:12])
-                try:
-                    result = future.result()
-                    merged_results[i] = result
-                    _vlog(f"  ✓ {shard.shard_id}: {len(result.symbols)} symbols, {len(result.relationships)} rels")
-                except Exception as exc:
-                    logger.error("Shard %s failed: %s", shard.shard_id, exc, exc_info=verbose)
-                    shard_errors.append(f"{shard.shard_id}: {exc}")
-                    merged_results[i] = AnalysisResult(
-                        shard_id=shard.shard_id, files_seen=[], entry_points=[],
-                        risks=[f"extraction failed: {exc}"]
-                    )
-                finally:
-                    shard_bar.update(1)
+        with _rich_progress:
+            shard_task = _rich_progress.add_task(
+                f"[cyan]🔍 Shard 0/{len(shards)}",
+                total=len(shards),
+            )
+            _shard_done = 0
 
-        shard_bar.close()
+            with ThreadPoolExecutor(max_workers=_MAX_SHARD_WORKERS) as executor:
+                future_to_idx = {
+                    executor.submit(runner.run, shard, repo_root): (i, shard)
+                    for i, shard in enumerate(shards)
+                }
+                for future in as_completed(future_to_idx):
+                    i, shard = future_to_idx[future]
+                    try:
+                        result = future.result()
+                        merged_results[i] = result
+                        _vlog(f"  ✓ {shard.shard_id}: {len(result.symbols)} symbols, {len(result.relationships)} rels")
+                    except Exception as exc:
+                        logger.error("Shard %s failed: %s", shard.shard_id, exc, exc_info=verbose)
+                        shard_errors.append(f"{shard.shard_id}: {exc}")
+                        merged_results[i] = AnalysisResult(
+                            shard_id=shard.shard_id, files_seen=[], entry_points=[],
+                            risks=[f"extraction failed: {exc}"]
+                        )
+                    finally:
+                        _shard_done += 1
+                        _rich_progress.update(
+                            shard_task,
+                            advance=1,
+                            description=f"[cyan]🔍 Shard {_shard_done}/{len(shards)}",
+                        )
+                        _log(f"Shard {_shard_done}/{len(shards)}")
 
         if shard_errors:
             _vlog(f"  ⚠ {len(shard_errors)} shard(s) failed — continuing with partial results")
@@ -177,29 +195,23 @@ def run_digest(
         planner = PlannerAgent(llm_config)
 
         # Live spinner for planner — shows thinking phases while LLM call blocks
-        plan_bar = tqdm(
-            bar_format="  {desc}",
-            dynamic_ncols=True,
-            leave=False,
-        )
+        _plan_progress_msgs: list[str] = []
 
         def _plan_progress(msg: str) -> None:
-            plan_bar.set_description_str(msg)
-            plan_bar.refresh()
+            _plan_progress_msgs.append(msg)
+            _log(msg)
 
         wiki_plan = planner.plan(combined_for_build, diagrams=diagrams, progress_cb=_plan_progress)
-        plan_bar.set_description_str(f"✅ {wiki_plan}")
-        plan_bar.refresh()
-        plan_bar.close()
         _log(f"  Wiki plan: {wiki_plan}")
         _vlog(f"  Wiki plan: {wiki_plan}")
 
-        page_bar = tqdm(
-            total=len(wiki_plan.pages),
-            desc="📝 Generating wiki pages",
-            unit="page",
-            dynamic_ncols=True,
-            leave=True,
+        _page_rich = Progress(
+            SpinnerColumn(),
+            TextColumn("[bold green]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
+            transient=False,
         )
 
         builder = PageBuilder(llm_config)
@@ -210,32 +222,42 @@ def run_digest(
 
         pages: dict[str, tuple[str, str]] = {}
 
-        with ThreadPoolExecutor(max_workers=_MAX_PAGE_WORKERS) as executor:
-            future_to_spec = {
-                executor.submit(
-                    builder._build_page_from_spec,
-                    spec,
-                    _slice_payload(full_payload, spec.get("required_data")),
-                ): spec
-                for spec in wiki_plan.pages
-            }
-            for future in as_completed(future_to_spec):
-                spec = future_to_spec[future]
-                slug = spec["slug"]
-                page_bar.set_postfix(page=slug)
-                try:
-                    result = future.result()
-                    if result:
-                        pages[slug] = result
-                        _vlog(f"  ✓ {slug}: {len(result[1])} chars")
-                except Exception as exc:
-                    logger.error("Page %s failed: %s", slug, exc, exc_info=verbose)
-                    title = spec.get("title", slug.replace("-", " ").title())
-                    pages[slug] = (title, f"# {title}\n\n> *Generation failed: {exc}*\n")
-                finally:
-                    page_bar.update(1)
+        with _page_rich:
+            page_task = _page_rich.add_task(
+                f"[green]📝 Page 0/{len(wiki_plan.pages)}",
+                total=len(wiki_plan.pages),
+            )
+            _page_done = 0
 
-        page_bar.close()
+            with ThreadPoolExecutor(max_workers=_MAX_PAGE_WORKERS) as executor:
+                future_to_spec = {
+                    executor.submit(
+                        builder._build_page_from_spec,
+                        spec,
+                        _slice_payload(full_payload, spec.get("required_data")),
+                    ): spec
+                    for spec in wiki_plan.pages
+                }
+                for future in as_completed(future_to_spec):
+                    spec = future_to_spec[future]
+                    slug = spec["slug"]
+                    try:
+                        result = future.result()
+                        if result:
+                            pages[slug] = result
+                            _vlog(f"  ✓ {slug}: {len(result[1])} chars")
+                    except Exception as exc:
+                        logger.error("Page %s failed: %s", slug, exc, exc_info=verbose)
+                        title = spec.get("title", slug.replace("-", " ").title())
+                        pages[slug] = (title, f"# {title}\n\n> *Generation failed: {exc}*\n")
+                    finally:
+                        _page_done += 1
+                        _page_rich.update(
+                            page_task,
+                            advance=1,
+                            description=f"[green]📝 Page {_page_done}/{len(wiki_plan.pages)}",
+                        )
+                        _log(f"Page {_page_done}/{len(wiki_plan.pages)}")
 
         # Store nav order in evidence for web UI
         combined_for_build.evidence["nav_order"] = json.dumps(wiki_plan.nav_order)
@@ -286,28 +308,20 @@ def run_digest(
             from rekipedia.rag.embedder import EmbedPipeline  # noqa: PLC0415
             from rekipedia.rag.scan_meta import patch_scan_meta  # noqa: PLC0415
 
-            embed_bar = tqdm(
-                bar_format="  {desc}",
-                dynamic_ncols=True,
-                leave=False,
-            )
+            _embed_msgs: list[str] = []
 
             def _embed_progress(msg: str) -> None:
-                embed_bar.set_description_str(msg)
-                embed_bar.refresh()
+                _embed_msgs.append(msg)
+                _log(msg)
 
             try:
                 pipe = EmbedPipeline(output_dir, llm_config)
                 n_chunks = pipe.build(repo_root, progress_cb=_embed_progress)
-                embed_bar.set_description_str(f"✅ Embedded {n_chunks} chunks")
-                embed_bar.refresh()
+                _log(f"✅ Embedded {n_chunks} chunks")
                 patch_scan_meta(output_dir, embedded=True, embed_model=embed_model)
             except Exception as embed_exc:
                 logger.warning("RAG embed failed (non-fatal): %s", embed_exc)
-                embed_bar.set_description_str(f"⚠ Embed skipped: {embed_exc}")
-                embed_bar.refresh()
-            finally:
-                embed_bar.close()
+                _log(f"⚠ Embed skipped: {embed_exc}")
         else:
             if not skip_embed:
                 _vlog("REKIPEDIA_EMBED_MODEL not set — skipping RAG embed")

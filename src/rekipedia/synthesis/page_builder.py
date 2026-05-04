@@ -293,7 +293,7 @@ class PageBuilder:
             title = title_hint
             content = f"# {title}\n\n> *LLM synthesis failed: {exc}*\n"
 
-        content = _ensure_frontmatter(slug, title, content, tags=spec.get("tags", []), section=spec.get("section"))
+        content = _ensure_frontmatter(slug, title, content, tags=spec.get("tags", []), section=spec.get("section"), importance=spec.get("importance"))
         return (title, content)
 
     def build_one(self, slug: str, combined: AnalysisResult, _payload: dict | None = None) -> tuple[str, str] | None:
@@ -404,12 +404,40 @@ def _parse_llm_response(raw: str, slug: str) -> tuple[str, str]:
     return title, raw
 
 
-def _ensure_frontmatter(slug: str, title: str, content: str, tags: list[str] | None = None, section: str | None = None) -> str:
+def _ensure_frontmatter(
+    slug: str,
+    title: str,
+    content: str,
+    tags: list[str] | None = None,
+    section: str | None = None,
+    importance: int | None = None,
+) -> str:
     if content.startswith("---"):
         return content
+    import importlib.metadata
+    from datetime import datetime, timezone
+
+    try:
+        version = importlib.metadata.version("rekipedia")
+    except importlib.metadata.PackageNotFoundError:
+        version = "0.9.16"
+
+    created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    importance_val = importance if importance is not None else 50
+    section_val = section if section else "general"
     tags_line = f"tags: [{', '.join(tags)}]\n" if tags else ""
-    section_line = f"section: {section}\n" if section else ""
-    fm = f"---\nslug: {slug}\ntitle: \"{title}\"\n{section_line}{tags_line}pin: false\n---\n\n"
+    fm = (
+        f"---\n"
+        f"slug: {slug}\n"
+        f"title: \"{title}\"\n"
+        f"created_at: {created_at}\n"
+        f"rekipedia_version: {version}\n"
+        f"importance: {importance_val}\n"
+        f"section: {section_val}\n"
+        f"{tags_line}"
+        f"pin: false\n"
+        f"---\n\n"
+    )
     return fm + content
 
 

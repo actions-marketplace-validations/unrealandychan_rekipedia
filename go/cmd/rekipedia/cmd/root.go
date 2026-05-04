@@ -67,5 +67,6 @@ func init() {
 		embedCmd,
 		exportCmd,
 		hookCmd,
+		contextCmd,
 	)
 }

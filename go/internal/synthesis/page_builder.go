@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -128,7 +129,9 @@ func (b *PageBuilder) BuildPage(ctx context.Context, spec models.WikiPageSpec, p
 	if err != nil {
 		return "", fmt.Errorf("build page %q: %w", spec.Slug, err)
 	}
-	return strings.TrimSpace(content), nil
+	content = strings.TrimSpace(content)
+	content = ensureFrontmatter(spec, content)
+	return content, nil
 }
 
 // ── payload construction ──────────────────────────────────────────────────────
@@ -226,4 +229,25 @@ func slicePayload(full map[string]any, requiredData []string) map[string]any {
 		}
 	}
 	return sliced
+}
+
+const rekipediaVersion = "0.9.16"
+
+// ensureFrontmatter prepends YAML frontmatter to content if not already present.
+func ensureFrontmatter(spec models.WikiPageSpec, content string) string {
+	if strings.HasPrefix(content, "---") {
+		return content
+	}
+	importance := spec.Importance
+	if importance == 0 {
+		importance = 50
+	}
+	section := spec.Section
+	if section == "" {
+		section = "general"
+	}
+	createdAt := time.Now().UTC().Format("2006-01-02T15:04:05Z")
+	fm := fmt.Sprintf("---\nslug: %s\ntitle: %q\ncreated_at: %s\nrekipedia_version: %s\nimportance: %d\nsection: %s\npin: false\n---\n\n",
+		spec.Slug, spec.Title, createdAt, rekipediaVersion, importance, section)
+	return fm + content
 }
