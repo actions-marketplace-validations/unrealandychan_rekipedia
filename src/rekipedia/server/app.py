@@ -80,8 +80,31 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
             if p.exists():
                 raw = p.read_text(encoding="utf-8")
                 # Take just the intro paragraph (before first ##)
-                lines, snippet = raw.splitlines(), []
-                for line in lines:
+                lines = raw.splitlines()
+                content_lines = lines
+
+                # Strip YAML frontmatter only when it is a complete block at the
+                # start of the document. A later '---' can be a normal Markdown
+                # horizontal rule and must not cause the rest of the content to
+                # be skipped.
+                first_content_index = next(
+                    (i for i, line in enumerate(lines) if line.strip()),
+                    None,
+                )
+                if first_content_index is not None and lines[first_content_index].strip() == "---":
+                    closing_index = next(
+                        (
+                            i
+                            for i in range(first_content_index + 1, len(lines))
+                            if lines[i].strip() == "---"
+                        ),
+                        None,
+                    )
+                    if closing_index is not None:
+                        content_lines = lines[:first_content_index] + lines[closing_index + 1 :]
+
+                snippet = []
+                for line in content_lines:
                     if line.startswith("## ") and snippet:
                         break
                     if not line.startswith("# "):
@@ -106,9 +129,27 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
         return 0
 
 
+    def _strip_yaml_frontmatter(text: str) -> str:
+        """Strip a leading YAML frontmatter block delimited by exact `---` lines."""
+        lines = text.splitlines(keepends=True)
+        if not lines or lines[0] not in ("---\n", "---\r\n", "---"):
+            return text
+
+        for idx in range(1, len(lines)):
+            if lines[idx] in ("---\n", "---\r\n", "---"):
+                return "".join(lines[idx + 1:]).lstrip("\r\n")
+
+        # Missing closing delimiter: leave the content unchanged.
+        return text
+
     def _render_md(path: Path) -> str:
+        text = path.read_text(encoding="utf-8")
+        # Strip YAML frontmatter (--- ... ---) before rendering.
+        # If the closing delimiter is missing the content is malformed; skip
+        # stripping entirely so nothing is lost.
+        text = _strip_yaml_frontmatter(text)
         return md.markdown(
-            path.read_text(encoding="utf-8"),
+            text,
             extensions=["fenced_code", "tables", "toc"],
         )
 

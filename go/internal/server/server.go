@@ -157,7 +157,7 @@ func (s *Server) handleWikiPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	if err := goldmark.Convert(mdData, &buf); err != nil {
+	if err := goldmark.Convert(stripFrontmatter(mdData), &buf); err != nil {
 		http.Error(w, "render error", 500)
 		return
 	}
@@ -750,4 +750,28 @@ func (s *Server) handleAPIGraph(w http.ResponseWriter, r *http.Request) {
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(v)
+}
+
+// stripFrontmatter removes a leading YAML frontmatter block (--- ... ---) from
+// markdown content so it is not rendered as visible text.
+// The closing delimiter must be an exact `---` line (no trailing characters
+// other than a line ending) so that a Markdown horizontal rule inside the body
+// is never mistaken for the end of the frontmatter block.
+// If the closing delimiter is missing the content is returned unchanged so
+// nothing is accidentally discarded.
+func stripFrontmatter(content []byte) []byte {
+	s := string(content)
+	if !strings.HasPrefix(s, "---\n") && !strings.HasPrefix(s, "---\r\n") {
+		return content
+	}
+	// Walk line by line from the second line looking for a standalone "---".
+	lines := strings.SplitAfter(s, "\n")
+	for i := 1; i < len(lines); i++ {
+		if strings.TrimRight(lines[i], "\r\n") == "---" {
+			body := strings.Join(lines[i+1:], "")
+			return []byte(strings.TrimLeft(body, "\r\n"))
+		}
+	}
+	// No closing delimiter found — return content unchanged.
+	return content
 }
