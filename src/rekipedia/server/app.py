@@ -309,7 +309,16 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
 
     @app.get("/api/graph", response_class=JSONResponse)
     async def api_graph():
-        """Return dependency graph data as {nodes, edges}."""
+        """Return file-level module dependency graph as {nodes, edges}.
+
+        Industry-standard approach (pydeps / pyreverse style):
+        - Node  = source file (e.g. src/client.py)
+        - Edge  = import relationship between files
+        - kind  = 'module' for all file nodes
+        Relationships table stores (from_=module_path, to=module_path, kind, file=source_file).
+        We build a file→file import graph using the `file` column (source) and `to` column
+        (target module, normalised to a file path that exists in our node set).
+        """
         db_path = output_dir / "store.db"
         if not db_path.exists():
             return JSONResponse({"nodes": [], "edges": []})
@@ -322,74 +331,102 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                 raw_rels = store.get_all_relationships(run_id)
                 god_nodes = store.get_god_nodes(run_id, top_n=10)
 
-            # raw_symbols rows: (run_id, name, kind, file, line_start, line_end, signature, docstring)
-            seen_ids: set[str] = set()
-            nodes: list[dict] = []
+            # ── Build file→kind map from symbols ─────────────────────────
+            # Each file gets the "dominant" kind (class > function > module)
+            KIND_RANK = {"class": 3, "function": 2, "method": 1, "module": 0}
+            file_kind: dict[str, str] = {}
+            file_package: dict[str, str] = {}
             for row in raw_symbols:
-                name = row[1] if isinstance(row, (list, tuple)) else row["name"]
-                kind = row[2] if isinstance(row, (list, tuple)) else row["kind"]
-                file_ = row[3] if isinstance(row, (list, tuple)) else row["file"]
-                node_id = f"{file_}::{name}" if file_ else name
-                if node_id not in seen_ids:
-                    seen_ids.add(node_id)
-                    nodes.append({"id": node_id, "label": name, "kind": kind or "unknown", "file": file_ or ""})
+                kind = (row[2] if isinstance(row, (list, tuple)) else row.get("kind")) or "module"
+                file_ = (row[3] if isinstance(row, (list, tuple)) else row.get("file")) or ""
+                if not file_:
+                    continue
+                cur = file_kind.get(file_, "module")
+                if KIND_RANK.get(kind, 0) > KIND_RANK.get(cur, 0):
+                    file_kind[file_] = kind
+                # package = first path segment (e.g. src/client.py → src)
+                parts = file_.replace("\\", "/").split("/")
+                file_package[file_] = parts[0] if len(parts) > 1 else "root"
 
-            # Build label → node_id lookup for fast multi-strategy resolution
-            label_to_id: dict[str, str] = {}
-            id_set: set[str] = set()
-            for n in nodes:
-                label_to_id[n["label"]] = n["id"]
-                id_set.add(n["id"])
-
-            def resolve_id(name: str) -> str | None:
-                """Try multiple strategies to resolve a relationship name to a node ID."""
-                if not name:
-                    return None
-                # 1. Exact label match
-                if name in label_to_id:
-                    return label_to_id[name]
-                # 2. Already a valid node ID
-                if name in id_set:
-                    return name
-                # 3. Dotted module name — try last segment (e.g. rekipedia.cli.scan -> scan)
-                parts = name.split(".")
-                if len(parts) > 1 and parts[-1] in label_to_id:
-                    return label_to_id[parts[-1]]
-                # 4. Class.method format — try method name
-                if "." in name:
-                    method = name.split(".")[-1]
-                    if method in label_to_id:
-                        return label_to_id[method]
-                return None
-
-            # raw_rels rows: (run_id, from_, to, kind, file)
-            # Priority order for edge limit: inherits > calls > imports
-            KIND_PRIORITY = {"inherits": 0, "calls": 1, "imports": 2}
-            raw_edges_by_kind: dict[str, list[dict]] = {"inherits": [], "calls": [], "imports": [], "unknown": []}
+            # Also collect files directly from relationships
             for row in raw_rels:
-                from_ = row[1] if isinstance(row, (list, tuple)) else row["from_"]
-                to_ = row[2] if isinstance(row, (list, tuple)) else row["to"]
-                kind = row[3] if isinstance(row, (list, tuple)) else row["kind"]
-                kind_str = kind or "unknown"
-                src_id = resolve_id(from_)
-                tgt_id = resolve_id(to_)
-                if src_id and tgt_id and src_id != tgt_id:
-                    bucket = kind_str if kind_str in raw_edges_by_kind else "unknown"
-                    raw_edges_by_kind[bucket].append({"source": src_id, "target": tgt_id, "kind": kind_str})
+                file_ = (row[4] if isinstance(row, (list, tuple)) else row.get("file")) or ""
+                if file_ and file_ not in file_kind:
+                    file_kind[file_] = "module"
+                    parts = file_.replace("\\", "/").split("/")
+                    file_package[file_] = parts[0] if len(parts) > 1 else "root"
 
-            # Merge in priority order, cap at 2000
-            MAX_EDGES = 2000
+            god_set = {name for name, _ in god_nodes}
+
+            nodes: list[dict] = []
+            for file_, kind in sorted(file_kind.items()):
+                label = file_.replace("\\", "/").split("/")[-1]  # basename
+                nodes.append({
+                    "id": file_,
+                    "label": label,
+                    "kind": kind,
+                    "file": file_,
+                    "group": file_package.get(file_, "root"),
+                    "god": file_ in god_set or label in god_set,
+                })
+
+            node_ids = {n["id"] for n in nodes}
+
+            # ── Build file→file edges from relationships ──────────────────
+            # Strategy (pydeps-style):
+            # The `file` column = the source file that contains the import.
+            # The `to` column = dotted module name being imported.
+            # We normalise `to` → candidate file paths and match against node_ids.
+            def module_to_candidates(module: str) -> list[str]:
+                """Convert dotted module name to candidate file paths."""
+                # e.g. "src.client" → ["src/client.py", "src/client/__init__.py"]
+                path_base = module.replace(".", "/")
+                return [
+                    f"{path_base}.py",
+                    f"{path_base}/__init__.py",
+                    # also try just the last segment in case it's a relative ref
+                    f"{module.split('.')[-1]}.py",
+                ]
+
+            seen_edges: set[tuple[str, str]] = set()
             edges: list[dict] = []
-            edge_count_total = sum(len(v) for v in raw_edges_by_kind.values())
-            for bucket in ["inherits", "calls", "imports", "unknown"]:
-                remaining = MAX_EDGES - len(edges)
-                if remaining <= 0:
+            MAX_EDGES = 1500
+
+            for row in raw_rels:
+                src_file = (row[4] if isinstance(row, (list, tuple)) else row.get("file")) or ""
+                to_module = (row[2] if isinstance(row, (list, tuple)) else row.get("to")) or ""
+                kind_str = (row[3] if isinstance(row, (list, tuple)) else row.get("kind")) or "imports"
+
+                if not src_file or not to_module:
+                    continue
+                if src_file not in node_ids:
+                    continue
+
+                # Try to resolve target module → file path
+                tgt_file = None
+                for cand in module_to_candidates(to_module):
+                    if cand in node_ids:
+                        tgt_file = cand
+                        break
+
+                if not tgt_file or tgt_file == src_file:
+                    continue
+
+                edge_key = (src_file, tgt_file)
+                if edge_key in seen_edges:
+                    continue
+                seen_edges.add(edge_key)
+                edges.append({"source": src_file, "target": tgt_file, "kind": kind_str})
+                if len(edges) >= MAX_EDGES:
                     break
-                edges.extend(raw_edges_by_kind[bucket][:remaining])
 
             god_nodes_data = [{"name": name, "degree": degree} for name, degree in god_nodes]
-
-            return JSONResponse({"nodes": nodes, "edges": edges, "god_nodes": god_nodes_data, "edge_count_total": edge_count_total})
+            return JSONResponse({
+                "nodes": nodes,
+                "edges": edges,
+                "god_nodes": god_nodes_data,
+                "edge_count_total": len(edges),
+            })
         except Exception as exc:
             return JSONResponse({"nodes": [], "edges": [], "god_nodes": [], "error": str(exc)})
 

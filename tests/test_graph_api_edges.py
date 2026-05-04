@@ -101,7 +101,7 @@ def test_self_loop_dropped():
 
 
 def test_graph_api_returns_edges():
-    """End-to-end: create a DB with symbols+relationships, call /api/graph, edges > 0."""
+    """End-to-end: file-level graph — beta.py imports alpha.py → edge appears."""
     import tempfile
     from pathlib import Path
     from fastapi.testclient import TestClient
@@ -118,14 +118,13 @@ def test_graph_api_returns_edges():
         with SqliteStore(db) as store:
             store.upsert_run("run-e2e", str(repo))
             store.update_run_status("run-e2e", "success")
-            # Add symbols
             store.upsert_symbols("run-e2e", [
                 {"name": "Alpha", "kind": "class", "file": "alpha.py", "line_start": 1, "line_end": 5, "signature": "", "docstring": ""},
                 {"name": "Beta", "kind": "class", "file": "beta.py", "line_start": 1, "line_end": 5, "signature": "", "docstring": ""},
             ])
-            # Add relationship: Beta inherits Alpha
+            # File-level: beta.py imports the "alpha" module (maps to alpha.py)
             store.upsert_relationships("run-e2e", [
-                {"from_": "Beta", "to": "Alpha", "kind": "inherits", "file": "beta.py"},
+                {"from_": "beta", "to": "alpha", "kind": "imports", "file": "beta.py"},
             ])
 
         app = create_app(repo, output_dir, LLMConfig())
@@ -135,3 +134,4 @@ def test_graph_api_returns_edges():
         data = res.json()
         assert len(data.get("nodes", [])) >= 2
         assert len(data.get("edges", [])) > 0, f"Expected edges > 0, got {data}"
+
