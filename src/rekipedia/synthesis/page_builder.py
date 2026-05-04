@@ -331,6 +331,110 @@ class PageBuilder:
 
 # ── helpers ──────────────────────────────────────────────────────────
 
+_STDLIB_PREFIXES = (
+    "os", "sys", "re", "io", "json", "math", "time", "datetime", "pathlib",
+    "typing", "collections", "itertools", "functools", "threading", "logging",
+    "abc", "copy", "enum", "uuid", "hashlib", "base64", "struct", "string",
+    "urllib", "http", "socket", "subprocess", "shutil", "tempfile", "glob",
+    "ast", "inspect", "importlib", "contextlib", "dataclasses", "warnings",
+)
+
+_CROSS_MODULE_KINDS = {"imports", "import", "calls", "call", "inherits", "inherit"}
+_CROSS_MODULE_REVERSE = {
+    "imports": "imported_by",
+    "import": "imported_by",
+    "calls": "called_by",
+    "call": "called_by",
+    "inherits": "inherited_by",
+    "inherit": "inherited_by",
+}
+
+
+def _build_cross_module_summary(
+    relationships: list,
+    symbols: list,
+    files_seen: list,
+    *,
+    limit: int = 100,
+) -> dict:
+    """Build a per-module relationship summary from a list of relationship dicts.
+
+    Each entry looks like::
+
+        {
+            "modA": {
+                "imports": ["modB"],
+                "imported_by": [],
+                "calls": ["modC"],
+                "called_by": [],
+                "inherits": [],
+                "inherited_by": [],
+            }
+        }
+
+    Only the first *limit* modules (by first-seen order) are included.
+    Duplicate edges are deduplicated.
+    """
+    summary: dict[str, dict[str, list]] = {}
+
+    def _entry(mod: str) -> dict:
+        if mod not in summary:
+            summary[mod] = {
+                "imports": [],
+                "imported_by": [],
+                "calls": [],
+                "called_by": [],
+                "inherits": [],
+                "inherited_by": [],
+            }
+        return summary[mod]
+
+    for rel in relationships:
+        if isinstance(rel, dict):
+            from_ = rel.get("from_") or rel.get("from", "")
+            to = rel.get("to", "")
+            kind = (rel.get("kind") or "").lower()
+        else:
+            # Pydantic model
+            from_ = getattr(rel, "from_", "") or ""
+            to = getattr(rel, "to", "") or ""
+            kind = (getattr(rel, "kind", "") or "").lower()
+
+        if not from_ or not to:
+            continue
+
+        # Limit total entries
+        if len(summary) >= limit and from_ not in summary and to not in summary:
+            continue
+
+        forward_key = (
+            "imports" if kind in {"imports", "import"} else
+            "calls" if kind in {"calls", "call"} else
+            "inherits" if kind in {"inherits", "inherit"} else
+            None
+        )
+        if forward_key is None:
+            continue
+
+        reverse_key = _CROSS_MODULE_REVERSE.get(kind)
+        if reverse_key is None:
+            continue
+
+        fe = _entry(from_)
+        if to not in fe[forward_key]:
+            fe[forward_key].append(to)
+
+        te = _entry(to)
+        if from_ not in te[reverse_key]:
+            te[reverse_key].append(from_)
+
+    # Apply limit (keep insertion order)
+    if len(summary) > limit:
+        summary = dict(list(summary.items())[:limit])
+
+    return summary
+
+
 def _build_payload(combined: AnalysisResult, diagrams: dict | None = None) -> dict:
     # Build a compact symbol index: name -> {file, line_start, line_end, kind}
     symbol_index = {
@@ -347,12 +451,33 @@ def _build_payload(combined: AnalysisResult, diagrams: dict | None = None) -> di
         "entry_points": combined.entry_points,
         "symbols": [s.model_dump() for s in combined.symbols[:600]],
         "symbol_index": symbol_index,
-        "relationships": [r.model_dump(by_alias=True) for r in combined.relationships[:600]],
+        "relationships": [r.model_dump(by_alias=True) for r in combined.relationships[:1500]],
         "build_commands": combined.build_commands,
         "test_commands": combined.test_commands,
         "risks": combined.risks,
         "evidence": combined.evidence,
     }
+    # ── relationship enrichment ──────────────────────────────────────────────
+    rels_raw = [r.model_dump(by_alias=True) for r in combined.relationships]
+    # Stats
+    by_kind: dict[str, int] = {}
+    for rel in rels_raw:
+        k = rel.get("kind", "unknown")
+        by_kind[k] = by_kind.get(k, 0) + 1
+    payload["relationship_stats"] = {"total": len(rels_raw), "by_kind": by_kind}
+    # Internal relationships — filter out stdlib-like modules, cap at 800
+    _STDLIB = _STDLIB_PREFIXES
+    internal = [
+        r for r in rels_raw
+        if not any((r.get("from_") or r.get("from", "")).startswith(p + ".") or
+                   (r.get("from_") or r.get("from", "")) == p
+                   for p in _STDLIB)
+    ]
+    payload["internal_relationships"] = internal[:800]
+    # Cross-module summary
+    payload["cross_module_summary"] = _build_cross_module_summary(
+        rels_raw, combined.symbols, combined.files_seen
+    )
     if diagrams:
         payload["pre_built_module_graph"] = diagrams.get("module-graph", ("", ""))[1]
         payload["pre_built_dependency_graph"] = diagrams.get("class-hierarchy", ("", ""))[1]

@@ -1,5 +1,19 @@
 # Release Notes
 
+## v0.9.24 — Fix Python CI: Add `_build_cross_module_summary` + slug/frontmatter hardening
+
+### Fix: Python CI ImportError (`_build_cross_module_summary` missing)
+- `tests/test_page_builder_relationships.py` imported `_build_cross_module_summary` from `page_builder` but the function did not exist in source
+- Added `_build_cross_module_summary(relationships, symbols, files_seen)` — builds a per-module relationship map with `imports/imported_by`, `calls/called_by`, `inherits/inherited_by` keys; deduplicates edges; caps at 100 modules
+- `_build_payload` now includes three new fields: `relationship_stats` (total + by_kind counts), `internal_relationships` (stdlib-filtered, capped at 800), `cross_module_summary`
+- Increased `relationships` payload limit from 600 → 1500
+
+### Fix: Slug sanitization + frontmatter hallucination stripping (Python & Go)
+- `_sanitize_slug()` / `sanitizeSlug()` added to both sides — normalises LLM-generated slugs to `lowercase-hyphenated`, collapses runs, strips bad chars
+- `_ensure_frontmatter()` (Python) now always strips and rebuilds frontmatter — eliminates hallucinated keys like `created_at`, `author`, `date`
+- `ensureFrontmatter()` (Go) added — was completely missing; Go now matches Python behaviour
+- Planner slug sanitization applied immediately after JSON parse on both sides
+
 ## v0.9.23 — Fix Go Release CI & Remove close-wiki Branding
 
 ### Fix: Go Release CI Homebrew tap 404
