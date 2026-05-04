@@ -540,7 +540,7 @@ def _ensure_frontmatter(
     title: str,
     content: str,
     tags: list[str] | None = None,
-    section: str | None = None,
+    section: str = "general",
     importance: int = 50,
 ) -> str:
     """Inject YAML frontmatter if not already present.
@@ -561,7 +561,6 @@ def _ensure_frontmatter(
     except importlib.metadata.PackageNotFoundError:
         version = "dev"
 
-    section = section or "general"
     tags_line = f"tags: [{', '.join(tags)}]\n" if tags else ""
     fm = (
         f"---\n"

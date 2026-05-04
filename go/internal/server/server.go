@@ -769,7 +769,7 @@ func stripFrontmatter(content []byte) []byte {
 	for i := 1; i < len(lines); i++ {
 		if strings.TrimRight(lines[i], "\r\n") == "---" {
 			body := strings.Join(lines[i+1:], "")
-			return []byte(strings.TrimLeft(body, "\n"))
+			return []byte(strings.TrimLeft(body, "\r\n"))
 		}
 	}
 	// No closing delimiter found — return content unchanged.
