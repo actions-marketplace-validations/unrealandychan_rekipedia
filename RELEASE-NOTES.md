@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.9.21 — Fix D3 Graph Edges Not Showing
+
+### Fix: Graph API multi-strategy ID resolution (#graph-edges)
+- **Root cause**: relationship `from_`/`to` names (e.g. `rekipedia.cli.scan`, `PageBuilder.build`) didn't match node IDs (format: `file::name`) → JS filter silently dropped all unresolved edges → only 6 edges visible for 1898 nodes
+- **Fix**: replaced O(n) linear scan with O(1) dict lookup + 4-strategy resolver:
+  1. Exact label match
+  2. Already a valid node ID
+  3. Dotted module name → last segment (`rekipedia.cli.scan` → `scan`)
+  4. `Class.method` format → method name
+- Self-loops dropped; edges capped at **2000** prioritised by kind (`inherits > calls > imports`)
+- Response now includes `edge_count_total` field
+- Go server applies same logic
+- Added debug warning in graph.html for any remaining unresolved edges
+
+---
+
 ## v0.9.20 — Richer Wiki Generation with Cross-Module Relationship Analysis
 
 ### Pre-computed cross-module summary in payload
