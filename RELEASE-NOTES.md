@@ -1,5 +1,27 @@
 # Release Notes
 
+## v0.9.18 — Knowledge Diff, D3 Graph Filter & Homebrew License Fix
+
+### `reki diff` command — commit-level knowledge diff (#38)
+- `rekipedia diff --from-ref HEAD~1 --to-ref HEAD` shows added/removed/changed symbols between commits
+- Reads previous snapshot via `git show <ref>:.rekipedia/exports/symbols.json`
+- Outputs diff in markdown or plain text format (`--format md|text`)
+- Gracefully handles empty/missing stores (shows all current symbols as added)
+- Both Python and Go implemented
+
+### D3 graph search, filter & N-hop focus (#39)
+- **Search/filter**: type in search box to filter nodes by name or file — non-matching nodes fade to 20% opacity
+- **Group by file**: toggle button clusters and color-codes nodes by source file
+- **N-hop focus**: click a node to highlight 1-hop neighbours; click again to expand to 2-hop; click background to reset
+- All features preserve existing dark theme and gold god-node styling
+- Both Python (FastAPI) and Go server templates updated
+
+### Homebrew Formula license fix (#40)
+- Fixed `license "Proprietary"` → `license :cannot_represent` (correct Ruby symbol for SPDX-incompatible licenses)
+- Updated both `update-homebrew-tap.py` script and live `homebrew-tap/Formula/rekipedia.rb`
+
+---
+
 ## v0.9.17 — Agent Context, Wiki Frontmatter & Scan Progress
 
 ### `reki context` command — agent-ready output (#35)
