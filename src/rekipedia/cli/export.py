@@ -20,7 +20,7 @@ from rich.console import Console
 
 console = Console()
 
-_FORMAT_CHOICES = click.Choice(["md", "zip", "json"], case_sensitive=False)
+_FORMAT_CHOICES = click.Choice(["md", "zip", "json", "graphml", "cypher", "obsidian"], case_sensitive=False)
 
 
 @click.command("export")
