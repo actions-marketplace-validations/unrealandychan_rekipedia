@@ -202,42 +202,23 @@ def _chunk_file(path: Path, repo_root: Path) -> list[dict]:
 def _embed_batch(texts: list[str], model: str, llm_config: LLMConfig) -> np.ndarray:
     """Call embedding API and return (N, D) float32 array.
 
-    When a custom base_url is configured (e.g. LiteLLM proxy), bypass litellm
-    and call the OpenAI-compatible endpoint directly — litellm overrides base_url
-    when it recognises provider prefixes like 'openai/'.
+    Always uses litellm.embedding().  When a custom base_url is configured
+    (e.g. a LiteLLM proxy), it is passed as ``api_base`` so litellm routes
+    directly to that endpoint without overriding the model prefix.
     """
+    import litellm  # noqa: PLC0415
+
     api_key = getattr(llm_config, "embed_api_key", None) or llm_config.api_key
     base_url = getattr(llm_config, "embed_base_url", None) or llm_config.base_url
 
+    kwargs: dict = {"model": model, "input": texts}
+    if api_key:
+        kwargs["api_key"] = api_key
     if base_url:
-        import httpx, certifi  # noqa: PLC0415
-        url = base_url.rstrip("/") + "/embeddings"
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key or 'no-key'}",
-        }
-        payload = {"model": model, "input": texts}
-        try:
-            r = httpx.post(url, json=payload, headers=headers, timeout=60,
-                           verify=certifi.where())
-            logger.debug("Embed proxy status=%s content-type=%s body_preview=%r",
-                         r.status_code,
-                         r.headers.get("content-type", ""),
-                         r.text[:500])
-            r.raise_for_status()
-            data = r.json()
-            vecs = [item["embedding"] for item in data["data"]]
-        except Exception as exc:
-            logger.error("Embed proxy error: %s", exc)
-            raise
-    else:
-        import litellm  # noqa: PLC0415
-        kwargs: dict = {"model": model, "input": texts}
-        if api_key:
-            kwargs["api_key"] = api_key
-        resp = litellm.embedding(**kwargs)
-        vecs = [item["embedding"] for item in resp.data]
+        kwargs["api_base"] = base_url
 
+    resp = litellm.embedding(**kwargs)
+    vecs = [item["embedding"] for item in resp.data]
     return np.array(vecs, dtype=np.float32)
 
 
