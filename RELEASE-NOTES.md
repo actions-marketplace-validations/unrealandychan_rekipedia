@@ -1,6 +1,45 @@
 # Release Notes
 
-## v0.9.16 — Multi-language Support, Conversation Memory & Go Feature Parity
+## v0.9.17 — Agent Context, Wiki Frontmatter & Scan Progress
+
+### `reki context` command — agent-ready output (#35)
+- `rekipedia context [REPO] --output context.md` generates a condensed single-file wiki for injection into coding agents
+- `--max-tokens N` flag (default 32,000) truncates output to fit agent context windows
+- Output includes YAML frontmatter + all wiki sections + top symbols
+- Both Python and Go implemented
+
+### YAML frontmatter for wiki pages (#36)
+- Every generated `.rekipedia/wiki/*.md` page now includes YAML frontmatter:
+  ```yaml
+  ---
+  title: Architecture Overview
+  created_at: 2026-05-03T10:00:00Z
+  rekipedia_version: 0.9.16
+  importance: 95
+  section: architecture
+  tags: []
+  pin: false
+  ---
+  ```
+- Compatible with Obsidian, Jekyll, and CI automation
+- Go `page_builder.go` updated with `ensureFrontmatter()` helper
+- Existing frontmatter not duplicated on re-scan
+
+### Scan progress display with ETA (#37)
+- `reki scan` now shows Rich progress bars for both phases:
+  - `🔍 Shard X/N` — extraction phase with ETA
+  - `📝 Page X/N` — wiki synthesis phase with ETA
+- Uses `rich.progress` with `SpinnerColumn`, `BarColumn`, `TimeRemainingColumn`
+- Go orchestrator updated with pterm progress bar for page synthesis
+- Existing `progress` callback still fires alongside visual display
+
+### Tests
+- **306 Python tests pass** | **Go: all 14 packages pass**
+- 17 new tests: context cmd (7), wiki frontmatter (6), scan progress (4)
+
+---
+
+
 
 ### Multi-language AST Extractors (#32)
 - Added Go extractor using `tree-sitter-go` — extracts functions, structs, interfaces, imports; detects `func main()` entry point
