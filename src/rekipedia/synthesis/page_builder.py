@@ -480,6 +480,8 @@ def _build_payload(combined: AnalysisResult, diagrams: dict | None = None) -> di
     payload["cross_module_summary"] = _build_cross_module_summary(
         rels_raw, combined.symbols, combined.files_seen
     )
+    from rekipedia.analysis.graph_analysis import _build_knowledge_gaps
+    payload["knowledge_gaps"] = _build_knowledge_gaps(combined)
     if diagrams:
         payload["pre_built_module_graph"] = diagrams.get("module-graph", ("", ""))[1]
         payload["pre_built_dependency_graph"] = diagrams.get("class-hierarchy", ("", ""))[1]
