@@ -2,9 +2,35 @@
 {{define "title"}}Graph — rekipedia{{end}}
 {{define "extra_head"}}
 <style>
-#graph-container {
-  width: 100%;
+#graph-wrapper {
+  display: flex; flex-direction: column;
   height: calc(100vh - 80px);
+}
+#graph-controls {
+  display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;
+  padding: 0.5rem 0 0.75rem;
+}
+#search {
+  background: #1e293b; border: 1px solid #334155;
+  color: #f1f5f9; padding: 0.3rem 0.7rem; border-radius: 6px;
+  font-size: 0.82rem; width: 220px; outline: none;
+}
+#search:focus { border-color: #60a5fa; }
+#graph-controls select {
+  background: #1e293b; border: 1px solid #334155;
+  color: #f1f5f9; padding: 0.28rem 0.5rem; border-radius: 6px;
+  font-size: 0.82rem; cursor: pointer; outline: none;
+}
+.ctrl-btn {
+  background: #1e293b; border: 1px solid #334155;
+  color: #9ca3af; padding: 0.28rem 0.75rem; border-radius: 6px;
+  font-size: 0.82rem; cursor: pointer; transition: all 0.15s;
+}
+.ctrl-btn:hover { border-color: #60a5fa; color: #60a5fa; }
+.ctrl-btn.active { border-color: #60a5fa; color: #60a5fa; background: rgba(96,165,250,0.1); }
+#stats { font-size: 0.78rem; color: #4b5563; margin-left: auto; }
+#graph-container {
+  flex: 1;
   background: #1a1a2e;
   border-radius: 10px;
   border: 1px solid #1e2a3a;
@@ -23,96 +49,245 @@
 #legend h4 { font-size: 12px; color: #e2e8f0; margin-bottom: 6px; }
 .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-#graph-info { margin-bottom: 16px; }
+#graph-info { margin-bottom: 8px; }
 #graph-info h1 { font-size: 1.5em; font-weight: 700; color: #f1f5f9; }
 #graph-info p { color: #6b7280; font-size: 13px; margin-top: 4px; }
-#node-count { color: #60a5fa; font-weight: 600; }
+#focus-indicator {
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+  background: rgba(96,165,250,0.12); border: 1px solid #60a5fa;
+  border-radius: 6px; padding: 0.3rem 0.8rem;
+  font-size: 0.78rem; color: #60a5fa;
+  pointer-events: none; opacity: 0; transition: opacity 0.2s;
+}
 </style>
 {{end}}
 {{define "content"}}
 <div id="graph-info">
   <h1>🕸 Dependency Graph</h1>
-  <p>Interactive force-directed graph of symbols and relationships. <span id="node-count">Loading...</span></p>
+  <p>Interactive force-directed graph of symbols and relationships.</p>
 </div>
-<div id="graph-container">
-  <svg id="graph-svg"></svg>
-  <div id="legend">
-    <h4>Legend</h4>
-    <div class="legend-item"><div class="legend-dot" style="background:#22d3ee"></div> Symbol node</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#ffd700;border:2px solid #ff9900"></div> God node (high connectivity)</div>
+<div id="graph-wrapper">
+  <div id="graph-controls">
+    <input id="search" type="search" placeholder="🔍  Filter nodes…" autocomplete="off">
+    <select id="filter-kind">
+      <option value="">All kinds</option>
+      <option value="class">class</option>
+      <option value="function">function</option>
+      <option value="module">module</option>
+      <option value="method">method</option>
+    </select>
+    <button id="btn-group-file" class="ctrl-btn">Group by file</button>
+    <span id="stats"></span>
+  </div>
+  <div id="graph-container">
+    <svg id="graph-svg"></svg>
+    <div id="focus-indicator"></div>
+    <div id="legend">
+      <h4>Legend</h4>
+      <div class="legend-item"><div class="legend-dot" style="background:#22d3ee"></div> Symbol node</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ffd700;border:2px solid #ff9900"></div> God node</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#60a5fa;opacity:0.4"></div> Group by file</div>
+    </div>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <script>
 (async () => {
-  const data = await fetch('/api/graph').then(r => r.json());
-  const nodes = data.nodes || [];
-  const edges = data.edges || [];
+  const data = await fetch('/api/graph').then(r => r.json()).catch(() => ({nodes:[],edges:[]}));
+  const allNodes = data.nodes || [];
+  const allEdges = data.edges || [];
 
-  document.getElementById('node-count').textContent =
-    `${nodes.length} nodes · ${edges.length} edges`;
-
-  if (nodes.length === 0) {
+  if (allNodes.length === 0) {
     document.getElementById('graph-container').innerHTML =
       '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#4b5563;font-size:14px">No graph data yet — run <code style="background:#1e293b;padding:2px 6px;border-radius:4px;color:#7dd3fc">rekipedia scan</code> first.</div>';
     return;
   }
 
-  const svg = d3.select('#graph-svg');
-  const width = svg.node().clientWidth || 900;
-  const height = svg.node().clientHeight || 600;
+  // File colour palette
+  const FILE_PALETTE = ["#e36262","#58a6ff","#3fb950","#e3804e","#a371f7","#ffd700","#22d3ee","#fb923c","#4ade80","#f472b6"];
+  const uniqueFiles = [...new Set(allNodes.map(n => n.file || "unknown"))].sort();
+  const fileColorMap = new Map(uniqueFiles.map((f, i) => [f, FILE_PALETTE[i % FILE_PALETTE.length]]));
 
-  // Build a map for link source/target resolution
-  const nodeById = new Map(nodes.map(n => [n.id, n]));
+  let groupByFile   = false;
+  let searchQ       = "";
+  let focusedNodeId = null;
+  let sim, currentNode, currentLink;
 
-  // Filter edges to only valid nodes
-  const validEdges = edges.filter(e => nodeById.has(e.source) && nodeById.has(e.target));
+  const svg      = d3.select('#graph-svg');
+  const svgEl    = svg.node();
+  const getW     = () => svgEl.clientWidth  || 900;
+  const getH     = () => svgEl.clientHeight || 600;
 
-  const g = svg.append('g');
+  const zoomG = svg.append('g');
+  svg.call(d3.zoom().scaleExtent([0.1, 8]).on('zoom', e => zoomG.attr('transform', e.transform)));
 
-  // Zoom
-  svg.call(d3.zoom().scaleExtent([0.1, 8]).on('zoom', e => g.attr('transform', e.transform)));
+  const focusEl = document.getElementById('focus-indicator');
 
-  const link = g.append('g')
-    .selectAll('line')
-    .data(validEdges)
-    .join('line')
-    .attr('class', 'link');
+  function buildGraph(nodes, edges) {
+    const ns = nodes.map(n => ({...n}));
+    const idSet = new Set(ns.map(n => n.id));
+    const es = edges.filter(e => idSet.has(e.source) && idSet.has(e.target)).map(e => ({...e}));
+    document.getElementById('stats').textContent = `${ns.length} nodes · ${es.length} edges`;
 
-  const node = g.append('g')
-    .selectAll('g')
-    .data(nodes)
-    .join('g')
-    .attr('class', 'node')
-    .call(d3.drag()
-      .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-      .on('drag',  (e, d) => { d.fx = e.x; d.fy = e.y; })
-      .on('end',   (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
-    );
+    if (sim) sim.stop();
+    zoomG.selectAll('*').remove();
 
-  node.append('circle')
-    .attr('r', d => d.is_god ? 12 : 7)
-    .attr('fill', d => d.is_god ? '#ffd700' : '#22d3ee')
-    .attr('stroke', d => d.is_god ? '#ff9900' : '#0e7490');
+    const link = zoomG.append('g')
+      .selectAll('line').data(es).join('line')
+      .attr('class', 'link');
 
-  node.append('text')
-    .attr('dx', d => d.is_god ? 14 : 9)
-    .attr('dy', '0.35em')
-    .text(d => d.name.length > 20 ? d.name.slice(0, 18) + '…' : d.name);
+    const node = zoomG.append('g')
+      .selectAll('g').data(ns).join('g')
+      .attr('class', 'node')
+      .call(d3.drag()
+        .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on('drag',  (e, d) => { d.fx = e.x; d.fy = e.y; })
+        .on('end',   (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
+      );
 
-  node.append('title').text(d => `${d.name} (${d.kind})${d.is_god ? ' ★ god node' : ''}`);
+    node.append('circle')
+      .attr('r', d => d.is_god ? 12 : 7)
+      .attr('fill', d => {
+        if (groupByFile) return fileColorMap.get(d.file || "unknown") || "#22d3ee";
+        return d.is_god ? '#ffd700' : '#22d3ee';
+      })
+      .attr('stroke', d => d.is_god ? '#ff9900' : '#0e7490');
 
-  const sim = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(validEdges).id(d => d.id).distance(80))
-    .force('charge', d3.forceManyBody().strength(-120))
-    .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide(18))
-    .on('tick', () => {
-      link
-        .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    node.append('text')
+      .attr('dx', d => d.is_god ? 14 : 9)
+      .attr('dy', '0.35em')
+      .text(d => d.name && d.name.length > 20 ? d.name.slice(0, 18) + '…' : (d.name || d.label || ''));
+
+    node.append('title').text(d => `${d.name || d.label} (${d.kind})${d.is_god ? ' ★ god node' : ''}`);
+
+    // N-hop focus click
+    node.on('click', (ev, d) => {
+      ev.stopPropagation();
+      const nid = d.id;
+
+      if (focusedNodeId === nid) {
+        // 2nd click → 2-hop expand
+        const hop1 = new Set([nid]);
+        es.forEach(e => {
+          const s = typeof e.source === 'object' ? e.source.id : e.source;
+          const t = typeof e.target === 'object' ? e.target.id : e.target;
+          if (s === nid) hop1.add(t); if (t === nid) hop1.add(s);
+        });
+        const hop2 = new Set(hop1);
+        es.forEach(e => {
+          const s = typeof e.source === 'object' ? e.source.id : e.source;
+          const t = typeof e.target === 'object' ? e.target.id : e.target;
+          if (hop1.has(s)) hop2.add(t); if (hop1.has(t)) hop2.add(s);
+        });
+        node.selectAll('circle').attr('opacity', nd => hop2.has(nd.id) ? 1 : 0.12);
+        link.attr('stroke-opacity', e => {
+          const s = typeof e.source === 'object' ? e.source.id : e.source;
+          const t = typeof e.target === 'object' ? e.target.id : e.target;
+          return (hop2.has(s) && hop2.has(t)) ? 0.7 : 0.04;
+        });
+        focusedNodeId = null;
+        focusEl.textContent = '2-hop focus — click background to reset';
+        focusEl.style.opacity = '1';
+      } else {
+        // 1-hop focus
+        const nbrs = new Set([nid]);
+        es.forEach(e => {
+          const s = typeof e.source === 'object' ? e.source.id : e.source;
+          const t = typeof e.target === 'object' ? e.target.id : e.target;
+          if (s === nid) nbrs.add(t); if (t === nid) nbrs.add(s);
+        });
+        node.selectAll('circle').attr('opacity', nd => nbrs.has(nd.id) ? 1 : 0.12);
+        link.attr('stroke-opacity', e => {
+          const s = typeof e.source === 'object' ? e.source.id : e.source;
+          const t = typeof e.target === 'object' ? e.target.id : e.target;
+          return (s === nid || t === nid) ? 0.8 : 0.04;
+        });
+        focusedNodeId = nid;
+        const label = d.name || d.label || nid;
+        focusEl.textContent = `Focused: ${label} (1-hop) — click again to expand`;
+        focusEl.style.opacity = '1';
+      }
+    });
+
+    svg.on('click', () => {
+      node.selectAll('circle').attr('opacity', 1);
+      link.attr('stroke-opacity', 0.5);
+      focusedNodeId = null;
+      focusEl.style.opacity = '0';
+    });
+
+    // Group-by-file forces
+    let simForces;
+    if (groupByFile) {
+      const totalF = uniqueFiles.length || 1;
+      const fileIdx = new Map(uniqueFiles.map((f, i) => [f, i]));
+      simForces = d3.forceSimulation(ns)
+        .force('link',    d3.forceLink(es).id(d => d.id).distance(80))
+        .force('charge',  d3.forceManyBody().strength(-120))
+        .force('center',  d3.forceCenter(getW() / 2, getH() / 2))
+        .force('collision', d3.forceCollide(18))
+        .force('fileX', d3.forceX(d => {
+          const i = fileIdx.get(d.file || "unknown") ?? 0;
+          return getW()/2 + (getW()*0.3)*Math.cos(i/totalF*2*Math.PI);
+        }).strength(0.12))
+        .force('fileY', d3.forceY(d => {
+          const i = fileIdx.get(d.file || "unknown") ?? 0;
+          return getH()/2 + (getH()*0.3)*Math.sin(i/totalF*2*Math.PI);
+        }).strength(0.12));
+    } else {
+      simForces = d3.forceSimulation(ns)
+        .force('link',    d3.forceLink(es).id(d => d.id).distance(80))
+        .force('charge',  d3.forceManyBody().strength(-120))
+        .force('center',  d3.forceCenter(getW() / 2, getH() / 2))
+        .force('collision', d3.forceCollide(18));
+    }
+    sim = simForces;
+    currentNode = node; currentLink = link;
+
+    // Apply search highlight
+    applySearch();
+
+    sim.on('tick', () => {
+      link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
       node.attr('transform', d => `translate(${d.x},${d.y})`);
     });
+  }
+
+  function applySearch() {
+    if (!currentNode) return;
+    const q = searchQ.toLowerCase();
+    if (!q) {
+      currentNode.selectAll('circle').attr('opacity', 1);
+      currentNode.selectAll('text').attr('opacity', 1);
+      return;
+    }
+    currentNode.each(function(d) {
+      const label = (d.name || d.label || '').toLowerCase();
+      const file  = (d.file || '').toLowerCase();
+      const match = label.includes(q) || file.includes(q);
+      d3.select(this).selectAll('circle').attr('opacity', match ? 1 : 0.2);
+      d3.select(this).selectAll('text').attr('opacity', match ? 1 : 0.2);
+    });
+  }
+
+  buildGraph(allNodes, allEdges);
+
+  // Controls
+  document.getElementById('search').addEventListener('input', e => {
+    searchQ = e.target.value.trim();
+    applySearch();
+  });
+  document.getElementById('filter-kind').addEventListener('change', e => {
+    const kf = e.target.value.toLowerCase();
+    const filtered = kf ? allNodes.filter(n => (n.kind||'').toLowerCase() === kf) : allNodes;
+    buildGraph(filtered, allEdges);
+  });
+  document.getElementById('btn-group-file').addEventListener('click', function() {
+    groupByFile = !groupByFile;
+    this.classList.toggle('active', groupByFile);
+    buildGraph(allNodes, allEdges);
+  });
 })();
 </script>
 {{end}}
