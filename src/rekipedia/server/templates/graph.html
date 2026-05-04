@@ -37,12 +37,12 @@
     display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;
     flex-shrink: 0;
   }
-  #search-box {
+  #search, #search-box {
     background: var(--surface); border: 1px solid var(--border);
     color: var(--text); padding: 0.3rem 0.7rem; border-radius: var(--radius-sm);
     font-size: 0.82rem; width: 220px; outline: none;
   }
-  #search-box:focus { border-color: var(--accent); }
+  #search:focus, #search-box:focus { border-color: var(--accent); }
   #graph-controls label { font-size: 0.82rem; color: var(--muted); }
   #graph-controls select {
     background: var(--surface); border: 1px solid var(--border);
@@ -50,14 +50,15 @@
     font-size: 0.82rem; outline: none; cursor: pointer;
   }
   #graph-controls select:focus { border-color: var(--accent); }
-  #btn-reset {
-    margin-left: auto;
+  .ctrl-btn {
     background: var(--surface); border: 1px solid var(--border);
     color: var(--muted); padding: 0.28rem 0.75rem; border-radius: var(--radius-sm);
     font-size: 0.82rem; cursor: pointer;
     transition: all 0.15s;
   }
-  #btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+  .ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .ctrl-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.1); }
+  #btn-reset { margin-left: auto; }
 
   #stats { font-size: 0.78rem; color: var(--muted2); }
 
@@ -104,6 +105,15 @@
     color: var(--muted2); font-size: 0.9rem; gap: 0.5rem;
   }
   #empty-state .big { font-size: 2.5rem; }
+
+  /* N-hop focus indicator */
+  #focus-indicator {
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    background: rgba(88,166,255,0.15); border: 1px solid var(--accent);
+    border-radius: var(--radius-sm); padding: 0.3rem 0.8rem;
+    font-size: 0.78rem; color: var(--accent);
+    pointer-events: none; opacity: 0; transition: opacity 0.2s;
+  }
 </style>
 
 <div id="graph-header">
@@ -133,7 +143,8 @@
 </div>
 
 <div id="graph-controls">
-  <input id="search-box" type="search" placeholder="🔍  Search symbol…" autocomplete="off">
+  <!-- Primary search input — id="search" for compatibility + id="search-box" alias -->
+  <input id="search" type="search" placeholder="🔍  Filter nodes…" autocomplete="off">
   <label>Kind:
     <select id="filter-kind">
       <option value="">All</option>
@@ -151,13 +162,15 @@
       <option value="calls">calls</option>
     </select>
   </label>
+  <button id="btn-group-file" class="ctrl-btn" title="Color-code nodes by source file and cluster same-file nodes together">Group by file</button>
   <span id="stats"></span>
-  <button id="btn-reset">Reset view</button>
+  <button id="btn-reset" class="ctrl-btn">Reset view</button>
 </div>
 
 <div id="graph-canvas">
   <svg id="graph-svg"></svg>
   <div id="tooltip"></div>
+  <div id="focus-indicator">N-hop focus — click background to reset</div>
   <div id="empty-state" style="display:none">
     <div class="big">📭</div>
     <div>No graph data found — run <code>rekipedia scan</code> first.</div>
@@ -181,6 +194,12 @@
     calls:    "#3fb950",
     unknown:  "#484f58",
   };
+
+  // File-based colour palette (for Group by file mode)
+  const FILE_PALETTE = [
+    "#e36262","#58a6ff","#3fb950","#e3804e","#a371f7",
+    "#ffd700","#22d3ee","#fb923c","#4ade80","#f472b6",
+  ];
 
   function nodeColor(kind) {
     return NODE_COLORS[kind?.toLowerCase()] ?? NODE_COLORS.unknown;
@@ -207,10 +226,16 @@
   // Build a set of god node names for quick lookup
   const godNodeNames = new Set((graphData.god_nodes || []).map(g => g.name));
 
-  // ── reactive filter state ────────────────────────────────────────────
-  let filterKind = "";
-  let filterRel  = "";
-  let searchQ    = "";
+  // File colour map
+  const allFiles = [...new Set(graphData.nodes.map(n => n.file || "unknown"))].sort();
+  const fileColorMap = new Map(allFiles.map((f, i) => [f, FILE_PALETTE[i % FILE_PALETTE.length]]));
+
+  // ── reactive state ────────────────────────────────────────────────
+  let filterKind    = "";
+  let filterRel     = "";
+  let searchQ       = "";
+  let groupByFile   = false;
+  let focusedNodeId = null;   // null = no focus; string = N-hop focused node
 
   // ── svg setup ────────────────────────────────────────────────────────
   const container = document.getElementById("graph-canvas");
@@ -244,6 +269,7 @@
 
   // ── simulation ───────────────────────────────────────────────────────
   let simulation;
+  let currentNodeG, currentLink;
 
   function buildGraph(nodes, edges) {
     // Deep-clone to avoid mutation
@@ -258,11 +284,40 @@
 
     if (simulation) simulation.stop();
 
-    simulation = d3.forceSimulation(ns)
-      .force("link", d3.forceLink(es).id(d => d.id).distance(90).strength(0.4))
-      .force("charge", d3.forceManyBody().strength(-220))
-      .force("center", d3.forceCenter(width() / 2, height() / 2))
-      .force("collide", d3.forceCollide(18));
+    const forces = [
+      d3.forceLink(es).id(d => d.id).distance(90).strength(0.4),
+    ];
+
+    // Group-by-file: pull same-file nodes together
+    let fileForce = null;
+    if (groupByFile) {
+      // Build centroid targets based on file index
+      const fileIndex = new Map(allFiles.map((f, i) => [f, i]));
+      const totalFiles = allFiles.length || 1;
+      fileForce = d3.forceX(d => {
+        const idx = fileIndex.get(d.file || "unknown") ?? 0;
+        const angle = (idx / totalFiles) * 2 * Math.PI;
+        return width() / 2 + (width() * 0.3) * Math.cos(angle);
+      }).strength(0.12);
+      const fileForceY = d3.forceY(d => {
+        const idx = fileIndex.get(d.file || "unknown") ?? 0;
+        const angle = (idx / totalFiles) * 2 * Math.PI;
+        return height() / 2 + (height() * 0.3) * Math.sin(angle);
+      }).strength(0.12);
+      simulation = d3.forceSimulation(ns)
+        .force("link",    d3.forceLink(es).id(d => d.id).distance(90).strength(0.4))
+        .force("charge",  d3.forceManyBody().strength(-220))
+        .force("center",  d3.forceCenter(width() / 2, height() / 2))
+        .force("collide", d3.forceCollide(18))
+        .force("fileX",   fileForce)
+        .force("fileY",   fileForceY);
+    } else {
+      simulation = d3.forceSimulation(ns)
+        .force("link",    d3.forceLink(es).id(d => d.id).distance(90).strength(0.4))
+        .force("charge",  d3.forceManyBody().strength(-220))
+        .force("center",  d3.forceCenter(width() / 2, height() / 2))
+        .force("collide", d3.forceCollide(18));
+    }
 
     // Clear previous
     g.selectAll("*").remove();
@@ -297,7 +352,10 @@
 
     nodeG.append("circle")
       .attr("r", d => godNodeNames.has(d.label) ? 16 : 9)
-      .attr("fill", d => nodeColor(d.kind))
+      .attr("fill", d => {
+        if (groupByFile) return fileColorMap.get(d.file || "unknown") ?? "#7d8590";
+        return nodeColor(d.kind);
+      })
       .attr("stroke", d => godNodeNames.has(d.label) ? "#ffd700" : "#1a1a2e")
       .attr("stroke-width", d => godNodeNames.has(d.label) ? 3 : 2);
 
@@ -322,30 +380,88 @@
       .on("mousemove", _moveTip)
       .on("mouseleave", () => { tip.style.opacity = "0"; });
 
-    // Highlight on click
+    // ── N-hop focus on click ──────────────────────────────────────────
+    const focusIndicator = document.getElementById("focus-indicator");
+
     nodeG.on("click", (ev, d) => {
-      const connected = new Set([d.id]);
-      es.forEach(e => {
-        const sid = typeof e.source === "object" ? e.source.id : e.source;
-        const tid = typeof e.target === "object" ? e.target.id : e.target;
-        if (sid === d.id) connected.add(tid);
-        if (tid === d.id) connected.add(sid);
-      });
-      nodeG.selectAll("circle")
-        .attr("opacity", nd => connected.has(nd.id) ? 1 : 0.18);
-      link.attr("stroke-opacity",
-        e => {
+      ev.stopPropagation();
+
+      if (focusedNodeId === d.id) {
+        // Second click on same node → expand: show 2-hop neighbours
+        const hop1 = new Set([d.id]);
+        es.forEach(e => {
           const sid = typeof e.source === "object" ? e.source.id : e.source;
           const tid = typeof e.target === "object" ? e.target.id : e.target;
-          return (sid === d.id || tid === d.id) ? 1 : 0.05;
+          if (sid === d.id) hop1.add(tid);
+          if (tid === d.id) hop1.add(sid);
         });
-      ev.stopPropagation();
+        const hop2 = new Set(hop1);
+        es.forEach(e => {
+          const sid = typeof e.source === "object" ? e.source.id : e.source;
+          const tid = typeof e.target === "object" ? e.target.id : e.target;
+          if (hop1.has(sid)) hop2.add(tid);
+          if (hop1.has(tid)) hop2.add(sid);
+        });
+        nodeG.selectAll("circle")
+          .attr("opacity", nd => hop2.has(nd.id) ? 1 : 0.12);
+        link.attr("stroke-opacity", e => {
+          const sid = typeof e.source === "object" ? e.source.id : e.source;
+          const tid = typeof e.target === "object" ? e.target.id : e.target;
+          return (hop2.has(sid) && hop2.has(tid)) ? 0.7 : 0.04;
+        });
+        focusedNodeId = null;  // reset toggle so next click goes back to 1-hop
+        focusIndicator.textContent = "2-hop focus — click node again or background to reset";
+        focusIndicator.style.opacity = "1";
+      } else {
+        // First click → 1-hop focus
+        const connected = new Set([d.id]);
+        es.forEach(e => {
+          const sid = typeof e.source === "object" ? e.source.id : e.source;
+          const tid = typeof e.target === "object" ? e.target.id : e.target;
+          if (sid === d.id) connected.add(tid);
+          if (tid === d.id) connected.add(sid);
+        });
+        nodeG.selectAll("circle")
+          .attr("opacity", nd => connected.has(nd.id) ? 1 : 0.12);
+        link.attr("stroke-opacity", e => {
+          const sid = typeof e.source === "object" ? e.source.id : e.source;
+          const tid = typeof e.target === "object" ? e.target.id : e.target;
+          return (sid === d.id || tid === d.id) ? 1 : 0.04;
+        });
+        focusedNodeId = d.id;
+        focusIndicator.textContent = `Focused: ${d.label} (1-hop) — click again to expand`;
+        focusIndicator.style.opacity = "1";
+      }
     });
 
+    // Click on background → reset focus
     svg.on("click", () => {
       nodeG.selectAll("circle").attr("opacity", 1);
       link.attr("stroke-opacity", 0.65);
+      focusedNodeId = null;
+      focusIndicator.style.opacity = "0";
     });
+
+    // ── Search highlight (opacity) ────────────────────────────────────
+    function applySearchHighlight() {
+      const q = searchQ.toLowerCase();
+      if (!q) {
+        nodeG.selectAll("circle").attr("opacity", 1);
+        nodeG.selectAll("text").attr("opacity", 1);
+        return;
+      }
+      nodeG.each(function(d) {
+        const matches = d.label.toLowerCase().includes(q) || (d.file || "").toLowerCase().includes(q);
+        d3.select(this).selectAll("circle").attr("opacity", matches ? 1 : 0.2);
+        d3.select(this).selectAll("text").attr("opacity", matches ? 1 : 0.2);
+      });
+    }
+
+    currentNodeG = nodeG;
+    currentLink  = link;
+
+    // Apply initial search highlight
+    applySearchHighlight();
 
     simulation.on("tick", () => {
       link
@@ -373,7 +489,7 @@
 
     const filteredNodes = graphData.nodes.filter(n => {
       if (kf && (n.kind || "").toLowerCase() !== kf) return false;
-      if (q  && !n.label.toLowerCase().includes(q) && !n.file.toLowerCase().includes(q)) return false;
+      // When searching, keep all nodes but dim non-matches (done in buildGraph)
       return true;
     });
     const nodeIds = new Set(filteredNodes.map(n => n.id));
@@ -388,9 +504,23 @@
   }
 
   // ── controls ─────────────────────────────────────────────────────────
-  document.getElementById("search-box").addEventListener("input", ev => {
+  const searchInput = document.getElementById("search");
+  searchInput.addEventListener("input", ev => {
     searchQ = ev.target.value.trim();
-    applyFilters();
+    // Apply highlight in-place without full rebuild for perf
+    if (currentNodeG) {
+      const q = searchQ.toLowerCase();
+      if (!q) {
+        currentNodeG.selectAll("circle").attr("opacity", 1);
+        currentNodeG.selectAll("text").attr("opacity", 1);
+      } else {
+        currentNodeG.each(function(d) {
+          const matches = d.label.toLowerCase().includes(q) || (d.file || "").toLowerCase().includes(q);
+          d3.select(this).selectAll("circle").attr("opacity", matches ? 1 : 0.2);
+          d3.select(this).selectAll("text").attr("opacity", matches ? 1 : 0.2);
+        });
+      }
+    }
   });
   document.getElementById("filter-kind").addEventListener("change", ev => {
     filterKind = ev.target.value;
@@ -398,6 +528,11 @@
   });
   document.getElementById("filter-rel").addEventListener("change", ev => {
     filterRel = ev.target.value;
+    applyFilters();
+  });
+  document.getElementById("btn-group-file").addEventListener("click", function() {
+    groupByFile = !groupByFile;
+    this.classList.toggle("active", groupByFile);
     applyFilters();
   });
   document.getElementById("btn-reset").addEventListener("click", () => {
