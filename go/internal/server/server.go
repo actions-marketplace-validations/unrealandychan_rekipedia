@@ -62,6 +62,7 @@ func newRouter(s *Server) *chi.Mux {
 	r.Get("/api/history", s.handleAPIHistory)
 	r.Get("/api/health", s.handleHealth)
 	r.Get("/api/graph", s.handleAPIGraph)
+	r.Get("/api/wiki/search", s.handleAPIWikiSearch)
 	r.Get("/graph", s.handleGraphPage)
 	return r
 }
@@ -624,10 +625,12 @@ func (s *Server) handleGraphPage(w http.ResponseWriter, r *http.Request) {
 }
 
 type graphNode struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Kind string `json:"kind"`
-	IsGod bool  `json:"is_god"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Kind  string `json:"kind"`
+	File  string `json:"file,omitempty"`
+	Group string `json:"group,omitempty"`
+	IsGod bool   `json:"is_god"`
 }
 
 type graphEdge struct {
@@ -661,90 +664,265 @@ func (s *Server) handleAPIGraph(w http.ResponseWriter, r *http.Request) {
 	syms, _ := store.GetAllSymbols(runID)
 	rels, _ := store.GetAllRelationships(runID)
 
-	// Count how many times each node is referenced to detect "god" nodes
-	refCount := make(map[string]int)
-	for _, rel := range rels {
-		refCount[rel.From]++
-		refCount[rel.To]++
-	}
-	avgRef := 0
-	if len(refCount) > 0 {
-		total := 0
-		for _, c := range refCount { total += c }
-		avgRef = total / len(refCount)
-	}
-	godThreshold := avgRef * 3
-	if godThreshold < 5 { godThreshold = 5 }
+	// ── File-level graph (pydeps/pyreverse style) ─────────────────────
+	// Node = source file, Edge = file→file import.
+	// Kind rank: class > function > method > module
+	kindRank := map[string]int{"class": 3, "function": 2, "method": 1, "module": 0}
+	fileKind := make(map[string]string)
+	fileGroup := make(map[string]string)
 
-	nodeSet := make(map[string]bool)
-	labelToID := make(map[string]string) // label -> node id
-	idSet := make(map[string]bool)
-	var nodes []graphNode
+	topDir := func(path string) string {
+		path = strings.ReplaceAll(path, "\\", "/")
+		parts := strings.SplitN(path, "/", 2)
+		if len(parts) > 1 {
+			return parts[0]
+		}
+		return "root"
+	}
+	basename := func(path string) string {
+		path = strings.ReplaceAll(path, "\\", "/")
+		parts := strings.Split(path, "/")
+		return parts[len(parts)-1]
+	}
+
 	for _, sym := range syms {
-		id := sym.Name
-		if nodeSet[id] { continue }
-		nodeSet[id] = true
-		labelToID[sym.Name] = id
-		idSet[id] = true
+		if sym.File == "" {
+			continue
+		}
+		kind := string(sym.Kind)
+		cur, exists := fileKind[sym.File]
+		if !exists || kindRank[kind] > kindRank[cur] {
+			fileKind[sym.File] = kind
+		}
+		fileGroup[sym.File] = topDir(sym.File)
+	}
+	for _, rel := range rels {
+		if rel.File != "" {
+			if _, exists := fileKind[rel.File]; !exists {
+				fileKind[rel.File] = "module"
+				fileGroup[rel.File] = topDir(rel.File)
+			}
+		}
+	}
+
+	// Sort file keys for stable output
+	fileKeys := make([]string, 0, len(fileKind))
+	for f := range fileKind {
+		fileKeys = append(fileKeys, f)
+	}
+	sort.Strings(fileKeys)
+
+	godNodes := graph.GetGodNodes(rels, 10)
+	godSet := make(map[string]bool)
+	for _, gn := range godNodes {
+		godSet[gn.Name] = true
+	}
+
+	nodeIDs := make(map[string]bool)
+	var nodes []graphNode
+	for _, f := range fileKeys {
+		kind := fileKind[f]
+		label := basename(f)
+		nodeIDs[f] = true
 		nodes = append(nodes, graphNode{
-			ID:    id,
-			Name:  sym.Name,
-			Kind:  string(sym.Kind),
-			IsGod: refCount[id] >= godThreshold,
+			ID:    f,
+			Name:  label,
+			Kind:  kind,
+			File:  f,
+			Group: fileGroup[f],
+			IsGod: godSet[f] || godSet[label],
 		})
 	}
 
-	resolveID := func(name string) string {
-		if name == "" { return "" }
-		// 1. Exact label match
-		if id, ok := labelToID[name]; ok { return id }
-		// 2. Already a valid node ID
-		if idSet[name] { return name }
-		// 3. Dotted module name — try last segment
-		if idx := len(name) - 1; idx > 0 {
-			parts := strings.Split(name, ".")
-			if len(parts) > 1 {
-				last := parts[len(parts)-1]
-				if id, ok := labelToID[last]; ok { return id }
+	// module dotted name → candidate file paths
+	moduleCandidates := func(module string) []string {
+		base := strings.ReplaceAll(module, ".", "/")
+		last := module
+		if idx := strings.LastIndex(module, "."); idx >= 0 {
+			last = module[idx+1:]
+		}
+		return []string{
+			base + ".py",
+			base + "/__init__.py",
+			base + ".go",
+			base + ".ts",
+			base + ".tsx",
+			base + ".js",
+			last + ".py",
+			last + ".go",
+			last + ".ts",
+		}
+	}
+
+	seenEdges := make(map[[2]string]bool)
+	var edges []graphEdge
+	const maxEdges = 1500
+
+	for _, rel := range rels {
+		if rel.File == "" || rel.To == "" {
+			continue
+		}
+		if !nodeIDs[rel.File] {
+			continue
+		}
+		var tgtFile string
+		for _, cand := range moduleCandidates(rel.To) {
+			if nodeIDs[cand] {
+				tgtFile = cand
+				break
 			}
 		}
-		return ""
+		if tgtFile == "" || tgtFile == rel.File {
+			continue
+		}
+		key := [2]string{rel.File, tgtFile}
+		if seenEdges[key] {
+			continue
+		}
+		seenEdges[key] = true
+		edges = append(edges, graphEdge{Source: rel.File, Target: tgtFile, Kind: string(rel.Kind)})
+		if len(edges) >= maxEdges {
+			break
+		}
 	}
 
-	// Bucket edges by kind for priority limiting
-	type edgeBucket struct{ edges []graphEdge }
-	buckets := map[string]*edgeBucket{
-		"inherits": {}, "calls": {}, "imports": {}, "unknown": {},
+	if nodes == nil {
+		nodes = []graphNode{}
 	}
-	edgeCountTotal := 0
-	for _, rel := range rels {
-		src := resolveID(rel.From)
-		tgt := resolveID(rel.To)
-		if src == "" || tgt == "" || src == tgt { continue }
-		kind := string(rel.Kind)
-		if kind == "" { kind = "unknown" }
-		edge := graphEdge{Source: src, Target: tgt, Kind: kind}
-		b, ok := buckets[kind]
-		if !ok { b = buckets["unknown"] }
-		b.edges = append(b.edges, edge)
-		edgeCountTotal++
+	if edges == nil {
+		edges = []graphEdge{}
+	}
+	if godNodes == nil {
+		godNodes = []graph.GodNode{}
+	}
+	writeJSON(w, graphData{Nodes: nodes, Edges: edges, GodNodes: godNodes, EdgeCountTotal: len(edges)})
+}
+
+// handleAPIWikiSearch provides full-text search across wiki pages (title, section, body).
+func (s *Server) handleAPIWikiSearch(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(strings.ToLower(r.URL.Query().Get("q")))
+	if len(q) < 2 {
+		writeJSON(w, []any{})
+		return
 	}
 
-	const maxEdges = 2000
-	var edges []graphEdge
-	for _, bucket := range []string{"inherits", "calls", "imports", "unknown"} {
-		remaining := maxEdges - len(edges)
-		if remaining <= 0 { break }
-		be := buckets[bucket].edges
-		if len(be) > remaining { be = be[:remaining] }
-		edges = append(edges, be...)
+	wikiDir := filepath.Join(s.outputDir, "wiki")
+	entries, err := os.ReadDir(wikiDir)
+	if err != nil {
+		writeJSON(w, []any{})
+		return
 	}
 
-	if nodes == nil { nodes = []graphNode{} }
-	if edges == nil { edges = []graphEdge{} }
-	godNodes := graph.GetGodNodes(rels, 10)
-	if godNodes == nil { godNodes = []graph.GodNode{} }
-	writeJSON(w, graphData{Nodes: nodes, Edges: edges, GodNodes: godNodes, EdgeCountTotal: edgeCountTotal})
+	type searchResult struct {
+		Slug       string `json:"slug"`
+		Title      string `json:"title"`
+		Section    string `json:"section"`
+		Snippet    string `json:"snippet"`
+		TitleMatch bool   `json:"title_match"`
+	}
+
+	// Precompile markdown-stripping replacer
+	mdReplacer := regexp.MustCompile(`[#*` + "`" + `\[\]()>_~]`)
+
+	var results []searchResult
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+			continue
+		}
+		slug := strings.TrimSuffix(entry.Name(), ".md")
+		raw, err := os.ReadFile(filepath.Join(wikiDir, entry.Name()))
+		if err != nil {
+			continue
+		}
+		content := string(raw)
+		title := strings.Title(strings.ReplaceAll(slug, "-", " "))
+		section := "general"
+		body := content
+
+		// Parse frontmatter
+		if strings.HasPrefix(content, "---\n") || strings.HasPrefix(content, "---\r\n") {
+			end := strings.Index(content[3:], "\n---")
+			if end >= 0 {
+				fmText := content[3 : end+3]
+				body = strings.TrimLeft(content[end+3+4:], "\r\n")
+				for _, line := range strings.Split(fmText, "\n") {
+					if strings.HasPrefix(line, "title:") {
+						t := strings.TrimSpace(strings.TrimPrefix(line, "title:"))
+						t = strings.Trim(t, `"'`)
+						if t != "" {
+							title = t
+						}
+					} else if strings.HasPrefix(line, "section:") {
+						s := strings.TrimSpace(strings.TrimPrefix(line, "section:"))
+						if s != "" {
+							section = s
+						}
+					}
+				}
+			}
+		}
+
+		textBody := mdReplacer.ReplaceAllString(body, " ")
+		titleMatch := strings.Contains(strings.ToLower(title), q)
+		sectionMatch := strings.Contains(strings.ToLower(section), q)
+		bodyMatch := strings.Contains(strings.ToLower(textBody), q)
+
+		if !titleMatch && !sectionMatch && !bodyMatch {
+			continue
+		}
+
+		// Build snippet
+		snippet := ""
+		for _, line := range strings.Split(textBody, "\n") {
+			trimmed := strings.TrimSpace(line)
+			if trimmed == "" {
+				continue
+			}
+			if strings.Contains(strings.ToLower(trimmed), q) {
+				if len(trimmed) > 120 {
+					trimmed = trimmed[:120]
+				}
+				snippet = trimmed
+				break
+			}
+		}
+		if snippet == "" {
+			for _, line := range strings.Split(textBody, "\n") {
+				trimmed := strings.TrimSpace(line)
+				if trimmed != "" {
+					if len(trimmed) > 120 {
+						trimmed = trimmed[:120]
+					}
+					snippet = trimmed
+					break
+				}
+			}
+		}
+
+		results = append(results, searchResult{
+			Slug:       slug,
+			Title:      title,
+			Section:    section,
+			Snippet:    snippet,
+			TitleMatch: titleMatch,
+		})
+		if len(results) >= 20 {
+			break
+		}
+	}
+
+	// Sort: title matches first, then alphabetical
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].TitleMatch != results[j].TitleMatch {
+			return results[i].TitleMatch
+		}
+		return results[i].Title < results[j].Title
+	})
+
+	if results == nil {
+		results = []searchResult{}
+	}
+	writeJSON(w, results)
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

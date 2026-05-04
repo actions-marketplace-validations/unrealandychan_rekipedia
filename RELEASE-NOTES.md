@@ -1,6 +1,15 @@
 # Release Notes
 
-## v0.9.32 — Wiki Categories & Search
+## v0.9.36 — Go sync: file-level graph + wiki full-text search
+
+### Changes
+- **Go `handleAPIGraph` rewrite**: Migrated to file-level dependency graph (nodes = source files, edges = import relationships). Matches Python v0.9.35 behaviour — `moduleCandidates()` resolves dotted module paths to `.py`/`.go`/`.ts`/`.js` file candidates.
+- **Go `/api/wiki/search` (new)**: Full-text search across wiki page title, section, and body content. Returns slug, title, section, snippet, and title_match flag — feature-parity with Python v0.9.34.
+- **`graphNode` struct**: Added `file` and `group` JSON fields for file-level graph display.
+
+---
+
+## v0.9.35 — Wiki Categories & Search
 
 ### New Features
 - **Sidebar category grouping**: Wiki pages are now grouped by their `section` frontmatter field in the sidebar. Each group has a collapsible header — click to expand/collapse.
