@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "rekipedia": {
+      "command": "reki",
+      "args": [
+        "mcp"
+      ],
+      "description": "rekipedia codebase knowledge \u2014 ask questions, search symbols, get impact analysis"
+    }
+  }
+}

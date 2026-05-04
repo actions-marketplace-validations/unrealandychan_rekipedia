@@ -1,5 +1,12 @@
 # Release Notes
 
+## v0.9.29 — Agent & MCP integration
+
+### New Features
+- **MCP `ask` tool** (#59): `reki mcp` now exposes an `ask` tool — agents can ask natural-language questions about the codebase grounded in wiki + RAG. Works with Claude Code, Cursor, and any MCP client.
+- **Auto agent hint files** (#60): `reki scan` now auto-generates `CLAUDE.md`, `AGENTS.md`, and `.github/copilot-instructions.md` with instructions for AI agents to use `reki ask` and the MCP server.
+- **Auto `.mcp.json`** (#61): `reki scan` auto-generates `.mcp.json` in the repo root for Claude Code MCP auto-discovery. Merges with existing entries; adds `.mcp.json` to `.gitignore`.
+
 ## v0.9.28 — Embed base URL isolation fix
 
 ### Bug Fixes

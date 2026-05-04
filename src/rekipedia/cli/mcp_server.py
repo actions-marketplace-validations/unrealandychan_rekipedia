@@ -6,6 +6,14 @@ import os
 from pathlib import Path
 
 TOOLS = [
+    {"name": "ask",
+     "description": "Answer a natural-language question about this codebase, grounded in the scanned wiki pages, symbol index, and source code embeddings. Use this before reading any source file.",
+     "inputSchema": {"type": "object",
+       "properties": {
+         "question": {"type": "string", "description": "The question to answer about the codebase"},
+         "repo":     {"type": "string", "description": "Absolute path to repo root (default: cwd)"}
+       },
+       "required": ["question"]}},
     {"name": "get_context", "description": "Get symbols and relationships for a file",
      "inputSchema": {"type": "object", "properties": {"file": {"type": "string"}}, "required": ["file"]}},
     {"name": "search_nodes", "description": "Search symbol names",
@@ -93,6 +101,21 @@ def _handle_tool(name: str, args: dict, symbols, rels) -> str:
         depth = args.get('depth', 2)
         result = compute_impact(file, rels, symbols, depth=depth)
         return json.dumps(result)
+    
+    elif name == "ask":
+        question = args.get("question", "")
+        repo_path = args.get("repo") or os.getcwd()
+        out_dir = Path(repo_path) / ".rekipedia"
+        if not out_dir.exists():
+            return json.dumps({"error": "No .rekipedia dir found. Run reki scan first."})
+        try:
+            from rekipedia.orchestrator.run_ask import run_ask
+            from rekipedia.models.contracts import LLMConfig
+            cfg = LLMConfig()
+            answer = run_ask(question, Path(repo_path), out_dir, llm_config=cfg)
+            return json.dumps({"answer": answer})
+        except Exception as exc:
+            return json.dumps({"error": str(exc)})
     
     return json.dumps({'error': f'Unknown tool: {name}'})
 

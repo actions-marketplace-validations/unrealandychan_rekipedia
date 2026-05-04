@@ -294,6 +294,14 @@ def run_digest(
         )
         _vlog("scan_meta.json written")
 
+        # ── 7b. Agent hint files & .mcp.json ─────────────────────────────
+        from rekipedia.orchestrator.agent_hints import write_agent_hints, write_mcp_json, update_gitignore  # noqa: PLC0415
+        written_hints = write_agent_hints(repo_root)
+        for p in written_hints:
+            logger.info("Wrote agent hint: %s", p)
+        write_mcp_json(repo_root)
+        update_gitignore(repo_root)
+
         # ── 8. RAG embed (optional — skip if no embed key configured) ─
         embed_model = (
             __import__("os").environ.get("REKIPEDIA_EMBED_MODEL", "")
