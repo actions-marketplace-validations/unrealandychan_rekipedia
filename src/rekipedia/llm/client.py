@@ -92,9 +92,10 @@ class LLMClient:
             kwargs["base_url"] = self._base_url
         return kwargs
 
-    def call(self, prompt: str, *, system: str = "", timeout: int | None = None) -> str:
+    def call(self, prompt: str, *, system: str = "", timeout: int | None = None, history: list[dict] | None = None) -> str:
         """Send a prompt and return the assistant text.
 
+        *history* is a list of previous turns: [{role: user|assistant, content: str}, ...]
         *timeout* overrides the default per-call timeout (default: _DEFAULT_TIMEOUT).
         Retries up to ``_MAX_RETRIES`` times on timeout / 5xx errors.
         Raises ``litellm.exceptions.APIError`` on non-retryable upstream errors.
@@ -102,6 +103,8 @@ class LLMClient:
         messages: list[dict[str, str]] = []
         if system:
             messages.append({"role": "system", "content": system})
+        if history:
+            messages.extend(history)
         messages.append({"role": "user", "content": prompt})
 
         kwargs = {**self._base_kwargs(), "messages": messages}
@@ -114,15 +117,18 @@ class LLMClient:
 
         return _with_retry(_call)
 
-    def stream(self, prompt: str, *, system: str = "") -> Iterator[str]:
+    def stream(self, prompt: str, *, system: str = "", history: list[dict] | None = None) -> Iterator[str]:
         """Stream response tokens as an iterator of text chunks.
 
+        *history* is a list of previous turns: [{role: user|assistant, content: str}, ...]
         Yields each chunk's delta text as it arrives from the LLM.
         Raises ``litellm.exceptions.APIError`` on upstream errors.
         """
         messages: list[dict[str, str]] = []
         if system:
             messages.append({"role": "system", "content": system})
+        if history:
+            messages.extend(history)
         messages.append({"role": "user", "content": prompt})
 
         kwargs = {**self._base_kwargs(), "messages": messages, "stream": True}

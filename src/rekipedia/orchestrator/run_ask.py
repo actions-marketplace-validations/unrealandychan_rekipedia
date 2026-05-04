@@ -168,6 +168,7 @@ def run_ask(
     repo_root: Path,
     output_dir: Path,
     llm_config: LLMConfig | None = None,
+    history: list[dict] | None = None,
 ) -> str:
     """Answer *question* grounded in the knowledge store.
 
@@ -176,6 +177,7 @@ def run_ask(
         repo_root: Absolute path to the repository.
         output_dir: `.rekipedia/` directory containing store.db + wiki/.
         llm_config: LLM settings; defaults to LLMConfig().
+        history: Previous conversation turns as [{role, content}, ...].
 
     Returns:
         The assistant's answer as a Markdown string.
@@ -187,7 +189,7 @@ def run_ask(
     _verify_scan(output_dir, repo_root)
     full_system = _build_full_system(question, output_dir, llm_config)
     client = LLMClient(llm_config)
-    return client.call(question, system=full_system)
+    return client.call(question, system=full_system, history=history)
 
 
 def stream_ask(
@@ -195,6 +197,7 @@ def stream_ask(
     repo_root: Path,
     output_dir: Path,
     llm_config: LLMConfig | None = None,
+    history: list[dict] | None = None,
 ) -> Iterator[str]:
     """Answer *question* grounded in the knowledge store, streaming tokens.
 
@@ -205,4 +208,4 @@ def stream_ask(
     _verify_scan(output_dir, repo_root)
     full_system = _build_full_system(question, output_dir, llm_config)
     client = LLMClient(llm_config)
-    return client.stream(question, system=full_system)
+    return client.stream(question, system=full_system, history=history)
