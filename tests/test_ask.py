@@ -69,7 +69,7 @@ def test_ask_includes_wiki_context_in_system_prompt(scanned_repo):
 
     captured_system: list[str] = []
 
-    def _capture_call(prompt: str, system: str = "") -> str:
+    def _capture_call(prompt: str, system: str = "", history=None) -> str:
         captured_system.append(system)
         return "mocked answer"
 
@@ -132,7 +132,7 @@ def test_ask_uses_symbols_json_in_context(scanned_repo):
 
     captured: list[str] = []
 
-    def _capture(prompt: str, system: str = "") -> str:
+    def _capture(prompt: str, system: str = "", history=None) -> str:
         captured.append(system)
         return "ok"
 

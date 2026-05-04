@@ -1,5 +1,40 @@
 # Release Notes
 
+## v0.9.16 — Multi-language Support, Conversation Memory & Go Feature Parity
+
+### Multi-language AST Extractors (#32)
+- Added Go extractor using `tree-sitter-go` — extracts functions, structs, interfaces, imports; detects `func main()` entry point
+- Added Rust extractor using `tree-sitter-rust` — extracts `fn`, `struct`, `trait`, `use`; `impl Foo for Bar` produces `uses` relationship
+- Added Java extractor using `tree-sitter-java` — extracts classes, methods, imports; `extends` → `inherits`, `implements` → `uses`
+- All three extractors registered in `ALL_EXTRACTORS` by file extension (`.go`, `.rs`, `.java`)
+- 21 new tests (7 per extractor): symbol extraction, relationship detection, entry point, empty file handling
+
+### Multi-turn Conversation Memory for `reki ask` (#33)
+- `reki ask` REPL now maintains full conversation history across turns — follow-up questions have context
+- History passed as `messages[]` to LLM (litellm multi-turn format)
+- `--history-limit N` flag (default: 10 turns) — oldest turns dropped when limit exceeded
+- `--no-save-session` flag to skip disk persistence
+- Session auto-saved to `.rekipedia/sessions/<timestamp>.json` on exit
+- Turn number shown in prompt: `[1] ❯`, `[2] ❯`, …
+- 7 new tests covering history accumulation, limit truncation, session JSON persistence
+
+### Go Binary Feature Parity (#34)
+- `reki embed` — vector embedding pipeline in Go (chromem-go, no CGO)
+- `reki export` — wiki bundle to markdown or JSON from SQLite store
+- `reki update` — incremental re-scan (diff manifest vs current files, only re-process changed files)
+- 10 new Go tests covering all three commands
+
+### Test Fixes & CI Improvements
+- Fixed `python-multipart` missing dependency (FastAPI Form support)
+- Fixed `--cov=src/rekipedia` → `--cov=rekipedia` for installed wheel coverage tracking
+- Fixed homebrew tap version strip (`${TAG#go/v}`) — was incorrectly building `vgo/v0.9.15` URLs
+- Added `--skip=validate` to goreleaser for prefixed tag workflow
+- Updated Homebrew Formula license: `"MIT"` → `"Proprietary"`
+- Updated `README.md` license section: MIT → Proprietary & Confidential
+- **289 Python tests pass** | **Go: all 14 packages pass**
+
+---
+
 ## v0.9.14 — Phase 5 & 6: Graph UI + Extraction Quality
 
 ### Phase 5: Interactive Dependency Graph

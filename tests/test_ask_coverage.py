@@ -108,7 +108,7 @@ class TestAnswerStreaming:
                 # The function does: from rekipedia.orchestrator.run_ask import stream_ask
                 # So patch it at the source
                 with patch("rekipedia.orchestrator.run_ask.LLMClient"):
-                    _answer_streaming("test question", tmp_path, tmp_path, llm_config)
+                    _answer_streaming("test question", tmp_path, tmp_path, llm_config, history=[])
 
     def test_prints_error_via_module_patch(self, tmp_path):
         """stream_ask raises RuntimeError -> error printed, no exception bubbles."""
@@ -122,7 +122,7 @@ class TestAnswerStreaming:
         run_ask_mod.stream_ask = bad_stream
         try:
             # Should not raise — error is caught and printed
-            _answer_streaming("hello?", tmp_path, tmp_path, llm_config)
+            _answer_streaming("hello?", tmp_path, tmp_path, llm_config, history=[])
         finally:
             run_ask_mod.stream_ask = original
 
@@ -137,7 +137,7 @@ class TestAnswerStreaming:
         original = run_ask_mod.stream_ask
         run_ask_mod.stream_ask = fake_stream
         try:
-            _answer_streaming("question", tmp_path, tmp_path, llm_config)
+            _answer_streaming("question", tmp_path, tmp_path, llm_config, history=[])
         finally:
             run_ask_mod.stream_ask = original
 
@@ -156,7 +156,7 @@ class TestAnswerStreaming:
         original = run_ask_mod.stream_ask
         run_ask_mod.stream_ask = empty_stream
         try:
-            _answer_streaming("question", tmp_path, tmp_path, llm_config)
+            _answer_streaming("question", tmp_path, tmp_path, llm_config, history=[])
         finally:
             run_ask_mod.stream_ask = original
 
