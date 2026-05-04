@@ -80,21 +80,31 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
             if p.exists():
                 raw = p.read_text(encoding="utf-8")
                 # Take just the intro paragraph (before first ##)
-                lines, snippet = raw.splitlines(), []
-                in_frontmatter = False
-                frontmatter_done = False
-                for line in lines:
-                    # Skip YAML frontmatter block (--- ... ---)
-                    if not frontmatter_done and line.strip() == "---":
-                        if not in_frontmatter:
-                            in_frontmatter = True
-                            continue
-                        else:
-                            in_frontmatter = False
-                            frontmatter_done = True
-                            continue
-                    if in_frontmatter:
-                        continue
+                lines = raw.splitlines()
+                content_lines = lines
+
+                # Strip YAML frontmatter only when it is a complete block at the
+                # start of the document. A later '---' can be a normal Markdown
+                # horizontal rule and must not cause the rest of the content to
+                # be skipped.
+                first_content_index = next(
+                    (i for i, line in enumerate(lines) if line.strip()),
+                    None,
+                )
+                if first_content_index is not None and lines[first_content_index].strip() == "---":
+                    closing_index = next(
+                        (
+                            i
+                            for i in range(first_content_index + 1, len(lines))
+                            if lines[i].strip() == "---"
+                        ),
+                        None,
+                    )
+                    if closing_index is not None:
+                        content_lines = lines[:first_content_index] + lines[closing_index + 1 :]
+
+                snippet = []
+                for line in content_lines:
                     if line.startswith("## ") and snippet:
                         break
                     if not line.startswith("# "):
