@@ -67,9 +67,22 @@ def test_frontmatter_section_field():
     assert data2["section"] == "infrastructure"
 
 
-def test_existing_frontmatter_not_duplicated():
-    """Content already starting with --- must not get a second frontmatter block."""
-    already = "---\nslug: existing\ntitle: Already\n---\n\n# Already\n"
+def test_existing_frontmatter_stripped_and_rebuilt():
+    """Existing frontmatter must be stripped and rebuilt (not preserved as-is).
+
+    This ensures LLM-hallucinated fields (e.g. created_at: 0.9.23) never
+    leak into the rendered wiki.
+    """
+    already = "---\nslug: existing\ntitle: Already\nimportance: 75\ncreated_at: 0.9.23\n---\n\n# Already\n"
     result = _ensure_frontmatter("existing", "Already", already)
-    assert result.count("---") == 2, "Should not duplicate existing frontmatter delimiters"
-    assert result == already
+    # Must still have exactly one frontmatter block
+    assert result.count("---") == 2, "Should have exactly one frontmatter block"
+    # Body content preserved
+    assert "# Already" in result
+    # Old garbage field stripped
+    assert "0.9.23" not in result
+    # importance preserved from old frontmatter
+    import yaml, re as _re
+    m = _re.match(r"^---\n(.*?)\n---", result, _re.DOTALL)
+    data = yaml.safe_load(m.group(1))
+    assert data["importance"] == 75

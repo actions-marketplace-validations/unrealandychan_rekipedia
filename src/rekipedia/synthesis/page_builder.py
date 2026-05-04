@@ -547,17 +547,30 @@ def _ensure_frontmatter(
     section: str = "general",
     importance: int = 50,
 ) -> str:
-    """Inject YAML frontmatter if not already present.
+    """Strip any existing frontmatter and rebuild a canonical block.
 
-    If the content already starts with a frontmatter block (---) it is
-    returned unchanged, preserving any fields that were set previously.
-    Otherwise canonical frontmatter is generated with all required fields.
+    Always strips+rebuilds so LLM-hallucinated fields (e.g. wrong
+    created_at format, extra keys) never leak into the rendered wiki.
+    The ``importance`` value is preserved from the old block if present.
     """
     slug = _sanitize_slug(slug)
 
-    # Preserve existing frontmatter as-is
+    # Strip existing frontmatter, preserving importance if set
+    body = content
     if content.startswith("---"):
-        return content
+        end = content.find("\n---", 3)
+        if end != -1:
+            old_fm = content[3:end]
+            # Preserve importance from old frontmatter if caller didn't set it
+            if importance == 50:
+                for line in old_fm.splitlines():
+                    if line.startswith("importance:"):
+                        try:
+                            importance = int(line.split(":", 1)[1].strip())
+                        except ValueError:
+                            pass
+                        break
+            body = content[end + 4:].lstrip("\n")
 
     created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
@@ -578,4 +591,4 @@ def _ensure_frontmatter(
         f"rekipedia_version: {version}\n"
         f"---\n\n"
     )
-    return fm + content
+    return fm + body

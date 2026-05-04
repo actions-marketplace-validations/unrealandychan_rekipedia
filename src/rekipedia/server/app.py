@@ -130,17 +130,29 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
 
 
     def _strip_yaml_frontmatter(text: str) -> str:
-        """Strip a leading YAML frontmatter block delimited by exact `---` lines."""
+        """Strip a leading YAML frontmatter block delimited by exact `---` lines.
+
+        If the closing delimiter is missing (malformed frontmatter) we still
+        strip everything up to the first blank line or H1 heading so garbage
+        YAML never leaks into the rendered page.
+        """
         lines = text.splitlines(keepends=True)
         if not lines or lines[0] not in ("---\n", "---\r\n", "---"):
             return text
 
+        # Normal case: find closing ---
         for idx in range(1, len(lines)):
             if lines[idx] in ("---\n", "---\r\n", "---"):
                 return "".join(lines[idx + 1:]).lstrip("\r\n")
 
-        # Missing closing delimiter: leave the content unchanged.
-        return text
+        # Malformed: no closing ---. Strip until first blank line or # heading.
+        for idx in range(1, len(lines)):
+            stripped = lines[idx].strip()
+            if stripped == "" or stripped.startswith("#"):
+                return "".join(lines[idx:]).lstrip("\r\n")
+
+        # Everything looks like frontmatter: return empty rather than raw YAML.
+        return ""
 
     def _render_md(path: Path) -> str:
         text = path.read_text(encoding="utf-8")
