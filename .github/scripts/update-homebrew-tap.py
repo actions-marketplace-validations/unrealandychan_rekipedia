@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 """
 update-homebrew-tap.py
-Post-release script: compute sha256 for all platforms and push Formula + Cask to homebrew-tap.
-Usage: python3 update-homebrew-tap.py <version> <pat>
-e.g.   python3 update-homebrew-tap.py 0.9.1 ghp_xxx
+Post-release script: read sha256 from goreleaser's checksums.txt and push Formula to homebrew-tap.
+Usage: python3 update-homebrew-tap.py <version>
+e.g.   python3 update-homebrew-tap.py 0.9.1
 """
 
 import sys
 import os
 import json
 import base64
-import hashlib
 import urllib.request
 
 VERSION = sys.argv[1].lstrip("v")
@@ -26,13 +25,34 @@ PLATFORMS = {
     "linux_arm64":  f"{BASE_URL}/rekipedia_linux_arm64.tar.gz",
 }
 
+CHECKSUM_KEYS = {
+    "darwin_amd64": "rekipedia_darwin_amd64.tar.gz",
+    "darwin_arm64": "rekipedia_darwin_arm64.tar.gz",
+    "linux_amd64":  "rekipedia_linux_amd64.tar.gz",
+    "linux_arm64":  "rekipedia_linux_arm64.tar.gz",
+}
 
-def sha256_url(url):
-    print(f"  Downloading {url} ...")
-    req = urllib.request.Request(url, headers={"User-Agent": "update-tap/1.0"})
-    with urllib.request.urlopen(req) as resp:
-        data = resp.read()
-    return hashlib.sha256(data).hexdigest()
+
+def read_checksums_from_dist():
+    """Read sha256 from goreleaser's dist/checksums.txt (no download needed)."""
+    checksums_path = os.path.join(os.path.dirname(__file__), "..", "..", "go", "dist", "checksums.txt")
+    checksums_path = os.path.normpath(checksums_path)
+    shas = {}
+    print(f"Reading checksums from {checksums_path} ...")
+    with open(checksums_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            # Format: <sha256>  <filename>
+            parts = line.split(None, 1)
+            if len(parts) == 2:
+                sha, filename = parts
+                for platform, key in CHECKSUM_KEYS.items():
+                    if filename == key:
+                        shas[platform] = sha
+                        print(f"  {platform}: {sha}")
+    return shas
 
 
 def gh_get_sha(path):
@@ -67,11 +87,11 @@ def gh_put(path, content, sha, message):
     return result["commit"]["sha"]
 
 
-# ── 1. Compute sha256 ──────────────────────────────────────────────────────────
-print(f"Computing sha256 for {TAG}...")
-shas = {p: sha256_url(u) for p, u in PLATFORMS.items()}
-for p, s in shas.items():
-    print(f"  {p}: {s}")
+# ── 1. Read sha256 from dist/checksums.txt ────────────────────────────────────
+shas = read_checksums_from_dist()
+missing = [p for p in CHECKSUM_KEYS if p not in shas]
+if missing:
+    raise RuntimeError(f"Missing checksums for: {missing}")
 
 
 # ── 2. Formula (Formula/rekipedia.rb) ────────────────────────────────────────
@@ -111,7 +131,7 @@ class Rekipedia < Formula
   end
 
   test do
-    system "#{bin}/reki", "--version"
+    system "\#{bin}/reki", "--version"
   end
 end
 """
