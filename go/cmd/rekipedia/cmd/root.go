@@ -69,5 +69,8 @@ func init() {
 		hookCmd,
 		contextCmd,
 		diffCmd,
+		impactCmd,
+		searchCmd,
+		watchCmd,
 	)
 }

@@ -361,3 +361,30 @@ func TestListWikiPagesEmpty(t *testing.T) {
 	}
 }
 
+func TestListRelationships(t *testing.T) {
+	s := openTestStore(t)
+	_ = s.CreateRun("rList", "/repo", "m")
+	rels := []models.Relationship{
+		{From: "x", To: "y", Kind: models.RelCall, File: "a.go"},
+		{From: "y", To: "z", Kind: models.RelImport, File: "b.go"},
+	}
+	if err := s.SaveRelationships("rList", rels); err != nil {
+		t.Fatalf("SaveRelationships: %v", err)
+	}
+	got, err := s.ListRelationships("rList")
+	if err != nil {
+		t.Fatalf("ListRelationships: %v", err)
+	}
+	if len(got) != 2 {
+		t.Errorf("expected 2 relationships, got %d", len(got))
+	}
+	// verify empty for unknown run
+	empty, err := s.ListRelationships("no-such-run")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(empty) != 0 {
+		t.Errorf("expected empty, got %d", len(empty))
+	}
+}
+

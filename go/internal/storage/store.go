@@ -219,6 +219,28 @@ func (s *Store) SaveRelationships(runID string, rels []models.Relationship) erro
 	return tx.Commit()
 }
 
+// ListRelationships returns all relationships for a run.
+func (s *Store) ListRelationships(runID string) ([]models.Relationship, error) {
+	rows, err := s.db.Query(
+		`SELECT from_sym, to_sym, kind, file FROM relationships WHERE run_id = ?`, runID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var rels []models.Relationship
+	for rows.Next() {
+		var r models.Relationship
+		var kind string
+		if err := rows.Scan(&r.From, &r.To, &kind, &r.File); err != nil {
+			return nil, err
+		}
+		r.Kind = models.RelKind(kind)
+		rels = append(rels, r)
+	}
+	return rels, rows.Err()
+}
+
 // --- Wiki Pages ---
 
 // UpsertWikiPage inserts or replaces a wiki page.
