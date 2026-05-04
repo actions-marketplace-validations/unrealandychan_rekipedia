@@ -240,3 +240,50 @@ def test_summary_html_frontmatter_not_rendered(tmp_path):
     assert "pin: false" not in res.text
     # Body content should be present
     assert "Intro paragraph text" in res.text
+
+
+def test_wiki_page_malformed_frontmatter_preserves_content(tmp_path):
+    """Wiki page with an unclosed frontmatter block must not lose body content."""
+    repo = tmp_path / "malrepo"
+    output_dir = repo / ".rekipedia"
+    wiki_dir = output_dir / "wiki"
+    wiki_dir.mkdir(parents=True)
+    # Opening --- present but no closing ---
+    page_content = (
+        "---\n"
+        "slug: orphan\n"
+        "title: Orphan\n"
+        "\n"
+        "# Orphan\n\n"
+        "Body text here.\n"
+    )
+    (wiki_dir / "orphan.md").write_text(page_content)
+    app = create_app(repo, output_dir, LLMConfig())
+    with TestClient(app, raise_server_exceptions=False) as c:
+        res = c.get("/wiki/orphan")
+    assert res.status_code == 200
+    # Body content must not be silently discarded
+    assert "Body text here" in res.text
+
+
+def test_summary_html_malformed_frontmatter_preserves_content(tmp_path):
+    """Summary snippet for a page with an unclosed frontmatter block must not be empty."""
+    repo = tmp_path / "malsum"
+    output_dir = repo / ".rekipedia"
+    wiki_dir = output_dir / "wiki"
+    wiki_dir.mkdir(parents=True)
+    # Opening --- present but no closing ---
+    page_content = (
+        "---\n"
+        "slug: architecture-overview\n"
+        "\n"
+        "# Architecture Overview\n\n"
+        "Summary body text.\n"
+    )
+    (wiki_dir / "architecture-overview.md").write_text(page_content)
+    app = create_app(repo, output_dir, LLMConfig())
+    with TestClient(app, raise_server_exceptions=False) as c:
+        res = c.get("/")
+    assert res.status_code == 200
+    # Body text must appear in the page (summary or elsewhere), not be silently dropped
+    assert "Summary body text" in res.text

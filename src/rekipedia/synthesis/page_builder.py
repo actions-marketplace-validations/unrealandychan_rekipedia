@@ -1,8 +1,10 @@
 """Build wiki pages from combined AnalysisResult using the LLM."""
 from __future__ import annotations
 
+import importlib.metadata
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 from rekipedia.llm.client import LLMClient, LLMCaller
@@ -522,7 +524,7 @@ def _parse_llm_response(raw: str, slug: str) -> tuple[str, str]:
     return title, raw
 
 
-_ALLOWED_FRONTMATTER_KEYS = {"slug", "title", "section", "tags", "pin", "importance"}
+_ALLOWED_FRONTMATTER_KEYS = {"slug", "title", "section", "tags", "pin", "importance", "created_at", "rekipedia_version"}
 
 
 def _sanitize_slug(slug: str) -> str:
@@ -533,23 +535,44 @@ def _sanitize_slug(slug: str) -> str:
     return slug or "untitled"
 
 
-def _ensure_frontmatter(slug: str, title: str, content: str, tags: list[str] | None = None, section: str | None = None) -> str:
-    """Inject or repair YAML frontmatter.
+def _ensure_frontmatter(
+    slug: str,
+    title: str,
+    content: str,
+    tags: list[str] | None = None,
+    section: str | None = None,
+    importance: int = 50,
+) -> str:
+    """Inject YAML frontmatter if not already present.
 
-    If the LLM already produced frontmatter we strip it and rebuild from the
-    canonical fields so that hallucinated keys (created_at, date, author …)
-    are dropped and ``slug`` / ``title`` always match the planned values.
+    If the content already starts with a frontmatter block (---) it is
+    returned unchanged, preserving any fields that were set previously.
+    Otherwise canonical frontmatter is generated with all required fields.
     """
     slug = _sanitize_slug(slug)
 
-    # Strip any existing frontmatter so we can rebuild it cleanly
-    body = content
+    # Preserve existing frontmatter as-is
     if content.startswith("---"):
-        end = content.find("---", 3)
-        if end != -1:
-            body = content[end + 3:].lstrip("\n")
+        return content
 
+    created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        version = importlib.metadata.version("rekipedia")
+    except importlib.metadata.PackageNotFoundError:
+        version = "dev"
+
+    section = section or "general"
     tags_line = f"tags: [{', '.join(tags)}]\n" if tags else ""
-    section_line = f"section: {section}\n" if section else ""
-    fm = f"---\nslug: {slug}\ntitle: \"{title}\"\n{section_line}{tags_line}pin: false\n---\n\n"
-    return fm + body
+    fm = (
+        f"---\n"
+        f"slug: {slug}\n"
+        f'title: "{title}"\n'
+        f"section: {section}\n"
+        f"{tags_line}"
+        f"pin: false\n"
+        f"importance: {importance}\n"
+        f"created_at: {created_at}\n"
+        f"rekipedia_version: {version}\n"
+        f"---\n\n"
+    )
+    return fm + content

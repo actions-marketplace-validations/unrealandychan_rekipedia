@@ -151,6 +151,16 @@ func TestStripFrontmatter(t *testing.T) {
 			input: "",
 			want:  "",
 		},
+		{
+			name:  "malformed_no_closing_delimiter",
+			input: "---\nslug: foo\ntitle: \"Foo\"\n\n# Foo\n\nBody text.\n",
+			want:  "---\nslug: foo\ntitle: \"Foo\"\n\n# Foo\n\nBody text.\n",
+		},
+		{
+			name:  "horizontal_rule_in_body_not_treated_as_closing",
+			input: "---\nslug: foo\n---\n\n# Foo\n\nSection\n\n---\n\nMore content.\n",
+			want:  "# Foo\n\nSection\n\n---\n\nMore content.\n",
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
