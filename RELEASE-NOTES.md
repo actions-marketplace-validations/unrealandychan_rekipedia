@@ -1,5 +1,17 @@
 # Release Notes
 
+## v0.9.22 — Mermaid Diagrams Now Render in Wiki Pages
+
+### Mermaid.js rendering in wiki pages (Python + Go)
+- All ` ```mermaid ` code blocks in wiki pages now **render as actual diagrams** instead of raw code
+- Dark theme matching rekipedia's colour scheme (navy background, blue accent, gold highlights)
+- HTML entity unescape fix: `markdown` library encodes `-->` as `--&gt;` — fixed before passing to Mermaid.js
+- **"🕸 Open in Graph"** button appears on every `flowchart` / `classDiagram` — links to interactive D3 force graph
+- **`{ }` toggle button** shows/hides raw Mermaid source for any diagram
+- Render errors show inline with raw source fallback (no silent failures)
+
+---
+
 ## v0.9.21 — Fix D3 Graph Edges Not Showing
 
 ### Fix: Graph API multi-strategy ID resolution (#graph-edges)
