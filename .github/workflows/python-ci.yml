@@ -42,6 +42,6 @@ jobs:
       - name: Run test suite with coverage
         run: |
           pytest tests/ -v --timeout=60 \
-            --cov=src/rekipedia \
+            --cov=rekipedia \
             --cov-report=term-missing \
             --cov-fail-under=60
