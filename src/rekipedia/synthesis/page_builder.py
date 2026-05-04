@@ -528,7 +528,7 @@ def _parse_llm_response(raw: str, slug: str) -> tuple[str, str]:
     return title, raw
 
 
-_ALLOWED_FRONTMATTER_KEYS = {"slug", "title", "section", "tags", "pin", "importance", "created_at", "rekipedia_version"}
+_ALLOWED_FRONTMATTER_KEYS = {"slug", "title", "section", "tags", "pin", "importance", "created_at", "rekipedia_version", "keywords"}
 
 
 def _sanitize_slug(slug: str) -> str:

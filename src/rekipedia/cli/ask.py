@@ -124,6 +124,7 @@ def _answer_streaming(
 @click.option("--output-dir", default=None, type=click.Path(path_type=Path), help="Output directory.")
 @click.option("--history-limit", default=10, show_default=True, help="Max conversation turns to keep in context.")
 @click.option("--no-save-session", is_flag=True, default=False, help="Do not save session history to disk.")
+@click.option("--no-rewrite", is_flag=True, default=False, help="Disable silent query rewriting.")
 def ask_cmd(
     question: str | None,
     repo: Path,
@@ -131,6 +132,7 @@ def ask_cmd(
     output_dir: Path | None,
     history_limit: int,
     no_save_session: bool,
+    no_rewrite: bool,
 ) -> None:
     """Interactive grounded Q&A about the scanned repository.
 
@@ -150,6 +152,10 @@ def ask_cmd(
     repo = repo.resolve()
     output_dir = (output_dir or repo / ".rekipedia").resolve()
     llm_config = _build_llm_config(repo, model)
+
+    if no_rewrite:
+        import os
+        os.environ["REKIPEDIA_QUERY_REWRITE"] = "0"
 
     # Conversation history: [{role, content}, ...]
     history: list[dict] = []

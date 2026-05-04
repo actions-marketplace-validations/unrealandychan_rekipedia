@@ -128,14 +128,14 @@ func (b *PageBuilder) BuildPage(ctx context.Context, spec models.WikiPageSpec, p
 	if err != nil {
 		return "", fmt.Errorf("build page %q: %w", spec.Slug, err)
 	}
-	content = ensureFrontmatter(spec.Slug, spec.Title, spec.Section, spec.Tags, strings.TrimSpace(content))
+	content = ensureFrontmatter(spec.Slug, spec.Title, spec.Section, spec.Tags, spec.Keywords, strings.TrimSpace(content))
 	return strings.TrimSpace(content), nil
 }
 
 // ensureFrontmatter strips any LLM-generated frontmatter and rebuilds it from
 // the canonical spec fields, preventing hallucinated keys (created_at, author,
 // date …) from leaking into the stored wiki pages.
-func ensureFrontmatter(slug, title, section string, tags []string, content string) string {
+func ensureFrontmatter(slug, title, section string, tags []string, keywords []string, content string) string {
 	slug = sanitizeSlug(slug)
 	// Remove any existing frontmatter block
 	body := content
@@ -154,6 +154,13 @@ func ensureFrontmatter(slug, title, section string, tags []string, content strin
 	}
 	if len(tags) > 0 {
 		sb.WriteString("tags: [" + strings.Join(tags, ", ") + "]\n")
+	}
+	if len(keywords) > 0 {
+		quoted := make([]string, len(keywords))
+		for i, k := range keywords {
+			quoted[i] = "\"" + strings.ReplaceAll(k, "\"", "'") + "\""
+		}
+		sb.WriteString("keywords: [" + strings.Join(quoted, ", ") + "]\n")
 	}
 	sb.WriteString("pin: false\n")
 	sb.WriteString("---\n\n")

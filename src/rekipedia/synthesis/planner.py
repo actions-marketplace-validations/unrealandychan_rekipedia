@@ -39,7 +39,8 @@ Output a single JSON object — no markdown fences, no commentary:
       "importance": 90,
       "focus": "Very detailed instruction: exact sections to write, what tables/diagrams to include, which symbols to document.",
       "required_data": ["files_seen"],
-      "tags": ["overview"]
+      "tags": ["overview"],
+      "keywords": ["jwt", "token", "authenticate", "verify_credentials", "AuthService"]
     }
   ],
   "nav_order": ["slug1", "slug2"],
@@ -54,6 +55,11 @@ Assign an importance score to each page:
 - 40–59: internals, algorithms, contributing
 - 20–39: ecosystem, deployment, third-party integrations
 importance drives nav prominence in the web UI and determines which pages are shown first.
+
+## keywords field:
+List 5–10 exact symbol names, function names, or domain terms that this page covers.
+Used for fast retrieval when answering questions about the codebase.
+Example: ["jwt", "token", "authenticate", "verify_credentials", "AuthService", "login", "session"]
 
 ## Section design (inspired by DeepWiki)
 

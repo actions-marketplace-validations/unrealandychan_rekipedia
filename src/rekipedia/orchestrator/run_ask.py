@@ -12,6 +12,7 @@ Flow:
 from __future__ import annotations
 
 import json
+import re as _re
 from pathlib import Path
 from typing import Iterator
 
@@ -100,6 +101,110 @@ def _rag_chunks(
         return []
 
 
+def _extract_keywords(text: str) -> list[str]:
+    """Extract meaningful keywords from a query (simple stopword filter)."""
+    STOPWORDS = {"the","a","an","is","are","was","were","be","been","being",
+                 "have","has","had","do","does","did","will","would","could",
+                 "should","may","might","shall","can","need","dare","ought",
+                 "used","how","what","where","when","why","who","which","that",
+                 "this","these","those","it","its","in","on","at","to","for",
+                 "of","with","by","from","up","about","into","through","during"}
+    tokens = _re.findall(r'[a-z][a-z0-9_]*', text.lower())
+    return [t for t in tokens if t not in STOPWORDS and len(t) > 2]
+
+
+def _score_page(page_text: str, keywords: list[str]) -> float:
+    """Score a wiki page against query keywords using TF + importance boost."""
+    import re
+    # Extract importance from frontmatter
+    importance_match = re.search(r'importance:\s*(\d+)', page_text)
+    importance = int(importance_match.group(1)) / 100.0 if importance_match else 0.5
+
+    # Extract keywords from frontmatter
+    kw_match = re.search(r'keywords:\s*\[([^\]]*)\]', page_text)
+    page_keywords = []
+    if kw_match:
+        page_keywords = [k.strip().strip('"\'') for k in kw_match.group(1).split(',')]
+
+    text_lower = page_text.lower()
+    tf_score = sum(text_lower.count(kw) for kw in keywords)
+    kw_bonus = sum(2 for kw in keywords if any(kw in pk.lower() for pk in page_keywords))
+
+    length = max(len(page_text), 1)
+    return (tf_score + kw_bonus) / length * 1000 + importance * 0.1
+
+
+def _rank_pages_by_query(pages: list[str], question: str) -> list[str]:
+    """Rank wiki pages by relevance to the query."""
+    if not pages:
+        return pages
+    keywords = _extract_keywords(question)
+    if not keywords:
+        return pages
+    scored = [(page, _score_page(page, keywords)) for page in pages]
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return [p for p, _ in scored]
+
+
+def _rewrite_query(
+    question: str,
+    output_dir: Path,
+    llm_config: LLMConfig,
+) -> str:
+    """Silently rewrite query to match codebase vocabulary.
+
+    Returns rewritten query or original if rewrite fails/disabled.
+    """
+    import os
+    if os.environ.get("REKIPEDIA_QUERY_REWRITE", "1") == "0":
+        return question
+
+    # Gather vocabulary hints (symbol names + page titles) — lightweight
+    vocab_hints: list[str] = []
+
+    symbols_path = output_dir / "exports" / "symbols.json"
+    if symbols_path.exists():
+        try:
+            symbols = json.loads(symbols_path.read_text(encoding="utf-8"))
+            # Only include function/class/method names (not variables)
+            vocab_hints.extend(
+                s.get("name", "") for s in symbols[:200]
+                if s.get("kind") in ("function", "class", "method", "interface")
+                and s.get("name")
+            )
+        except Exception:
+            pass
+
+    wiki_dir = output_dir / "wiki"
+    if wiki_dir.exists():
+        for md_file in sorted(wiki_dir.glob("*.md"))[:20]:
+            vocab_hints.append(md_file.stem)
+
+    if not vocab_hints or len(vocab_hints) < 15:
+        return question
+
+    vocab_sample = ", ".join(vocab_hints[:80])
+    rewrite_prompt = (
+        "You are a code search assistant. Given a codebase vocabulary and a user question, "
+        "rewrite the question to use exact symbol names or terms from the vocabulary. "
+        "Return ONLY the rewritten question, one line, no explanation.\n\n"
+        f"Vocabulary: {vocab_sample}\n\n"
+        f"Original question: {question}\n"
+        "Rewritten question:"
+    )
+
+    try:
+        client = LLMClient(llm_config)
+        rewritten = client.call(rewrite_prompt, system="You are a concise code search query rewriter.").strip()
+        # Sanity check — don't use if it's too long or empty
+        if rewritten and len(rewritten) < len(question) * 3:
+            return rewritten
+    except Exception:
+        pass
+
+    return question
+
+
 def _build_full_system(
     question: str,
     output_dir: Path,
@@ -108,15 +213,19 @@ def _build_full_system(
     """Assemble the system prompt + all context sources."""
     system_prompt = _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
 
+    # Rewrite query to match codebase vocabulary (for retrieval only)
+    retrieval_query = _rewrite_query(question, output_dir, llm_config)
+
     page_texts = _load_wiki_pages(output_dir)
     symbol_lines = _load_symbol_lines(output_dir)
-    rag_results = _rag_chunks(question, output_dir, llm_config)
+    rag_results = _rag_chunks(retrieval_query, output_dir, llm_config)
 
     context_parts: list[str] = ["# Knowledge Context\n"]
     used_chars = sum(len(p) for p in context_parts)
 
     # ── Wiki pages (highest priority — curated prose) ──────────────────
-    for page in page_texts:
+    ranked_pages = _rank_pages_by_query(page_texts, retrieval_query)
+    for page in ranked_pages:
         if used_chars + len(page) > _CONTEXT_CHAR_BUDGET:
             context_parts.append(
                 "\n*[Additional wiki pages omitted — token budget reached]*\n"

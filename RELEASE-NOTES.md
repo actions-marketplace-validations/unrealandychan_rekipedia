@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.9.26 — Ask & Search Quality Improvements
+
+### New Features
+- **BM25 Symbol Search** (#52): `reki search` now uses BM25 scoring with camelCase/snake_case tokenization. Queries like `"entry point"` now find `main_entrypoint`. New `--kind` filter option. Go side updated with same tokenization logic.
+- **Planner Keywords Field** (#54): Each generated wiki page now includes a `keywords: [...]` frontmatter field listing 5–10 exact symbol names and domain terms the page covers. Used by the ask pipeline for fast page routing.
+- **Ask Page Relevance Ranking** (#53): `reki ask` now ranks wiki pages by query relevance (TF scoring + `keywords` frontmatter + `importance` boost) before context assembly. Prevents relevant pages from being pushed out of the token budget by alphabetically-prior irrelevant pages.
+- **RAG MMR Deduplication** (#55): After FAISS top-K retrieval, Maximal Marginal Relevance (MMR) diversifies results. Near-duplicate chunks from the same function are de-prioritised, ensuring broader coverage. Opt-out via `REKIPEDIA_RAG_MMR=0`.
+- **Silent Query Rewriting** (#56): `reki ask` silently rewrites natural-language questions to match codebase vocabulary before retrieval (e.g. `"how does login work"` → `"how does AuthService.authenticate / verify_credentials work"`). Opt-out via `--no-rewrite` or `REKIPEDIA_QUERY_REWRITE=0`.
+
+---
+
 ## v0.9.25 — Graph Intelligence & Developer Tools
 
 ### New Features

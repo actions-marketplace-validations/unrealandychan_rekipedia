@@ -8,11 +8,12 @@ console = Console()
 @click.argument('query')
 @click.option('--output-dir', default='.', show_default=True)
 @click.option('--all-repos', is_flag=True, help='Search all registered repos')
-def search_cmd(query, output_dir, all_repos):
+@click.option('--kind', default=None, help='Filter by symbol kind (function, class, method, etc.)')
+def search_cmd(query, output_dir, all_repos, kind):
     """Search symbols in the codebase graph."""
     if all_repos:
         from rekipedia.analysis.cross_repo_search import search_all_repos
-        results = search_all_repos(query)
+        results = search_all_repos(query, kind=kind)
         source = 'all repos'
     else:
         from rekipedia.analysis.cross_repo_search import _search_single_repo
@@ -21,7 +22,7 @@ def search_cmd(query, output_dir, all_repos):
         if not db.exists():
             console.print('[red]No rekipedia DB. Run reki scan first.[/red]')
             raise click.Abort()
-        results = _search_single_repo(db, query)
+        results = _search_single_repo(db, query, kind=kind)
         source = output_dir
 
     if not results:

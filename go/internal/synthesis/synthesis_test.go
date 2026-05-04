@@ -476,7 +476,7 @@ func TestSanitizeSlug(t *testing.T) {
 
 func TestEnsureFrontmatterStripsHallucinations(t *testing.T) {
 	hallucinated := "---\nslug: module-api\ntitle: API Docs\ncreated_at: 0.9.23\nauthor: GPT-4\ndate: 2024-01-01\n---\n\n## Overview\nContent here.\n"
-	result := ensureFrontmatter("module-api", "API Module Documentation", "core-components", []string{"modules"}, hallucinated)
+	result := ensureFrontmatter("module-api", "API Module Documentation", "core-components", []string{"modules"}, nil, hallucinated)
 
 	for _, bad := range []string{"created_at", "author", "date:"} {
 		if strings.Contains(result, bad) {
@@ -492,7 +492,7 @@ func TestEnsureFrontmatterStripsHallucinations(t *testing.T) {
 
 func TestEnsureFrontmatterPlainContent(t *testing.T) {
 	plain := "## Overview\nContent here."
-	result := ensureFrontmatter("My Slug!", "My Title", "", nil, plain)
+	result := ensureFrontmatter("My Slug!", "My Title", "", nil, nil, plain)
 	if !strings.HasPrefix(result, "---\n") {
 		t.Errorf("expected result to start with frontmatter, got: %s", result[:50])
 	}

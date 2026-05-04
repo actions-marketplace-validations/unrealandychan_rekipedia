@@ -39,6 +39,48 @@ from rekipedia.models.contracts import LLMConfig
 
 logger = logging.getLogger("rekipedia.rag.embedder")
 
+
+def _mmr(
+    query_vec: "np.ndarray",
+    candidate_vecs: "np.ndarray",
+    top_k: int,
+    lambda_: float = 0.5,
+) -> list[int]:
+    """Maximal Marginal Relevance — diversify top-K results.
+
+    Iteratively picks the candidate that maximises:
+        lambda * sim(query, c) - (1-lambda) * max(sim(c, selected))
+    """
+    if len(candidate_vecs) <= top_k:
+        return list(range(len(candidate_vecs)))
+
+    # Normalise for cosine similarity
+    def _norm(v):
+        n = np.linalg.norm(v, axis=-1, keepdims=True)
+        return v / np.where(n == 0, 1, n)
+
+    q = _norm(query_vec.reshape(1, -1))[0]
+    cands = _norm(candidate_vecs)
+
+    query_sims = cands @ q  # shape: (N,)
+    selected_indices: list[int] = []
+
+    for _ in range(min(top_k, len(cands))):
+        if not selected_indices:
+            # First pick: highest query similarity
+            idx = int(np.argmax(query_sims))
+        else:
+            selected_vecs = cands[selected_indices]  # (S, D)
+            redundancy = (cands @ selected_vecs.T).max(axis=1)  # (N,)
+            mmr_score = lambda_ * query_sims - (1 - lambda_) * redundancy
+            # Mask already selected
+            for si in selected_indices:
+                mmr_score[si] = -np.inf
+            idx = int(np.argmax(mmr_score))
+        selected_indices.append(idx)
+
+    return selected_indices
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -348,11 +390,17 @@ class EmbedPipeline:
     # Search
     # ------------------------------------------------------------------
 
-    def search(self, query: str, top_k: int = 8) -> list[dict]:
+    def search(self, query: str, top_k: int = 8, mmr: bool = True) -> list[dict]:
         """Return top-k most relevant chunks for *query*.
 
         Each result dict has: file, chunk_idx, text, score, is_implementation.
         Returns [] if no index exists.
+
+        Args:
+            query: The search query.
+            top_k: Number of results to return.
+            mmr: If True (default), apply Maximal Marginal Relevance to diversify results.
+                 Respects REKIPEDIA_RAG_MMR=0 env var to disable.
         """
         try:
             import faiss as _faiss  # noqa: PLC0415
@@ -409,6 +457,40 @@ class EmbedPipeline:
 
         # Prioritise implementation files over tests/docs
         results.sort(key=lambda c: (not c.get("is_implementation", True), -c["score"]))
+
+        # Apply MMR deduplication if enabled
+        use_mmr = mmr and os.environ.get("REKIPEDIA_RAG_MMR", "1") != "0"
+        if use_mmr and _NUMPY_AVAILABLE and len(results) > 1:
+            try:
+                # Re-embed query to get the query vector for MMR
+                q_vec_for_mmr = _embed_batch([query], self._model, self._cfg)[0]
+                # Build candidate vectors from stored index
+                if _HAS_FAISS and index_path.exists():
+                    index_mmr = _faiss.read_index(str(index_path))
+                    # Reconstruct vectors using the original result indices
+                    # We need to find what indices were used
+                    cand_vecs = np.array([
+                        index_mmr.reconstruct(int(chunks.index(dict(
+                            (k, v) for k, v in c.items() if k != "score"
+                        )))) if hasattr(index_mmr, 'reconstruct') else np.zeros(q_vec_for_mmr.shape, dtype=np.float32)
+                        for c in results
+                    ], dtype=np.float32)
+                elif npy_path.exists():
+                    full_matrix = np.load(str(npy_path))
+                    # Find chunk indices in original chunks list
+                    cand_indices = []
+                    for r in results:
+                        for i, c in enumerate(chunks):
+                            if c.get("file") == r.get("file") and c.get("chunk_idx") == r.get("chunk_idx"):
+                                cand_indices.append(i)
+                                break
+                    if len(cand_indices) == len(results):
+                        cand_vecs = full_matrix[cand_indices]
+                        mmr_order = _mmr(q_vec_for_mmr, cand_vecs, top_k)
+                        results = [results[i] for i in mmr_order]
+            except Exception as exc:
+                logger.debug("MMR failed (non-fatal): %s", exc)
+
         return results
 
     # ------------------------------------------------------------------

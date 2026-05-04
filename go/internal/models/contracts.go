@@ -125,6 +125,7 @@ type WikiPageSpec struct {
 	Focus        string   `json:"focus"`
 	RequiredData []string `json:"required_data"`
 	Tags         []string `json:"tags"`
+	Keywords     []string `json:"keywords"`
 }
 
 // WikiSection groups pages in the sidebar.
