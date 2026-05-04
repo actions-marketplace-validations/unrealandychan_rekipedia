@@ -71,8 +71,9 @@ def _check_rag_deps() -> None:
 @click.option(
     "--base-url",
     default=None,
-    envvar="REKIPEDIA_BASE_URL",
-    help="Custom base URL for the embedding provider.",
+    envvar="REKIPEDIA_EMBED_BASE_URL",
+    help="Custom base URL for the embedding provider (REKIPEDIA_EMBED_BASE_URL). "
+    "Defaults to the provider's own endpoint; does NOT fall back to REKIPEDIA_BASE_URL.",
 )
 @click.option(
     "--top-k",
@@ -122,7 +123,7 @@ def embed_cmd(
     embed_model = model or llm_cfg.get("embed_model") or "text-embedding-3-small"
     embed_provider = provider or llm_cfg.get("embed_provider", "")
     resolved_api_key = api_key or llm_cfg.get("embed_api_key") or llm_cfg.get("api_key", "")
-    resolved_base_url = base_url or llm_cfg.get("embed_base_url") or llm_cfg.get("base_url", "")
+    resolved_base_url = base_url or llm_cfg.get("embed_base_url") or ""
 
     console.print(f"[bold cyan]rekipedia embed[/bold cyan]")
     console.print(f"  repo       : {repo}")
