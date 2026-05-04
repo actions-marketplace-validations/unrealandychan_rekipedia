@@ -1,5 +1,13 @@
 # Release Notes
 
+## v0.9.27 — Embedding refactor + test fixes
+
+### Changes
+- **Embedding via litellm unified path**: `_embed_batch` now always uses `litellm.embedding()` — `base_url` is passed as `api_base` parameter instead of raw httpx calls. Simpler, more reliable, supports all litellm providers consistently.
+- **Tests updated**: `test_embed_batch_with_base_url` and `test_embed_batch_with_base_url_error` updated to mock litellm instead of httpx.
+
+---
+
 ## v0.9.26 — Ask & Search Quality Improvements
 
 ### New Features

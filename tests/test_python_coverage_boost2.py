@@ -774,31 +774,34 @@ class TestEmbedderHelpers:
 
 class TestEmbedBatch:
     def test_embed_batch_with_base_url(self):
+        """base_url is now passed as api_base to litellm.embedding."""
         from rekipedia.rag.embedder import _embed_batch
         from rekipedia.models.contracts import LLMConfig
         import numpy as np
 
         cfg = LLMConfig(base_url="http://localhost:11434", api_key="test")
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.headers = {"content-type": "application/json"}
-        mock_resp.text = "{}"
-        mock_resp.json.return_value = {"data": [{"embedding": [0.1, 0.2, 0.3]}]}
-        mock_resp.raise_for_status = MagicMock()
+        mock_litellm = MagicMock()
+        mock_litellm.embedding.return_value.data = [{"embedding": [0.1, 0.2, 0.3]}]
 
-        with patch("httpx.post", return_value=mock_resp):
+        with patch.dict("sys.modules", {"litellm": mock_litellm}):
             result = _embed_batch(["hello"], "text-embedding-3-small", cfg)
+
         assert result.shape == (1, 3)
+        call_kwargs = mock_litellm.embedding.call_args[1]
+        assert call_kwargs.get("api_base") == "http://localhost:11434"
 
     def test_embed_batch_with_base_url_error(self):
+        """Errors from litellm when base_url is set should propagate."""
         from rekipedia.rag.embedder import _embed_batch
         from rekipedia.models.contracts import LLMConfig
 
-        cfg = LLMConfig(base_url="http://localhost:11434")
+        cfg = LLMConfig(base_url="http://localhost:11434", api_key="test")
+        mock_litellm = MagicMock()
+        mock_litellm.embedding.side_effect = Exception("connection refused")
 
-        with patch("httpx.post", side_effect=Exception("connection refused")):
+        with patch.dict("sys.modules", {"litellm": mock_litellm}):
             with pytest.raises(Exception, match="connection refused"):
-                _embed_batch(["hello"], "model", cfg)
+                _embed_batch(["hello"], "openai/text-embedding-3-small", cfg)
 
     def test_embed_batch_litellm_path(self):
         from rekipedia.rag.embedder import _embed_batch
