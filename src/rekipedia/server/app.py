@@ -121,11 +121,13 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
 
     def _render_md(path: Path) -> str:
         text = path.read_text(encoding="utf-8")
-        # Strip YAML frontmatter (--- ... ---) before rendering
-        if text.startswith("---"):
-            end = text.find("---", 3)
+        # Strip YAML frontmatter (--- ... ---) before rendering.
+        # If the closing delimiter is missing the content is malformed; skip
+        # stripping entirely so nothing is lost.
+        if text.startswith("---\n") or text.startswith("---\r\n"):
+            end = text.find("\n---", 3)
             if end != -1:
-                text = text[end + 3:].lstrip("\n")
+                text = text[end + 4:].lstrip("\n")
         return md.markdown(
             text,
             extensions=["fenced_code", "tables", "toc"],

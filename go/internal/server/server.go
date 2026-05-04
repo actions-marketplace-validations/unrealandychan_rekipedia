@@ -754,15 +754,17 @@ func writeJSON(w http.ResponseWriter, v any) {
 
 // stripFrontmatter removes a leading YAML frontmatter block (--- ... ---) from
 // markdown content so it is not rendered as visible text.
+// If the closing delimiter is missing the content is returned unchanged so
+// nothing is accidentally discarded.
 func stripFrontmatter(content []byte) []byte {
 	s := string(content)
-	if !strings.HasPrefix(s, "---") {
+	if !strings.HasPrefix(s, "---\n") && !strings.HasPrefix(s, "---\r\n") {
 		return content
 	}
-	end := strings.Index(s[3:], "---")
+	end := strings.Index(s[3:], "\n---")
 	if end == -1 {
 		return content
 	}
-	body := strings.TrimLeft(s[3+end+3:], "\n")
+	body := strings.TrimLeft(s[3+end+4:], "\n")
 	return []byte(body)
 }
