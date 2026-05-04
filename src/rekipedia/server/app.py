@@ -373,6 +373,90 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
             _ctx(request, pages=pages, project_name=_project_name()),
         )
 
+    @app.get("/api/graph-data")
+    async def graph_data():
+        """Return graph nodes + edges as JSON."""
+        db_path = output_dir / "store.db"
+        if not db_path.exists():
+            return JSONResponse({"nodes": [], "edges": []})
+        try:
+            with SqliteStore(db_path) as store:
+                run_id = store.get_latest_run_id(str(repo_root))
+                if not run_id:
+                    return JSONResponse({"nodes": [], "edges": []})
+                symbols = store.get_all_symbols(run_id)
+                raw_rels = store.get_all_relationships(run_id)
+
+            SECTION_COLORS = {
+                "cli": "#4CAF50", "server": "#2196F3", "models": "#FF9800",
+                "storage": "#9C27B0", "synthesis": "#F44336", "analysis": "#00BCD4",
+                "orchestrator": "#FF5722", "extractors": "#795548", "rag": "#607D8B",
+                "sandbox": "#E91E63",
+            }
+            DEFAULT_COLOR = "#9E9E9E"
+
+            nodes = []
+            for s in symbols:
+                name = s[1] if isinstance(s, (list, tuple)) else (s.name if hasattr(s, "name") else s.get("name", ""))
+                file = s[3] if isinstance(s, (list, tuple)) else (s.file if hasattr(s, "file") else s.get("file", ""))
+                kind = s[2] if isinstance(s, (list, tuple)) else (s.kind if hasattr(s, "kind") else s.get("kind", ""))
+                section = ""
+                if file:
+                    parts = file.split("/")
+                    for part in parts:
+                        if part in SECTION_COLORS:
+                            section = part
+                            break
+                nodes.append({
+                    "id": name,
+                    "label": name,
+                    "file": file,
+                    "kind": kind,
+                    "section": section,
+                    "color": SECTION_COLORS.get(section, DEFAULT_COLOR),
+                })
+
+            label_to_id = {n["label"]: n["id"] for n in nodes}
+            id_set = {n["id"] for n in nodes}
+
+            def resolve_id(name: str):
+                if not name: return None
+                if name in label_to_id: return label_to_id[name]
+                if name in id_set: return name
+                parts = name.split(".")
+                if len(parts) > 1 and parts[-1] in label_to_id:
+                    return label_to_id[parts[-1]]
+                if "." in name:
+                    method = name.split(".")[-1]
+                    if method in label_to_id: return label_to_id[method]
+                return None
+
+            edges = []
+            KIND_PRIORITY = ["inherits", "calls", "imports", "unknown"]
+            MAX_EDGES = 2000
+            bucketed: dict[str, list] = {k: [] for k in KIND_PRIORITY}
+
+            for rel in raw_rels:
+                frm = rel[1] if isinstance(rel, (list, tuple)) else (rel.get("from_", "") or rel.get("from", ""))
+                to = rel[2] if isinstance(rel, (list, tuple)) else rel.get("to", "")
+                kind = rel[3] if isinstance(rel, (list, tuple)) else (rel.get("kind", "unknown") or "unknown")
+                kind = kind or "unknown"
+                src_id = resolve_id(frm)
+                tgt_id = resolve_id(to)
+                if src_id and tgt_id and src_id != tgt_id:
+                    bucket = kind if kind in bucketed else "unknown"
+                    bucketed[bucket].append({"source": src_id, "target": tgt_id, "kind": kind})
+
+            for k in KIND_PRIORITY:
+                edges.extend(bucketed[k])
+                if len(edges) >= MAX_EDGES:
+                    edges = edges[:MAX_EDGES]
+                    break
+
+            return JSONResponse({"nodes": nodes, "edges": edges})
+        except Exception as exc:
+            return JSONResponse({"nodes": [], "edges": [], "error": str(exc)})
+
     @app.get("/api/health", response_class=JSONResponse)
     async def api_health():
         db_path = output_dir / "store.db"
