@@ -182,6 +182,7 @@
       <p class="no-results">No wiki pages yet.</p>
     {% endif %}
     </div>
+    <div id="wiki-search-results" style="padding:0 0.1rem;"></div>
     </div>
     {% endif %}
     <hr>
@@ -197,43 +198,77 @@
 <main class="main">
 {% block content %}{% endblock %}
 </main>
-<script>
-  // Toggle category collapse
-  function toggleCat(el) {
-    el.classList.toggle('collapsed');
+<style>
+  .search-result-item {
+    display: block; padding: 0.45rem 0.6rem; border-radius: var(--radius-sm);
+    text-decoration: none; color: var(--muted); font-size: 0.835rem;
+    transition: all 0.15s; border-left: 2px solid transparent;
   }
+  .search-result-item:hover { background: var(--accent-dim); color: var(--text); border-left-color: var(--accent); }
+  .search-result-title { font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .search-result-snippet { font-size: 0.75rem; color: var(--muted2); margin-top: 0.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .search-result-section { font-size: 0.68rem; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 0.1rem; }
+  #wiki-search-results { display: none; }
+  #wiki-search-results.visible { display: block; }
+</style>
+<style>
+  .search-result-item {
+    display: block; padding: 0.45rem 0.6rem; border-radius: var(--radius-sm);
+    text-decoration: none; color: var(--muted); font-size: 0.835rem;
+    transition: all 0.15s; border-left: 2px solid transparent;
+  }
+  .search-result-item:hover { background: var(--accent-dim); color: var(--text); border-left-color: var(--accent); }
+  .search-result-title { font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .search-result-snippet { font-size: 0.75rem; color: var(--muted2); margin-top: 0.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .search-result-section { font-size: 0.68rem; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 0.1rem; }
+  #wiki-search-results { display: none; }
+  #wiki-search-results.visible { display: block; }
+</style>
+<script>
+  function toggleCat(el) { el.classList.toggle('collapsed'); }
 
-  // Search filter
   const searchInput = document.getElementById('wiki-search');
+  const wikiNav = document.getElementById('wiki-nav');
+  const searchResults = document.getElementById('wiki-search-results');
+  let searchTimer = null;
+
   if (searchInput) {
     searchInput.addEventListener('input', function() {
-      const q = this.value.trim().toLowerCase();
-      const groups = document.querySelectorAll('#wiki-nav .cat-group');
-      let anyVisible = false;
-      groups.forEach(group => {
-        let groupHasMatch = false;
-        group.querySelectorAll('a').forEach(a => {
-          const title = a.dataset.title || '';
-          const section = a.dataset.section || '';
-          const match = !q || title.includes(q) || section.includes(q);
-          a.style.display = match ? '' : 'none';
-          if (match) groupHasMatch = true;
-        });
-        group.style.display = groupHasMatch ? '' : 'none';
-        if (groupHasMatch) {
-          anyVisible = true;
-          if (q) group.classList.remove('collapsed'); // expand on search
-        }
-      });
-      let noRes = document.getElementById('wiki-no-results');
-      if (!noRes) {
-        noRes = document.createElement('p');
-        noRes.id = 'wiki-no-results';
-        noRes.className = 'no-results';
-        noRes.textContent = 'No pages found.';
-        document.getElementById('wiki-nav').appendChild(noRes);
+      const q = this.value.trim();
+      clearTimeout(searchTimer);
+      if (!q || q.length < 2) {
+        if (wikiNav) wikiNav.style.display = '';
+        if (searchResults) { searchResults.innerHTML = ''; searchResults.classList.remove('visible'); }
+        return;
       }
-      noRes.style.display = (!anyVisible && q) ? '' : 'none';
+      searchTimer = setTimeout(() => {
+        fetch('/api/wiki/search?q=' + encodeURIComponent(q))
+          .then(r => r.json())
+          .then(items => {
+            if (wikiNav) wikiNav.style.display = 'none';
+            if (!searchResults) return;
+            if (!items.length) {
+              searchResults.innerHTML = '<p class="no-results">No results for “' + q + '”</p>';
+            } else {
+              searchResults.innerHTML = items.map(item =>
+                '<a class="search-result-item" href="/wiki/' + item.slug + '">' +
+                '<div class="search-result-title">◦ ' + item.title + '</div>' +
+                (item.snippet ? '<div class="search-result-snippet">' + item.snippet + '</div>' : '') +
+                '<div class="search-result-section">' + item.section.replace(/[-_]/g,' ') + '</div>' +
+                '</a>'
+              ).join('');
+            }
+            searchResults.classList.add('visible');
+          })
+          .catch(() => {});
+      }, 250);
+    });
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        this.value = '';
+        if (wikiNav) wikiNav.style.display = '';
+        if (searchResults) { searchResults.innerHTML = ''; searchResults.classList.remove('visible'); }
+      }
     });
   }
 </script>

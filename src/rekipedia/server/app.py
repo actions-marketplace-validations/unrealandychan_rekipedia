@@ -393,6 +393,69 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
         except Exception as exc:
             return JSONResponse({"nodes": [], "edges": [], "god_nodes": [], "error": str(exc)})
 
+    @app.get("/api/wiki/search", response_class=JSONResponse)
+    async def wiki_search(q: str = ""):
+        """Full-text search across wiki page titles and content."""
+        q = q.strip().lower()
+        if not q or len(q) < 2:
+            return JSONResponse([])
+        wiki_dir = output_dir / "wiki"
+        if not wiki_dir.exists():
+            return JSONResponse([])
+        results = []
+        for md_file in sorted(wiki_dir.glob("*.md")):
+            raw = md_file.read_text(encoding="utf-8")
+            slug = md_file.stem
+            title = slug.replace("-", " ").title()
+            section = "general"
+            # Parse frontmatter
+            body = raw
+            if raw.startswith("---"):
+                end = raw.find("\n---", 3)
+                if end != -1:
+                    fm_text = raw[3:end]
+                    body = raw[end + 4:].lstrip()
+                    for line in fm_text.splitlines():
+                        if line.startswith("title:"):
+                            t = line.split(":", 1)[1].strip().strip('"').strip("'")
+                            if t:
+                                title = t
+                        elif line.startswith("section:"):
+                            s = line.split(":", 1)[1].strip()
+                            if s:
+                                section = s
+            # Plain-text body (strip markdown symbols)
+            text_body = re.sub(r"[#*`\[\]()>_~]", " ", body)
+            title_match = q in title.lower()
+            section_match = q in section.lower()
+            body_match = q in text_body.lower()
+            if not (title_match or section_match or body_match):
+                continue
+            # Build snippet: find first matching line in body
+            snippet = ""
+            for line in text_body.splitlines():
+                if q in line.lower() and line.strip():
+                    snippet = line.strip()[:120]
+                    break
+            if not snippet and (title_match or section_match):
+                # Just use first non-empty body line
+                for line in text_body.splitlines():
+                    if line.strip():
+                        snippet = line.strip()[:120]
+                        break
+            results.append({
+                "slug": slug,
+                "title": title,
+                "section": section,
+                "snippet": snippet,
+                "title_match": title_match,
+            })
+            if len(results) >= 20:
+                break
+        # Sort: title/section matches first
+        results.sort(key=lambda r: (0 if r["title_match"] else 1, r["title"]))
+        return JSONResponse(results)
+
     @app.get("/graph", response_class=HTMLResponse)
     async def graph_page(request: Request):
         pages = _wiki_pages()
