@@ -265,21 +265,62 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                     seen_ids.add(node_id)
                     nodes.append({"id": node_id, "label": name, "kind": kind or "unknown", "file": file_ or ""})
 
+            # Build label → node_id lookup for fast multi-strategy resolution
+            label_to_id: dict[str, str] = {}
+            id_set: set[str] = set()
+            for n in nodes:
+                label_to_id[n["label"]] = n["id"]
+                id_set.add(n["id"])
+
+            def resolve_id(name: str) -> str | None:
+                """Try multiple strategies to resolve a relationship name to a node ID."""
+                if not name:
+                    return None
+                # 1. Exact label match
+                if name in label_to_id:
+                    return label_to_id[name]
+                # 2. Already a valid node ID
+                if name in id_set:
+                    return name
+                # 3. Dotted module name — try last segment (e.g. rekipedia.cli.scan -> scan)
+                parts = name.split(".")
+                if len(parts) > 1 and parts[-1] in label_to_id:
+                    return label_to_id[parts[-1]]
+                # 4. Class.method format — try method name
+                if "." in name:
+                    method = name.split(".")[-1]
+                    if method in label_to_id:
+                        return label_to_id[method]
+                return None
+
             # raw_rels rows: (run_id, from_, to, kind, file)
-            edges: list[dict] = []
+            # Priority order for edge limit: inherits > calls > imports
+            KIND_PRIORITY = {"inherits": 0, "calls": 1, "imports": 2}
+            raw_edges_by_kind: dict[str, list[dict]] = {"inherits": [], "calls": [], "imports": [], "unknown": []}
             for row in raw_rels:
                 from_ = row[1] if isinstance(row, (list, tuple)) else row["from_"]
                 to_ = row[2] if isinstance(row, (list, tuple)) else row["to"]
                 kind = row[3] if isinstance(row, (list, tuple)) else row["kind"]
-                file_ = row[4] if isinstance(row, (list, tuple)) else row.get("file", "")
-                # Try to match to node ids; fall back to bare name
-                src = next((n["id"] for n in nodes if n["label"] == from_), from_)
-                tgt = next((n["id"] for n in nodes if n["label"] == to_), to_)
-                edges.append({"source": src, "target": tgt, "kind": kind or "unknown"})
+                kind_str = kind or "unknown"
+                src_id = resolve_id(from_)
+                tgt_id = resolve_id(to_)
+                if src_id and tgt_id and src_id != tgt_id:
+                    bucket = kind_str if kind_str in raw_edges_by_kind else "unknown"
+                    raw_edges_by_kind[bucket].append({"source": src_id, "target": tgt_id, "kind": kind_str})
+
+            # Merge in priority order, cap at 2000
+            MAX_EDGES = 2000
+            edges: list[dict] = []
+            edge_count_total = sum(len(v) for v in raw_edges_by_kind.values())
+            for bucket in ["inherits", "calls", "imports", "unknown"]:
+                remaining = MAX_EDGES - len(edges)
+                if remaining <= 0:
+                    break
+                edges.extend(raw_edges_by_kind[bucket][:remaining])
 
             god_nodes_data = [{"name": name, "degree": degree} for name, degree in god_nodes]
 
-            return JSONResponse({"nodes": nodes, "edges": edges, "god_nodes": god_nodes_data})
+            return JSONResponse({"nodes": nodes, "edges": edges, "god_nodes": god_nodes_data, "edge_count_total": edge_count_total})
         except Exception as exc:
             return JSONResponse({"nodes": [], "edges": [], "god_nodes": [], "error": str(exc)})
 

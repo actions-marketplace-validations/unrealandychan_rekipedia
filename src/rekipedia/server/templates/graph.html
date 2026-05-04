@@ -275,6 +275,8 @@
     // Deep-clone to avoid mutation
     const ns = nodes.map(n => ({ ...n }));
     const idSet = new Set(ns.map(n => n.id));
+    const droppedEdges = edges.filter(e => !idSet.has(e.source) || !idSet.has(e.target));
+    if (droppedEdges.length > 0) console.warn(`Dropped ${droppedEdges.length} unresolved edges`);
     const es = edges
       .filter(e => idSet.has(e.source) && idSet.has(e.target))
       .map(e => ({ ...e }));

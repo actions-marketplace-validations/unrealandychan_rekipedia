@@ -637,9 +637,10 @@ type graphEdge struct {
 }
 
 type graphData struct {
-	Nodes    []graphNode      `json:"nodes"`
-	Edges    []graphEdge      `json:"edges"`
-	GodNodes []graph.GodNode  `json:"god_nodes"`
+	Nodes          []graphNode      `json:"nodes"`
+	Edges          []graphEdge      `json:"edges"`
+	GodNodes       []graph.GodNode  `json:"god_nodes"`
+	EdgeCountTotal int              `json:"edge_count_total"`
 }
 
 func (s *Server) handleAPIGraph(w http.ResponseWriter, r *http.Request) {
@@ -676,11 +677,15 @@ func (s *Server) handleAPIGraph(w http.ResponseWriter, r *http.Request) {
 	if godThreshold < 5 { godThreshold = 5 }
 
 	nodeSet := make(map[string]bool)
+	labelToID := make(map[string]string) // label -> node id
+	idSet := make(map[string]bool)
 	var nodes []graphNode
 	for _, sym := range syms {
 		id := sym.Name
 		if nodeSet[id] { continue }
 		nodeSet[id] = true
+		labelToID[sym.Name] = id
+		idSet[id] = true
 		nodes = append(nodes, graphNode{
 			ID:    id,
 			Name:  sym.Name,
@@ -689,20 +694,57 @@ func (s *Server) handleAPIGraph(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	var edges []graphEdge
+	resolveID := func(name string) string {
+		if name == "" { return "" }
+		// 1. Exact label match
+		if id, ok := labelToID[name]; ok { return id }
+		// 2. Already a valid node ID
+		if idSet[name] { return name }
+		// 3. Dotted module name — try last segment
+		if idx := len(name) - 1; idx > 0 {
+			parts := strings.Split(name, ".")
+			if len(parts) > 1 {
+				last := parts[len(parts)-1]
+				if id, ok := labelToID[last]; ok { return id }
+			}
+		}
+		return ""
+	}
+
+	// Bucket edges by kind for priority limiting
+	type edgeBucket struct{ edges []graphEdge }
+	buckets := map[string]*edgeBucket{
+		"inherits": {}, "calls": {}, "imports": {}, "unknown": {},
+	}
+	edgeCountTotal := 0
 	for _, rel := range rels {
-		edges = append(edges, graphEdge{
-			Source: rel.From,
-			Target: rel.To,
-			Kind:   string(rel.Kind),
-		})
+		src := resolveID(rel.From)
+		tgt := resolveID(rel.To)
+		if src == "" || tgt == "" || src == tgt { continue }
+		kind := string(rel.Kind)
+		if kind == "" { kind = "unknown" }
+		edge := graphEdge{Source: src, Target: tgt, Kind: kind}
+		b, ok := buckets[kind]
+		if !ok { b = buckets["unknown"] }
+		b.edges = append(b.edges, edge)
+		edgeCountTotal++
+	}
+
+	const maxEdges = 2000
+	var edges []graphEdge
+	for _, bucket := range []string{"inherits", "calls", "imports", "unknown"} {
+		remaining := maxEdges - len(edges)
+		if remaining <= 0 { break }
+		be := buckets[bucket].edges
+		if len(be) > remaining { be = be[:remaining] }
+		edges = append(edges, be...)
 	}
 
 	if nodes == nil { nodes = []graphNode{} }
 	if edges == nil { edges = []graphEdge{} }
 	godNodes := graph.GetGodNodes(rels, 10)
 	if godNodes == nil { godNodes = []graph.GodNode{} }
-	writeJSON(w, graphData{Nodes: nodes, Edges: edges, GodNodes: godNodes})
+	writeJSON(w, graphData{Nodes: nodes, Edges: edges, GodNodes: godNodes, EdgeCountTotal: edgeCountTotal})
 }
 
 func writeJSON(w http.ResponseWriter, v any) {
