@@ -15,15 +15,16 @@ import (
 )
 
 var scanFlags struct {
-	model         string
-	apiKey        string
-	baseURL       string
-	outputDir     string
-	verbose       bool
-	embedModel    string
-	embedProvider string
-	languages     string
-	force         bool
+	model            string
+	apiKey           string
+	baseURL          string
+	outputDir        string
+	verbose          bool
+	embedModel       string
+	embedProvider    string
+	languages        string
+	force            bool
+	stdoutRefactor   bool
 }
 
 var scanCmd = &cobra.Command{
@@ -75,10 +76,11 @@ Use --force / -f to re-scan regardless.`,
 	var progress func(string) // nil — terminal output handled by pterm in orchestrator
 
 		if err := orchestrator.RunDigest(cmd.Context(), root, outDir, orchestrator.DigestOptions{
-			LLMConfig: cfg,
-			Verbose:   scanFlags.verbose,
-			Progress:  progress,
-			Languages: splitLanguages(scanFlags.languages),
+			LLMConfig:      cfg,
+			Verbose:        scanFlags.verbose,
+			Progress:       progress,
+			Languages:      splitLanguages(scanFlags.languages),
+			StdoutRefactor: scanFlags.stdoutRefactor,
 		}); err != nil {
 			return err
 		}
@@ -115,6 +117,7 @@ func init() {
 	scanCmd.Flags().StringVar(&scanFlags.embedProvider, "embed-provider", "", "Embedding provider")
 	scanCmd.Flags().StringVarP(&scanFlags.languages, "languages", "l", "", "Comma-separated languages to include, e.g. python,typescript,go (default: all)")
 	scanCmd.Flags().BoolVarP(&scanFlags.force, "force", "f", false, "Force re-scan even if a completed scan already exists in the DB")
+	scanCmd.Flags().BoolVar(&scanFlags.stdoutRefactor, "stdout", false, "Print REFACTOR.md to stdout after scan (useful for piping to Claude Code)")
 }
 
 // loadLLMConfig merges flags with config file defaults.
