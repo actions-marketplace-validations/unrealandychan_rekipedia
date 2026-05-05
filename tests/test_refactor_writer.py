@@ -20,7 +20,7 @@ from rekipedia.models.contracts import AnalysisResult, Relationship, Symbol
 
 
 def _rel(from_: str, to: str, kind: str = "calls") -> Relationship:
-    return Relationship(**{"from": from_, "to": to, "kind": kind, "file": None})
+    return Relationship(from_=from_, to=to, kind=kind, file=None)  # type: ignore[arg-type]
 
 
 def _sym(name: str, kind: str = "function", file: str = "src/app.py") -> Symbol:

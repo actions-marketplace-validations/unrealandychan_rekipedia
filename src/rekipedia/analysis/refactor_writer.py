@@ -70,16 +70,16 @@ def detect_issues(combined: AnalysisResult) -> list[dict]:
     """
     issues: list[dict] = []
 
-    # ── Build degree maps ─────────────────────────────────────────────────────
-    in_deg: dict[str, int] = defaultdict(int)   # fan_in  (how many callers)
-    out_deg: dict[str, int] = defaultdict(int)  # fan_out (how many callees)
+    # ── Build fan-in / fan-out maps ───────────────────────────────────────────
+    fan_in: dict[str, int] = defaultdict(int)   # incoming call edges per symbol
+    fan_out: dict[str, int] = defaultdict(int)  # outgoing call edges per symbol
     callers_map: dict[str, list[str]] = defaultdict(list)
 
     for rel in combined.relationships:
         if rel.from_:
-            out_deg[rel.from_] += 1
+            fan_out[rel.from_] += 1
         if rel.to:
-            in_deg[rel.to] += 1
+            fan_in[rel.to] += 1
         if str(rel.kind) in ("call", "calls") and rel.from_ and rel.to:
             callers_map[rel.to].append(rel.from_)
 
@@ -93,9 +93,9 @@ def detect_issues(combined: AnalysisResult) -> list[dict]:
         if kind_str not in ("class", "interface"):
             continue
 
-        fan_in = in_deg[name]
-        fan_out = out_deg[name]
-        degree = fan_in + fan_out
+        sym_fan_in = fan_in[name]
+        sym_fan_out = fan_out[name]
+        degree = sym_fan_in + sym_fan_out
 
         if degree < _GOD_CLASS_DEGREE_THRESHOLD:
             continue
@@ -110,7 +110,7 @@ def detect_issues(combined: AnalysisResult) -> list[dict]:
             "symbol": name,
             "file": sym.file,
             "severity": "high",
-            "metrics": {"lines": lines, "fan_in": fan_in, "fan_out": fan_out},
+            "metrics": {"lines": lines, "fan_in": sym_fan_in, "fan_out": sym_fan_out},
             "suggestion": (
                 f"Split `{name}` into smaller, single-responsibility classes"
             ),
@@ -141,7 +141,7 @@ def detect_issues(combined: AnalysisResult) -> list[dict]:
             "symbol": name,
             "file": sym.file,
             "severity": "low",
-            "metrics": {"fan_in": 0, "fan_out": out_deg[name]},
+            "metrics": {"fan_in": 0, "fan_out": fan_out[name]},
             "suggestion": f"Remove `{name}` — 0 callers detected",
             "callers": [],
         })
