@@ -6,103 +6,224 @@
 <title>{{block "title" .}}rekipedia{{end}}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0f1117;color:#e2e8f0;display:flex;height:100vh;overflow:hidden}
-#sidebar{width:260px;background:#111827;display:flex;flex-direction:column;border-right:1px solid #1e2a3a;flex-shrink:0;overflow-y:auto}
-#sidebar-header{padding:20px 16px 12px;border-bottom:1px solid #1e2a3a}
-#sidebar-logo{font-size:18px;font-weight:700;color:#60a5fa;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px}
-#sidebar-logo svg{flex-shrink:0}
-#sidebar-nav{padding:12px 8px;flex:1}
-#sidebar-nav .nav-section{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#4b5563;padding:8px 8px 4px;margin-top:8px}
-#sidebar-nav a{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;color:#9ca3af;text-decoration:none;font-size:13.5px;margin-bottom:1px;transition:background .15s,color .15s}
-#sidebar-nav a:hover{background:#1e2a3a;color:#e2e8f0}
-#sidebar-nav a.active{background:#1d4ed8;color:#eff6ff;font-weight:500}
-#sidebar-nav a .icon{opacity:.7;font-size:12px}
-#sidebar-footer{padding:12px 16px;border-top:1px solid #1e2a3a;font-size:12px;color:#4b5563}
-#sidebar-footer .repo-name{color:#6b7280;font-weight:600;font-size:13px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#sidebar-footer .repo-path{font-size:11px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#main{flex:1;overflow:hidden;display:flex;flex-direction:column}
-#content{flex:1;overflow-y:auto;padding:32px 40px;max-width:900px;width:100%}
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;
+  --border:#30363d;--border-subtle:#21262d;
+  --text:#e6edf3;--muted:#7d8590;--muted2:#484f58;
+  --accent:#58a6ff;--accent-dim:rgba(88,166,255,.12);
+  --green:#3fb950;--orange:#d29922;--red:#f85149;
+  --code-bg:#161b22;--radius:8px;--radius-sm:5px;
+}
+body{display:flex;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.65}
+
+/* ── Sidebar ──────────────────────────────────────────── */
+.sidebar{width:256px;min-width:256px;background:var(--surface);border-right:1px solid var(--border-subtle);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-header{padding:1.25rem 1.25rem 1rem;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:.6rem}
+.sidebar-logo{width:28px;height:28px;background:linear-gradient(135deg,#1f6feb 0%,#58a6ff 100%);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.sidebar-title{font-size:.9rem;font-weight:700;color:var(--text);letter-spacing:-.2px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-subtitle{font-size:.7rem;color:var(--muted);letter-spacing:.3px}
+.sidebar-nav{padding:.75rem;flex:1}
+.sidebar a{display:flex;align-items:center;gap:.5rem;padding:.38rem .6rem;border-radius:var(--radius-sm);color:var(--muted);text-decoration:none;font-size:.855rem;transition:all .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar a:hover{background:var(--accent-dim);color:var(--text)}
+.sidebar a.active{background:var(--accent-dim);color:var(--accent);font-weight:500}
+.sidebar a .icon{font-size:.8rem;flex-shrink:0;opacity:.7}
+.sidebar-footer{padding:.75rem 1rem;border-top:1px solid var(--border-subtle);font-size:.72rem;color:var(--muted2)}
+.sidebar hr{border:none;border-top:1px solid var(--border-subtle);margin:.4rem 0}
+
+/* ── Search ───────────────────────────────────────────── */
+.search-wrap{padding:.75rem .75rem .5rem;border-bottom:1px solid var(--border-subtle)}
+.search-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.38rem .65rem;font-size:.82rem;color:var(--text);outline:none}
+.search-input::placeholder{color:var(--muted2)}
+.search-input:focus{border-color:var(--accent)}
+
+/* ── Category groups ──────────────────────────────────── */
+.cat-group{margin-bottom:.1rem}
+.cat-header{font-size:.67rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted2);padding:.55rem .6rem .2rem;display:flex;align-items:center;gap:.35rem;cursor:pointer;user-select:none;font-weight:600}
+.cat-header:hover{color:var(--muted)}
+.cat-arrow{font-size:.55rem;transition:transform .15s}
+.cat-group.collapsed .cat-arrow{transform:rotate(-90deg)}
+.cat-group.collapsed .cat-pages{display:none}
+.no-results{font-size:.8rem;color:var(--muted2);padding:.5rem .6rem}
+.search-result-item{display:block;padding:.45rem .6rem;border-radius:var(--radius-sm);text-decoration:none;color:var(--muted);font-size:.835rem;transition:all .15s;border-left:2px solid transparent}
+.search-result-item:hover{background:var(--accent-dim);color:var(--text);border-left-color:var(--accent)}
+.search-result-title{font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-result-snippet{font-size:.75rem;color:var(--muted2);margin-top:.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.search-result-section{font-size:.68rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px;margin-top:.1rem}
+#wiki-search-results{display:none}
+#wiki-search-results.visible{display:block}
+
+/* ── Main ─────────────────────────────────────────────── */
+.main{flex:1;min-width:0}
+#content{padding:2.5rem 3rem;max-width:900px;width:100%}
 @media(max-width:800px){#content{padding:20px 16px}}
-/* Typography */
-#content h1{font-size:1.9em;font-weight:700;color:#f1f5f9;margin-bottom:.5em}
-#content h2{font-size:1.4em;font-weight:600;color:#e2e8f0;margin:1.5em 0 .5em;padding-bottom:.3em;border-bottom:1px solid #1e2a3a}
-#content h3{font-size:1.1em;font-weight:600;color:#cbd5e1;margin:1.2em 0 .4em}
-#content p{line-height:1.75;margin-bottom:1em;color:#d1d5db}
-#content ul,#content ol{margin:.5em 0 1em 1.5em;color:#d1d5db;line-height:1.7}
-#content li{margin-bottom:.25em}
-#content code{background:#1e293b;border:1px solid #334155;padding:2px 6px;border-radius:4px;font-size:.85em;color:#7dd3fc;font-family:"JetBrains Mono","Fira Code",monospace}
-#content pre{background:#0d1424;border:1px solid #1e2a3a;border-radius:8px;padding:16px;overflow-x:auto;margin-bottom:1.2em}
-#content pre code{background:none;border:none;padding:0;color:#e2e8f0;font-size:.85em}
-#content blockquote{border-left:3px solid #3b82f6;margin:1em 0;padding:.5em 1em;background:#111827;color:#9ca3af;border-radius:0 4px 4px 0}
-#content a{color:#60a5fa;text-decoration:none}
-#content a:hover{text-decoration:underline}
-#content table{width:100%;border-collapse:collapse;margin-bottom:1.2em;font-size:.9em}
-#content th{background:#111827;border:1px solid #1e2a3a;padding:8px 12px;text-align:left;color:#9ca3af;font-weight:600}
-#content td{border:1px solid #1e2a3a;padding:8px 12px;color:#d1d5db}
-#content tr:nth-child(even) td{background:#0d1117}
-/* Cards */
-.card{background:#111827;border:1px solid #1e2a3a;border-radius:10px;padding:20px}
+
+/* ── Prose ────────────────────────────────────────────── */
+.prose{max-width:760px}
+.prose h1{font-size:1.75em;font-weight:700;color:#e6edf3;border-bottom:1px solid var(--border);padding-bottom:.35em;margin:0 0 1em}
+.prose h2{font-size:1.25em;font-weight:600;color:#e6edf3;margin:1.75em 0 .5em}
+.prose h3{font-size:1.05em;font-weight:600;color:#cdd9e5;margin:1.25em 0 .4em}
+.prose p{margin:.75em 0;color:var(--text)}
+.prose a{color:var(--accent);text-decoration:none}
+.prose a:hover{text-decoration:underline}
+.prose code{background:var(--code-bg);border:1px solid var(--border-subtle);padding:.18em .45em;border-radius:4px;font-size:.85em;font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;color:#e6edf3}
+.prose pre{background:var(--code-bg);border:1px solid var(--border-subtle);border-radius:var(--radius);padding:1.1em 1.25em;overflow-x:auto;margin:1.1em 0;font-size:.875em}
+.prose pre code{background:none;border:none;padding:0;font-size:1em}
+.prose table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.9em}
+.prose th{background:var(--surface2);border:1px solid var(--border);padding:.5em .85em;text-align:left;font-weight:600;color:#cdd9e5}
+.prose td{border:1px solid var(--border);padding:.45em .85em}
+.prose tr:hover td{background:rgba(255,255,255,.02)}
+.prose ul,.prose ol{padding-left:1.6em;margin:.75em 0}
+.prose li{margin:.3em 0}
+.prose blockquote{border-left:3px solid var(--border);margin:1em 0;padding:.5em 1em;color:var(--muted);background:var(--surface2);border-radius:0 4px 4px 0}
+.prose hr{border:none;border-top:1px solid var(--border);margin:1.5em 0}
+
+/* ── Cards ────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border-subtle);border-radius:10px;padding:20px}
 .card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
-.stat-card{background:#111827;border:1px solid #1e2a3a;border-radius:10px;padding:16px 20px}
-.stat-card .stat-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#4b5563;margin-bottom:6px}
+.stat-card{background:var(--surface);border:1px solid var(--border-subtle);border-radius:10px;padding:16px 20px}
+.stat-card .stat-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted2);margin-bottom:6px}
 .stat-card .stat-value{font-size:24px;font-weight:700;color:#f1f5f9}
-.stat-card .stat-sub{font-size:11px;color:#6b7280;margin-top:4px}
-/* Btn */
+.stat-card .stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* ── Buttons ──────────────────────────────────────────── */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13.5px;font-weight:500;cursor:pointer;border:none;text-decoration:none;transition:background .15s}
 .btn-primary{background:#2563eb;color:#eff6ff}.btn-primary:hover{background:#1d4ed8}
-.btn-secondary{background:#1e2a3a;color:#9ca3af;border:1px solid #334155}.btn-secondary:hover{background:#253347;color:#e2e8f0}
-/* Page list */
+.btn-secondary{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}.btn-secondary:hover{background:#253347;color:var(--text)}
+
+/* ── Page list ────────────────────────────────────────── */
 .page-list{list-style:none;margin:0;padding:0}
-.page-list li{border-bottom:1px solid #1e2a3a}
+.page-list li{border-bottom:1px solid var(--border-subtle)}
 .page-list li:last-child{border-bottom:none}
-.page-list a{display:flex;align-items:center;gap:10px;padding:10px 14px;color:#9ca3af;text-decoration:none;font-size:13.5px;border-radius:6px;transition:background .12s,color .12s}
-.page-list a:hover{background:#1e2a3a;color:#e2e8f0}
-.page-list a .page-num{font-size:11px;color:#4b5563;min-width:28px}
+.page-list a{display:flex;align-items:center;gap:10px;padding:10px 14px;color:var(--muted);text-decoration:none;font-size:13.5px;border-radius:6px;transition:background .12s,color .12s}
+.page-list a:hover{background:var(--surface2);color:var(--text)}
+.page-list a .page-num{font-size:11px;color:var(--muted2);min-width:28px}
 </style>
 {{block "extra_head" .}}{{end}}
 </head>
 <body>
-<nav id="sidebar">
-  <div id="sidebar-header">
-    <div id="sidebar-logo">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      rekipedia
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">📖</div>
+    <div>
+      <div class="sidebar-title">{{.RepoName}}</div>
+      <div class="sidebar-subtitle">rekipedia</div>
     </div>
   </div>
-  <div id="sidebar-nav">
-    <div class="nav-section">Navigation</div>
+
+  <!-- Search bar -->
+  <div class="search-wrap">
+    <input id="wiki-search" class="search-input" type="search" placeholder="🔍 Search pages…" autocomplete="off">
+  </div>
+
+  <div class="sidebar-nav">
+    <!-- Navigation links -->
     <a href="/" {{if eq .ActivePage "home"}}class="active"{{end}}>
-      <span class="icon">🏠</span> Home
+      <span class="icon">⌂</span> Overview
     </a>
     <a href="/ask" {{if eq .ActivePage "ask"}}class="active"{{end}}>
-      <span class="icon">💬</span> Ask
+      <span class="icon">💬</span> Ask AI
     </a>
     <a href="/graph" {{if eq .ActivePage "graph"}}class="active"{{end}}>
-      <span class="icon">🕸</span> Graph
+      <span class="icon">🕸</span> Dependency Graph
     </a>
-    {{if .Sections}}
-    {{range .Sections}}
-    <div class="nav-section">{{.Title}}</div>
-    {{range .Pages}}
-    <a href="/wiki/{{.Slug}}" {{if eq $.ActiveSlug .Slug}}class="active"{{end}}>{{.Title}}</a>
-    {{end}}
-    {{end}}
-    {{else if .Pages}}
-    <div class="nav-section">Wiki Pages</div>
-    {{range .Pages}}
-    <a href="/wiki/{{.Slug}}" {{if eq $.ActiveSlug .Slug}}class="active"{{end}}>{{.Title}}</a>
-    {{end}}
-    {{end}}
+
+    <hr>
+
+    <!-- Wiki pages — grouped by section -->
+    <div id="wiki-nav">
+      {{if .Sections}}
+        {{range .Sections}}
+        <div class="cat-group" data-cat="{{.ID}}">
+          <div class="cat-header" onclick="toggleCat(this.parentElement)">
+            <span class="cat-arrow">▾</span> {{.Title}}
+          </div>
+          <div class="cat-pages">
+            {{range .Pages}}
+            <a href="/wiki/{{.Slug}}"
+               data-title="{{.Title}}"
+               data-section="{{.Section}}"
+               {{if eq $.ActiveSlug .Slug}}class="active"{{end}}>
+              <span class="icon">◦</span> {{.Title}}
+            </a>
+            {{end}}
+          </div>
+        </div>
+        {{end}}
+      {{else if .Pages}}
+        {{range .Pages}}
+        <a href="/wiki/{{.Slug}}"
+           data-title="{{.Title}}"
+           data-section="{{.Section}}"
+           {{if eq $.ActiveSlug .Slug}}class="active"{{end}}>
+          <span class="icon">◦</span> {{.Title}}
+        </a>
+        {{end}}
+      {{else}}
+        <p class="no-results">No wiki pages yet.</p>
+      {{end}}
+    </div>
+
+    <!-- Search results (shown when searching) -->
+    <div id="wiki-search-results" style="padding:0 .1rem"></div>
   </div>
-  <div id="sidebar-footer">
-    <div class="repo-name">{{.RepoName}}</div>
-    <div class="repo-path">{{.RepoPath}}</div>
-  </div>
+
+  <div class="sidebar-footer">Powered by rekipedia · {{.RepoPath}}</div>
 </nav>
-<div id="main">
+
+<div class="main">
   <div id="content">
     {{block "content" .}}{{end}}
   </div>
 </div>
+
+<script>
+  function toggleCat(el) { el.classList.toggle('collapsed'); }
+
+  const searchInput = document.getElementById('wiki-search');
+  const wikiNav    = document.getElementById('wiki-nav');
+  const searchRes  = document.getElementById('wiki-search-results');
+  let searchTimer  = null;
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const q = this.value.trim();
+      clearTimeout(searchTimer);
+      if (!q || q.length < 2) {
+        if (wikiNav) wikiNav.style.display = '';
+        if (searchRes) { searchRes.innerHTML = ''; searchRes.classList.remove('visible'); }
+        return;
+      }
+      searchTimer = setTimeout(() => {
+        fetch('/api/wiki/search?q=' + encodeURIComponent(q))
+          .then(r => r.json())
+          .then(items => {
+            if (wikiNav) wikiNav.style.display = 'none';
+            if (!searchRes) return;
+            if (!items.length) {
+              searchRes.innerHTML = '<p class="no-results">No results for "' + q + '"</p>';
+            } else {
+              searchRes.innerHTML = items.map(item =>
+                '<a class="search-result-item" href="/wiki/' + item.slug + '">' +
+                '<div class="search-result-title">◦ ' + item.title + '</div>' +
+                (item.snippet ? '<div class="search-result-snippet">' + item.snippet + '</div>' : '') +
+                '<div class="search-result-section">' + item.section.replace(/[-_]/g,' ') + '</div>' +
+                '</a>'
+              ).join('');
+            }
+            searchRes.classList.add('visible');
+          })
+          .catch(() => {});
+      }, 250);
+    });
+
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        this.value = '';
+        if (wikiNav) wikiNav.style.display = '';
+        if (searchRes) { searchRes.innerHTML = ''; searchRes.classList.remove('visible'); }
+      }
+    });
+  }
+</script>
 </body>
 </html>

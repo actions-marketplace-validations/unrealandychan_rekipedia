@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.9.37 — Go UI sync: sidebar search + section grouping
+
+### Changes
+- **Go `base.html` rewrite**: Full feature-parity with Python UI — sidebar now shows wiki pages grouped by `section` frontmatter field with collapsible category headers.
+- **Search bar**: Live full-text search input at top of sidebar (250ms debounce), calls `/api/wiki/search`, shows title + snippet + section label. Escape to return to category view.
+- **Design refresh**: Migrated to GitHub-style CSS variables (`--bg`, `--surface`, `--accent`, etc.) matching Python side exactly.
+
+---
+
 ## v0.9.36 — Go sync: file-level graph + wiki full-text search
 
 ### Changes
