@@ -80,6 +80,10 @@ class Snapshotter:
     ) -> None:
         self._root = repo_root.resolve()
         patterns = list(_DEFAULT_IGNORE) + (extra_ignore or [])
+        # Also honour the repo's own .gitignore if present
+        gitignore = self._root / ".gitignore"
+        if gitignore.exists():
+            patterns += gitignore.read_text(errors="replace").splitlines()
         self._spec = pathspec.PathSpec.from_lines("gitignore", patterns)
         # Normalise to lowercase set; None means "all languages"
         self._languages: set[str] | None = (
