@@ -34,6 +34,7 @@ def _load_config(repo: Path) -> dict:
 @click.option("--embed-provider", default=None, envvar="REKIPEDIA_EMBED_PROVIDER", help="Embedding provider prefix (e.g. openai, ollama, azure). Combined with --embed-model as 'provider/model'.")
 @click.option("--languages", "-l", default=None, help="Comma-separated list of languages to include, e.g. python,typescript,go. Default: all.")
 @click.option("--force", "-f", is_flag=True, default=False, help="Force re-scan even if a completed scan already exists in the DB.")
+@click.option("--no-llm", is_flag=True, default=False, help="Skip LLM enrichment for refactoring issues (static analysis only).")
 def scan_cmd(
     repo: Path,
     model: str | None,
@@ -44,6 +45,7 @@ def scan_cmd(
     embed_provider: str | None,
     languages: str | None,
     force: bool,
+    no_llm: bool,
 ) -> None:
     """Scan REPO and (re)build the rekipedia knowledge store.
 
@@ -59,6 +61,7 @@ def scan_cmd(
         rekipedia scan ./my-project --no-docker
         rekipedia scan . --verbose
         rekipedia scan . --force       # force re-scan even if DB exists
+        rekipedia scan . --no-llm      # static analysis only, skip LLM enrichment
         REKIPEDIA_MODEL=gpt-4o rekipedia scan .
     """
     repo = repo.resolve()
@@ -132,6 +135,7 @@ def scan_cmd(
             verbose=verbose,
             progress=_log,
             languages=lang_list,
+            no_llm=no_llm,
         )
     except Exception as exc:
         if verbose:
