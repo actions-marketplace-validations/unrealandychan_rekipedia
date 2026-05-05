@@ -17,6 +17,7 @@ No hallucinations, no guessing — every answer is grounded in your actual codeb
 - **DeepWiki-style sections**: pages grouped into logical sections (`getting-started`, `architecture`, `core-components`, etc.)
 - **Wiki sidebar categories**: `reki serve` sidebar groups pages by `section` field with collapsible headers
 - **Live search**: type in the sidebar search box to filter wiki pages by title or category instantly
+- **Refactor analysis**: `reki refactor` detects code smells (god class, circular deps, dead code, high coupling) with LLM-enriched suggestions — outputs `REFACTOR.md` + `refactor_report.json`
 - **Context slicing**: each page only receives the data it needs (~40–60% token reduction vs fixed-layout approach)
 - **Hybrid RAG Q&A**: FAISS-indexed code chunks + wiki pages give the LLM full codebase context when answering questions
 - **Embed provider choice**: `--embed-provider openai|ollama|azure|...` — any litellm-compatible embedding model
@@ -76,6 +77,7 @@ brew install rekipedia
 | `rekipedia export --format graphml\|cypher\|obsidian` | Export graph to GraphML / Neo4j Cypher / Obsidian wikilinks |
 | `rekipedia mcp` | Start JSON-RPC 2.0 MCP stdio server (6 tools for AI coding assistants) |
 | `rekipedia watch add\|start\|list\|remove` | Watch repos and auto-index on file change |
+| `rekipedia refactor [REPO]` | Detect code smells + generate `REFACTOR.md` and `refactor_report.json` (use `--no-llm` for static only) |
 
 ---
 

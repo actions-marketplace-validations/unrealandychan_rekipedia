@@ -1,5 +1,24 @@
 # Release Notes
 
+## v0.9.38 — Refactor Analysis Pipeline
+
+### New Features
+- **`reki refactor` command** (Python + Go): Standalone command to detect code smells and generate `REFACTOR.md` + `refactor_report.json` without running a full scan.
+- **Static analysis detectors** (Python + Go): Five detectors — `god_class`, `circular_dep`, `dead_code`, `large_file`, `high_coupling` — plus graph metrics: `high_fan_in`, `high_fan_out`, `deep_inheritance`.
+- **LLM enrichment** (`--no-llm` to skip): Each detected issue gets an AI-generated problem statement, concrete refactoring suggestion, safest starting point, and risk level.
+- **REFACTOR.md output**: Human/agent-readable Markdown guide grouped by severity (🔴 High / 🟡 Medium / 🟢 Quick Wins).
+- **`refactor_report.json` output**: Machine-readable JSON report for CI/tooling integration.
+- **`--with-refactor` flag on `reki scan`**: Auto-generate REFACTOR.md after scan completes.
+- **`--stdout` flag**: Print REFACTOR.md to stdout for piping (`reki scan . --stdout | claude`).
+- **`--no-llm` flag**: Run static analysis only, skip LLM enrichment.
+
+### Internal
+- New `refactor_types.go` — unified `RefactorIssue` struct (single source of truth across detector, enricher, writer).
+- `Metrics` field unified to `map[string]any` across all Go refactor files.
+- Python + Go feature parity: identical detectors, thresholds, severity levels, and output format.
+
+---
+
 ## v0.9.37 — Go UI sync: sidebar search + section grouping
 
 ### Changes
