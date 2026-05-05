@@ -49,6 +49,7 @@ def run_digest(
     progress: Callable[[str], None] | None = None,
     languages: list[str] | None = None,
     no_llm: bool = False,
+    stdout_refactor: bool = False,
 ) -> None:
     """Full scan pipeline.
 
@@ -61,6 +62,7 @@ def run_digest(
         progress: Optional callback that receives status strings for display.
         languages: Optional list of language names to include (e.g. ["python"]).
         no_llm: Skip LLM enrichment for refactoring issues (static analysis only).
+        stdout_refactor: When True, also print REFACTOR.md to stdout after writing.
     """
     if verbose:
         logging.basicConfig(
@@ -323,6 +325,18 @@ def run_digest(
             logger.info("Wrote agent hint: %s", p)
         write_mcp_json(repo_root)
         update_gitignore(repo_root)
+
+        # ── 7c. Refactor report ───────────────────────────────────────────
+        from rekipedia.analysis.refactor_writer import write_refactor_outputs  # noqa: PLC0415
+
+        _vlog("Writing refactor report…")
+        _log("Writing refactor report…")
+        write_refactor_outputs(
+            combined_for_build,
+            output_dir,
+            stdout=stdout_refactor,
+        )
+        _vlog("REFACTOR.md + refactor_report.json written")
 
         # ── 8. RAG embed (optional — skip if no embed key configured) ─
         embed_model = (

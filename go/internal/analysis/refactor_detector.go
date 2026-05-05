@@ -11,15 +11,7 @@ import (
 	"github.com/unrealandychan/rekipedia/internal/models"
 )
 
-// RefactorIssue represents a single detected refactoring issue.
-type RefactorIssue struct {
-	Kind     string                 `json:"kind"`     // "god_class" | "circular_dep" | "dead_code" | "high_fan_in" | "high_fan_out" | "deep_inheritance"
-	Symbol   string                 `json:"symbol"`   // affected symbol name
-	File     string                 `json:"file"`
-	Severity string                 `json:"severity"` // "high" | "medium" | "low"
-	Metrics  map[string]interface{} `json:"metrics"`  // raw numbers (degree, depth, etc.)
-	Callers  []string               `json:"callers"`  // affected callers / dependents
-}
+// RefactorIssue is defined in refactor_types.go.
 
 // isExported returns true if the symbol is considered exported/public.
 // Go (.go files): exported = first letter uppercase.

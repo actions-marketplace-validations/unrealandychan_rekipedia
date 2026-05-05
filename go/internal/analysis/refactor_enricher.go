@@ -16,34 +16,20 @@ import (
 )
 
 // ── Thresholds ────────────────────────────────────────────────────────────────
+// godClassDegreeThreshold is defined in refactor_types.go.
 
 const (
-	godClassDegreeThreshold   = 10
-	largeFileSymbolThreshold  = 30
-	highCouplingOutThreshold  = 10
-	deadCodeMinFileSymbols    = 3
-	maxEnricherWorkers        = 4
-	maxCycles                 = 20
-	maxCycleLen               = 8
+	largeFileSymbolThreshold = 30
+	highCouplingOutThreshold = 10
+	deadCodeMinFileSymbols   = 3
+	maxEnricherWorkers       = 4
+	maxCycles                = 20
+	maxCycleLen              = 8
 )
 
 // ── Data model ────────────────────────────────────────────────────────────────
 
-// RefactorIssue represents a single refactoring issue detected by static analysis.
-type RefactorIssue struct {
-	Kind     string         `json:"kind"`    // "god_class" | "circular_dep" | "dead_code" | "large_file" | "high_coupling"
-	Symbol   string         `json:"symbol"`  // primary symbol / file name
-	File     string         `json:"file"`    // source file path
-	Metrics  map[string]any `json:"metrics"` // raw numeric metrics
-	Callers  []string       `json:"callers"` // top-5 callers
-	Notes    []string       `json:"notes"`   // relevant tech-lead notes
-
-	// Populated by LLM enrichment (empty strings when --no-llm)
-	Problem    string `json:"problem"`
-	Suggestion string `json:"suggestion"`
-	StartHere  string `json:"start_here"`
-	Risk       string `json:"risk"`
-}
+// RefactorIssue is defined in refactor_types.go.
 
 // ── Prompt templates ──────────────────────────────────────────────────────────
 
