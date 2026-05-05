@@ -242,6 +242,7 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                 executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
                 # Load conversation history for multi-turn context
+                db_path = output_dir / "store.db"
                 chat_history: list[dict] = []
                 if db_path.exists():
                     with SqliteStore(db_path) as _hs:
