@@ -9,6 +9,7 @@ from pathlib import Path
 
 from rekipedia.llm.client import LLMClient, LLMCaller
 from rekipedia.models.contracts import AnalysisResult, LLMConfig
+from rekipedia.synthesis.slug_utils import sanitize_slug as _sanitize_slug
 
 _SYSTEM_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "digest_system.md"
 

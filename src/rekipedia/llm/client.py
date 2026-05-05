@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 import time
 from typing import Iterator, Protocol, runtime_checkable
 
@@ -17,6 +18,45 @@ os.environ.setdefault("REQUESTS_CA_BUNDLE", certifi.where())
 from rekipedia.models.contracts import LLMConfig
 
 logger = logging.getLogger("rekipedia.llm")
+
+# ── Global token counter (thread-safe) ──────────────────────────────────────
+
+class _TokenCounter:
+    """Process-wide accumulator for LLM token usage."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.prompt_tokens = 0
+        self.completion_tokens = 0
+        self.calls = 0
+
+    def add(self, usage) -> None:  # usage: litellm Usage object or None
+        if usage is None:
+            return
+        with self._lock:
+            self.prompt_tokens += getattr(usage, "prompt_tokens", 0) or 0
+            self.completion_tokens += getattr(usage, "completion_tokens", 0) or 0
+            self.calls += 1
+
+    @property
+    def total_tokens(self) -> int:
+        return self.prompt_tokens + self.completion_tokens
+
+    def reset(self) -> None:
+        with self._lock:
+            self.prompt_tokens = 0
+            self.completion_tokens = 0
+            self.calls = 0
+
+    def summary(self) -> str:
+        return (
+            f"Token usage — {self.calls} LLM call(s): "
+            f"{self.prompt_tokens:,} prompt + {self.completion_tokens:,} completion "
+            f"= {self.total_tokens:,} total"
+        )
+
+
+TOKEN_COUNTER = _TokenCounter()
 
 # Timeout per LLM call in seconds — wiki pages can be long, allow generous time
 _DEFAULT_TIMEOUT = int(os.environ.get("REKIPEDIA_TIMEOUT", "180"))
@@ -113,6 +153,7 @@ class LLMClient:
 
         def _call():
             response = litellm.completion(**kwargs)
+            TOKEN_COUNTER.add(getattr(response, "usage", None))
             return response.choices[0].message.content or ""
 
         return _with_retry(_call)

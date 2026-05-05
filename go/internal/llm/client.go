@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	openai "github.com/sashabaranov/go-openai"
@@ -19,6 +20,63 @@ import (
 
 // ErrEmptyResponse is returned when the LLM returns no choices.
 var ErrEmptyResponse = errors.New("llm: empty response")
+
+// ── Token counter ─────────────────────────────────────────────────────────────
+
+// TokenStats holds accumulated token usage for a scan run.
+type TokenStats struct {
+	mu               sync.Mutex
+	PromptTokens     int
+	CompletionTokens int
+	Calls            int
+}
+
+// Add accumulates usage from a completion response.
+func (t *TokenStats) Add(usage openai.Usage) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.PromptTokens += usage.PromptTokens
+	t.CompletionTokens += usage.CompletionTokens
+	t.Calls++
+}
+
+// Total returns total tokens used.
+func (t *TokenStats) Total() int { return t.PromptTokens + t.CompletionTokens }
+
+// Reset clears the counter.
+func (t *TokenStats) Reset() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.PromptTokens = 0
+	t.CompletionTokens = 0
+	t.Calls = 0
+}
+
+// Summary returns a human-readable token usage line.
+func (t *TokenStats) Summary() string {
+	return fmt.Sprintf(
+		"Token usage — %d LLM call(s): %s prompt + %s completion = %s total",
+		t.Calls,
+		formatInt(t.PromptTokens),
+		formatInt(t.CompletionTokens),
+		formatInt(t.Total()),
+	)
+}
+
+func formatInt(n int) string {
+	s := fmt.Sprintf("%d", n)
+	out := make([]byte, 0, len(s)+4)
+	for i, c := range s {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			out = append(out, ',')
+		}
+		out = append(out, byte(c))
+	}
+	return string(out)
+}
+
+// GlobalTokens is the process-wide counter reset at the start of each scan.
+var GlobalTokens = &TokenStats{}
 
 // Caller is the interface accepted by orchestrators — allows test injection.
 type Caller interface {
@@ -135,6 +193,7 @@ func (c *Client) CallWithRetry(ctx context.Context, system, prompt string, maxRe
 		if len(resp.Choices) == 0 {
 			return "", ErrEmptyResponse
 		}
+		GlobalTokens.Add(resp.Usage)
 		return resp.Choices[0].Message.Content, nil
 	}
 	return "", fmt.Errorf("llm call failed after %d retries: %w", maxRetries, lastErr)

@@ -392,12 +392,14 @@ class RefactorEnricher:
         combined: "AnalysisResult",
         *,
         notes: list[dict] | None = None,
+        progress_cb: "Callable[[str], None] | None" = None,
     ) -> list[RefactorIssue]:
         """Detect issues from *combined* and enrich them with LLM explanations.
 
         Args:
             combined: Merged AnalysisResult from all shards.
             notes: Optional list of tech-lead notes (from sqlite_store).
+            progress_cb: Optional callback receiving status strings.
 
         Returns:
             List of RefactorIssues, each with ``problem``, ``suggestion``,
@@ -408,9 +410,9 @@ class RefactorEnricher:
         _attach_callers(issues, combined)
         if notes:
             _attach_notes(issues, notes)
-        return self.enrich(issues)
+        return self.enrich(issues, progress_cb=progress_cb)
 
-    def enrich(self, issues: list[RefactorIssue]) -> list[RefactorIssue]:
+    def enrich(self, issues: list[RefactorIssue], *, progress_cb: "Callable[[str], None] | None" = None) -> list[RefactorIssue]:
         """Enrich *issues* with LLM explanations (batch, concurrent).
 
         If no LLM caller was provided the issues are returned unchanged —
@@ -425,6 +427,9 @@ class RefactorEnricher:
         if not self._caller or not issues:
             return issues
 
+        _cb = progress_cb or (lambda _: None)
+        _done = 0
+
         with ThreadPoolExecutor(max_workers=_MAX_ENRICHER_WORKERS) as executor:
             futures = {
                 executor.submit(self._enrich_one, issue): issue
@@ -436,6 +441,9 @@ class RefactorEnricher:
                     future.result()
                 except Exception as exc:  # noqa: BLE001
                     logger.warning("Enrichment failed for %s/%s: %s", issue.kind, issue.symbol, exc)
+                finally:
+                    _done += 1
+                    _cb(f"Enriched {_done}/{len(issues)} refactor issues")
         return issues
 
     # ── Internal ─────────────────────────────────────────────────────

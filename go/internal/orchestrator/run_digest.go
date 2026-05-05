@@ -49,6 +49,9 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 	start := time.Now()
 	cb := opts.Progress // optional non-terminal callback
 
+	// Reset token counter for this scan run
+	llm.GlobalTokens.Reset()
+
 	// ── Header ─────────────────────────────────────────────────────────────
 	pterm.DefaultSection.WithLevel(1).Printf("rekipedia scan ▸ %s", repoRoot)
 	if cb != nil {
@@ -289,9 +292,13 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 	for _, r := range mergedResults {
 		totalSymbols += len(r.Symbols)
 	}
+	tokenLine := ""
+	if llm.GlobalTokens.Calls > 0 {
+		tokenLine = "\n" + llm.GlobalTokens.Summary()
+	}
 	summary := fmt.Sprintf(
-		"Run ID  : %s\nPages   : %d\nSymbols : %d\nElapsed : %s\nOutput  : %s",
-		runID[:8], len(pages), totalSymbols, elapsed, outputDir,
+		"Run ID  : %s\nPages   : %d\nSymbols : %d\nElapsed : %s\nOutput  : %s%s",
+		runID[:8], len(pages), totalSymbols, elapsed, outputDir, tokenLine,
 	)
 	pterm.DefaultBox.WithTitle("✅ Scan Complete").Println(summary)
 	if cb != nil {

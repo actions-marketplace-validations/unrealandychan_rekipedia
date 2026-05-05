@@ -25,6 +25,9 @@ from rich.progress import (
     TextColumn,
     TimeRemainingColumn,
 )
+from rich.console import Console as _Console
+
+_console = _Console(stderr=False)
 
 from rekipedia.models.contracts import AnalysisResult, LLMConfig
 from rekipedia.orchestrator.sharding import ShardPlanner
@@ -90,6 +93,10 @@ def run_digest(
 
     store = SqliteStore(db_path)
     store.open()
+
+    # Reset token counter for this scan run
+    from rekipedia.llm.client import TOKEN_COUNTER  # noqa: PLC0415
+    TOKEN_COUNTER.reset()
 
     try:
         store.upsert_run(run_id, str(repo_root))
@@ -197,7 +204,43 @@ def run_digest(
         _enricher_caller = None if no_llm else LLMClient(llm_config)
         enricher = RefactorEnricher(_enricher_caller)
         notes_raw = store.get_rationale_notes(run_id)
-        refactor_issues = enricher.enrich_all(combined, notes=notes_raw)
+
+        _enrich_count = [0]
+        _enrich_total_holder: list[int] = []
+
+        def _enrich_progress(msg: str) -> None:
+            _log(msg)
+
+        _enrich_rich = Progress(
+            SpinnerColumn(),
+            TextColumn("[bold yellow]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            transient=True,
+        )
+        with _enrich_rich:
+            # We don't know total until detect_issues runs inside enrich_all,
+            # so start indeterminate then update when first callback fires
+            _etask = _enrich_rich.add_task("[yellow]🔧 Enriching refactor issues…", total=None)
+
+            _etask_total_set = [False]
+
+            def _enrich_progress_rich(msg: str) -> None:  # noqa: ANN202
+                _log(msg)
+                # Parse "Enriched N/M" to update bar
+                if "/" in msg and not _etask_total_set[0]:
+                    try:
+                        _, total_str = msg.split("/", 1)
+                        total = int(total_str.strip().split()[0])
+                        _enrich_rich.update(_etask, total=total,
+                                            description=f"[yellow]🔧 Enriching refactor issues…")
+                        _etask_total_set[0] = True
+                    except (ValueError, IndexError):
+                        pass
+                if "/" in msg:
+                    _enrich_rich.update(_etask, advance=1)
+
+            refactor_issues = enricher.enrich_all(combined, notes=notes_raw, progress_cb=_enrich_progress_rich)
         _vlog(f"  {len(refactor_issues)} refactoring issue(s) detected")
         if no_llm:
             _vlog("  --no-llm: skipped LLM enrichment for refactoring issues")
@@ -372,6 +415,14 @@ def run_digest(
 
         store.update_run_status(run_id, "success")
         _vlog("Done.")
+
+        # ── Token usage summary ───────────────────────────────────────
+        from rekipedia.llm.client import TOKEN_COUNTER  # noqa: PLC0415
+        if TOKEN_COUNTER.calls > 0:
+            _console.print(
+                f"\n[bold cyan]📊 {TOKEN_COUNTER.summary()}[/bold cyan]"
+            )
+            _log(TOKEN_COUNTER.summary())
 
     except Exception:
         store.update_run_status(run_id, "failed")
