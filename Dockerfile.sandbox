@@ -8,7 +8,16 @@
 FROM python:3.12-slim
 
 # --- dependencies (only what the extractors need) ---
-RUN pip install --no-cache-dir pydantic>=2.0 pathspec>=0.12 pyyaml>=6.0
+RUN pip install --no-cache-dir \
+    pydantic>=2.0 \
+    pathspec>=0.12 \
+    pyyaml>=6.0 \
+    tree-sitter>=0.21 \
+    tree-sitter-go \
+    tree-sitter-python \
+    tree-sitter-typescript \
+    tree-sitter-rust \
+    tree-sitter-java
 
 # --- copy only the code needed for static analysis ---
 WORKDIR /app

@@ -1,5 +1,12 @@
 # Release Notes
 
+## v0.10.4 — Fix Docker Sandbox Missing tree-sitter Dependencies
+
+### Bug Fix
+- **Docker sandbox `ModuleNotFoundError`**: `Dockerfile.sandbox` was missing `tree-sitter`, `tree-sitter-go`, `tree-sitter-python`, `tree-sitter-typescript`, `tree-sitter-rust`, `tree-sitter-java` — Go shards (and others) would always fail inside the Docker sandbox.
+
+---
+
 ## v0.10.3 — Wiki Generation Quality Improvements
 
 ### Improvements
