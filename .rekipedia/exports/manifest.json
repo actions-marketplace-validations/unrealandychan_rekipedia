@@ -1,86 +1,131 @@
 {
-  "run_id": "ddd07b2a-4b8b-4eba-87b9-f18420b0a066",
-  "generated_at": "2026-05-05T03:45:22.006394+00:00",
-  "file_count": 344,
-  "symbol_count": 905,
-  "relationship_count": 923,
+  "run_id": "8347ebcb-1ed4-45d9-b8d6-4e9577dd76f5",
+  "generated_at": "2026-05-05T04:26:10.779866+00:00",
+  "file_count": 285,
+  "symbol_count": 1666,
+  "relationship_count": 6761,
   "nav_order": [
-    "installation",
+    "quick-start",
     "index",
+    "installation-and-setup",
+    "configuration",
+    "repository-structure",
     "architecture-overview",
-    "data-flow",
-    "module-llm",
-    "module-storage",
-    "module-cli",
-    "cli-reference",
+    "architecture-data-flow",
+    "cli-command-line",
+    "search-and-ranking",
+    "scan-pipeline",
+    "refactor-analysis",
     "python-api",
-    "data-structures",
-    "testing",
+    "sandbox-and-skills",
+    "cli-reference",
+    "go-api",
     "algorithms",
+    "performance",
+    "data-models",
+    "testing",
+    "contributing",
+    "technical-debt",
     "deployment",
-    "integrations",
-    "technical-debt"
+    "release-process",
+    "integrations"
   ],
   "pages": [
     {
-      "slug": "installation",
-      "title": "Installation Instructions"
+      "slug": "quick-start",
+      "title": "Getting Started: First Run Guide"
     },
     {
       "slug": "index",
-      "title": "Project Overview"
+      "title": "Overview"
+    },
+    {
+      "slug": "installation-and-setup",
+      "title": "Getting Started: Install and Build"
+    },
+    {
+      "slug": "configuration",
+      "title": "Repository Configuration Files: Build, Test, and CLI Behavior"
+    },
+    {
+      "slug": "repository-structure",
+      "title": "Repository Structure Overview"
     },
     {
       "slug": "architecture-overview",
-      "title": "System Architecture Overview"
+      "title": "Architecture Overview"
     },
     {
-      "slug": "data-flow",
-      "title": "Data Flow within the System"
+      "slug": "architecture-data-flow",
+      "title": "Data Flow from Repository Input to Analysis Output"
     },
     {
-      "slug": "module-llm",
-      "title": "LLM Module Documentation"
+      "slug": "cli-command-line",
+      "title": "CLI Command Surface"
     },
     {
-      "slug": "module-storage",
-      "title": "Storage Module Documentation"
+      "slug": "search-and-ranking",
+      "title": "Symbol Search Subsystem and Relevance Scoring"
     },
     {
-      "slug": "module-cli",
-      "title": "CLI Module Documentation"
+      "slug": "scan-pipeline",
+      "title": "Scan Workflow Core Module"
     },
     {
-      "slug": "cli-reference",
-      "title": "CLI Commands Reference"
+      "slug": "refactor-analysis",
+      "title": "Static Analysis and Refactoring Report Workflow"
     },
     {
       "slug": "python-api",
-      "title": "Python API Reference"
+      "title": "Python-Facing Surface Reference"
     },
     {
-      "slug": "data-structures",
-      "title": "Data Structures in Rekipedia"
+      "slug": "sandbox-and-skills",
+      "title": "Non-CLI Support Workflows: Sandbox Tasks, Test Fixtures, and Skills/Automation"
     },
     {
-      "slug": "testing",
-      "title": "Testing Strategy and Practices"
+      "slug": "cli-reference",
+      "title": "CLI Reference"
+    },
+    {
+      "slug": "go-api",
+      "title": "Go Command Tree and Package Surface Reference"
     },
     {
       "slug": "algorithms",
-      "title": "Algorithms"
+      "title": "Algorithms and Heuristics Reference"
     },
     {
-      "slug": "deployment",
-      "title": "Deployment Process"
+      "slug": "performance",
+      "title": "Performance Considerations in the Repository"
     },
     {
-      "slug": "integrations",
-      "title": "Third-Party Integrations"
+      "slug": "data-models",
+      "title": "Core Data Structures and Types"
+    },
+    {
+      "slug": "testing",
+      "title": "Testing Across Languages and Subsystems"
+    },
+    {
+      "slug": "contributing",
+      "title": "Contributing"
     },
     {
       "slug": "technical-debt",
-      "title": "Technical Debt Analysis"
+      "title": "Debt Analysis: TODOs, Code Smells, Test Gaps, and Dependency Risks"
+    },
+    {
+      "slug": "deployment",
+      "title": "Packaging, Build, and Release Workflows"
+    },
+    {
+      "slug": "release-process",
+      "title": "Release and Update Workflow"
+    },
+    {
+      "slug": "integrations",
+      "title": "Third-Party and Cross-Tool Integrations"
     }
   ],
   "diagrams": [

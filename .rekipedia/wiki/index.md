@@ -1,83 +1,131 @@
 ---
 slug: index
-title: "Project Overview"
+title: "Overview"
 section: getting-started
-tags: [overview, getting-started]
+tags: [overview, getting-started, repository-structure]
 pin: false
 importance: 50
-created_at: 2026-05-05T03:44:24Z
-rekipedia_version: 0.10.1
+created_at: 2026-05-05T04:24:42Z
+rekipedia_version: 0.10.2
 ---
 
-# Project Overview
+# Overview
 
-![Version Badge](https://img.shields.io/badge/version-0.9.7-blue) ![Build Status](https://img.shields.io/github/workflow/status/owner/repo/CI)
+## What It Is
 
-## What is it?
+This repository contains **Rekipedia**, a developer-focused codebase intelligence tool that scans repositories, extracts symbols and relationships, analyzes architecture and refactoring risks, and publishes the results as searchable wiki pages and other outputs. The project supports both the current Python implementation under `src/rekipedia/` and a Go rewrite under `go/`, with the same overall product shape: analyze a repository, store structured results, synthesize documentation, and expose it through CLI and web interfaces.
 
-Rekipedia is a comprehensive software analysis tool designed to provide insights into codebases by extracting, analyzing, and visualizing code relationships and structures. It supports multiple programming languages and offers a suite of features for developers to understand and improve their code quality and architecture.
+In practical terms, Rekipedia is for engineers who need to understand a large or unfamiliar codebase quickly: tech leads, platform engineers, maintainers, and reviewers looking for dependency maps, knowledge gaps, and refactor candidates. The primary user workflows are: scanning a repository, generating analysis artifacts, querying via an ask/search experience, and serving the results in a local web app.
+
+The main CLI entry point for the Go implementation is [`main`](go/cmd/rekipedia/main.go#L6), which delegates execution to the Cobra root command in [`Execute`](go/cmd/rekipedia/cmd/root.go#L44). The sandbox analysis entry point is [`src/rekipedia/sandbox/tasks/analyze_shard.py`](src/rekipedia/sandbox/tasks/analyze_shard.py), which is used for shard-based analysis work.
 
 ## Key Features
 
-- **Multi-language Support**: Analyze codebases written in Python, Go, Java, Rust, and TypeScript.
-- **Graph Analysis**: Identify key nodes and relationships within your codebase using advanced graph analysis techniques.
-- **Refactoring Tools**: Detect code smells and suggest refactoring opportunities to improve code maintainability.
-- **Code Exporters**: Export analysis results in various formats, including JSON and Markdown.
-- **CLI Tools**: A set of command-line tools for performing various tasks such as scanning, embedding, and exporting.
-- **Web Server**: Host a local server to visualize and interact with the analysis results.
-- **Snapshot Management**: Save and compare snapshots of your codebase over time to track changes and impacts.
+Rekipedia’s feature set is broad, but the landing-page view is simple:
+
+- **Repository scanning and snapshotting**: collects file manifests and language-aware metadata through the orchestrator and snapshotter path such as [`Snapshotter`](go/internal/orchestrator/snapshotter.go#L57) and [`RunUpdate`](go/internal/orchestrator/run_update.go#L30).
+- **Symbol and relationship extraction**: language-specific extractors for Go, Python, TypeScript, and configuration files are implemented in modules like [`GoExtractor`](go/internal/extractor/golang.go#L16), [`PythonExtractor`](go/internal/extractor/python.go#L25), and [`TypeScriptExtractor`](go/internal/extractor/typescript.go#L25).
+- **Wiki synthesis**: page and diagram generation are handled by [`PageBuilder`](go/internal/synthesis/page_builder.go#L60) and [`DiagramBuilder`](go/internal/synthesis/diagram_builder.go#L16).
+- **Interactive querying**: the ask workflow is exposed through [`RunAsk`](go/internal/orchestrator/run_ask.go#L59) and the CLI command under `go/cmd/rekipedia/cmd/ask.go`.
+- **Local web server**: the server in [`Server`](go/internal/server/server.go#L35) renders wiki pages, graphs, and API endpoints.
+- **Storage-backed history**: SQLite persistence in [`Store`](go/internal/storage/store.go#L18) keeps runs, symbols, relationships, wiki pages, QA history, and manifests.
+
+At a higher level, the repo is structured to support both **offline analysis** and **interactive consumption** of the results.
+
+> **Sources:** `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6); `go/cmd/rekipedia/cmd/root.go` · L44–L48 · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44); `src/rekipedia/sandbox/tasks/analyze_shard.py` · entry point; `go/internal/orchestrator/snapshotter.go` · L57–L86 · [`Snapshotter`](go/internal/orchestrator/snapshotter.go#L57); `go/internal/orchestrator/run_update.go` · L30–L179 · [`RunUpdate`](go/internal/orchestrator/run_update.go#L30); `go/internal/extractor/golang.go` · L16–L134 · [`GoExtractor`](go/internal/extractor/golang.go#L16); `go/internal/extractor/python.go` · L25–L135 · [`PythonExtractor`](go/internal/extractor/python.go#L25); `go/internal/extractor/typescript.go` · L25–L141 · [`TypeScriptExtractor`](go/internal/extractor/typescript.go#L25); `go/internal/synthesis/page_builder.go` · L60–L133 · [`PageBuilder`](go/internal/synthesis/page_builder.go#L60); `go/internal/synthesis/diagram_builder.go` · L16–L36 · [`DiagramBuilder`](go/internal/synthesis/diagram_builder.go#L16); `go/internal/orchestrator/run_ask.go` · L59–L156 · [`RunAsk`](go/internal/orchestrator/run_ask.go#L59); `go/internal/server/server.go` · L35–L96 · [`Server`](go/internal/server/server.go#L35); `go/internal/storage/store.go` · L18–L45 · [`Store`](go/internal/storage/store.go#L18)
 
 ## Quick Start
 
-To get started with Rekipedia, follow these steps to install and run your first analysis:
+The repository supports multiple build paths, but for most contributors the fastest way to validate the Go CLI is:
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/rekipedia.git
-cd rekipedia
-
-# Build the project
+# Build the Go CLI
 CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia
 
-# Run your first analysis
-/tmp/reki scan --path /path/to/your/codebase
+# Optionally build packaged artifacts
+uv build
+hatch build
+npm run build  # tsc
 ```
+
+For a local run, use the compiled binary after building:
+
+```bash
+/tmp/reki --help
+```
+
+If you are working in the Python packaging or release path, the repository also includes `uv build` and `hatch build` in the available build commands, and the JavaScript shim lives in `bin/rekipedia.js`.
+
+A typical developer workflow is:
+
+1. Build the CLI.
+2. Scan or update a repository.
+3. Start the web server to inspect generated pages.
+4. Use ask/search to interrogate the indexed codebase.
+
+The Go command tree is rooted at [`Execute`](go/cmd/rekipedia/cmd/root.go#L44), while the main analysis entry for shard-based sandbox execution is [`analyze_shard.py`](src/rekipedia/sandbox/tasks/analyze_shard.py).
+
+> **Sources:** `go/cmd/rekipedia/cmd/root.go` · L44–L48 · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44); `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6); `src/rekipedia/sandbox/tasks/analyze_shard.py` · entry point; `bin/rekipedia.js` · `tryRun`; build commands from analysis data
 
 ## Repository Map
 
-Here's a high-level view of the repository structure:
+The top-level layout shows two primary implementation areas plus supporting docs, pipelines, and fixtures.
 
+```text
+.
+├── go/                     # Go CLI, analysis engine, web server, storage, and synthesis pipeline
+├── src/rekipedia/          # Python package with CLI, analysis, orchestrator, server, and sandbox code
+├── tests/                  # Cross-language test suite and fixture repositories
+├── docs/                   # Product and planning documentation
+├── pipelines/              # Harness and CI pipeline definitions
+├── scripts/                # Utility scripts for linting/reporting
+├── schemas/                # JSON schema definitions for analysis outputs
+├── skills/                 # Harness/shared operating guidance
+├── .github/                # Workflow automation and contribution instructions
+├── bin/rekipedia.js        # JavaScript wrapper / launcher shim
+├── Makefile                # Root build and task entrypoint
+├── package.json            # Node package metadata and build script
+├── pyproject.toml          # Python project configuration
+└── uv.lock                 # Python dependency lockfile
 ```
-rekipedia/
-├── .github/
-│   ├── workflows/
-│   └── scripts/
-├── go/
-│   ├── cmd/
-│   ├── internal/
-│   ├── pkg/
-│   └── Dockerfile
-├── src/
-│   ├── rekipedia/
-│   ├── analysis/
-│   ├── cli/
-│   ├── exporters/
-│   ├── extractors/
-│   ├── llm/
-│   ├── models/
-│   ├── orchestrator/
-│   ├── rag/
-│   ├── sandbox/
-│   ├── server/
-│   ├── storage/
-│   ├── synthesis/
-│   └── watcher/
-├── tests/
-└── docs/
-```
+
+A few practical waypoints:
+
+- `go/cmd/rekipedia/` contains the CLI entrypoint and subcommands.
+- `go/internal/` contains most of the Go implementation for extraction, orchestration, storage, RAG, server, and synthesis.
+- `src/rekipedia/cli/` mirrors the command surface in Python.
+- `src/rekipedia/sandbox/` contains the shard analysis runtime used by the sandbox entry point.
+- `tests/fixtures/` holds small repositories that exercise the language extraction and workflow paths.
+
+This map intentionally stays high-level; it is meant to help new contributors orient themselves without duplicating the deeper repository-structure documentation.
+
+> **Sources:** `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6); `src/rekipedia/sandbox/tasks/analyze_shard.py` · entry point; `bin/rekipedia.js` · `tryRun`; top-level files and directories from `files_seen`
 
 ## Architecture at a Glance
 
-Rekipedia's architecture is modular, with each module responsible for a specific aspect of the analysis process. The core modules include the CLI for user interaction, the analysis engine for processing code, and the server for visualizing results. The architecture is designed to be extensible, allowing for easy integration of new languages and features. For a detailed breakdown of the architecture, please refer to the [Architecture Page](architecture.md).
+At a conceptual level, Rekipedia follows a pipeline:
 
-> **Sources:** `src/rekipedia/cli/ask.py` · L129–L231 · [`ask_cmd`](src/rekipedia/cli/ask.py#L129) · `src/rekipedia/analysis/graph_analysis.py` · L11–L34 · [`compute_god_nodes`](src/rekipedia/analysis/graph_analysis.py#L11)
+1. **CLI or sandbox entry point** starts a run.
+2. **Orchestrator** coordinates snapshotting, sharding, extraction, and downstream generation.
+3. **Analysis and RAG layers** build searchable metadata and embeddings.
+4. **Storage** persists runs, symbols, relationships, pages, and history.
+5. **Synthesis and server** turn structured data into wiki pages, diagrams, and interactive views.
+
+```mermaid
+flowchart LR
+    CLI[Go CLI] --> ORCH[Orchestrator]
+    SANDBOX[Sandbox analyze_shard] --> ORCH
+    ORCH --> SNAP[Snapshotter]
+    ORCH --> EXTRACT[Extractors]
+    EXTRACT --> STORE[SQLite Store]
+    ORCH --> RAG[RAG Pipeline]
+    STORE --> SYN[Synthesis]
+    SYN --> SERVER[Web Server]
+    SERVER --> UI[Browser]
+```
+
+The Go implementation makes these boundaries especially visible: command handling lives in `go/cmd/rekipedia/cmd/`, orchestration in `go/internal/orchestrator/`, extraction in `go/internal/extractor/`, persistence in `go/internal/storage/`, and display logic in `go/internal/server/`. The Python package mirrors the same product shape under `src/rekipedia/`, which is helpful for the sandbox and language-agnostic workflows.
+
+For new developers, the most important mental model is that Rekipedia is **not just a CLI** and **not just a website**. It is an end-to-end analysis system that converts source repositories into structured knowledge products.
+
+> **Sources:** `go/internal/orchestrator/run_update.go` · L30–L179 · [`RunUpdate`](go/internal/orchestrator/run_update.go#L30); `go/internal/orchestrator/snapshotter.go` · L57–L147 · [`Snapshotter`](go/internal/orchestrator/snapshotter.go#L57); `go/internal/extractor/extractor.go` · L11–L68 · [`Extractor`](go/internal/extractor/extractor.go#L11), [`Registry`](go/internal/extractor/extractor.go#L19); `go/internal/storage/store.go` · L18–L335 · [`Store`](go/internal/storage/store.go#L18); `go/internal/synthesis/page_builder.go` · L60–L133 · [`PageBuilder`](go/internal/synthesis/page_builder.go#L60); `go/internal/server/server.go` · L35–L96 · [`Server`](go/internal/server/server.go#L35); `src/rekipedia/sandbox/tasks/analyze_shard.py` · entry point

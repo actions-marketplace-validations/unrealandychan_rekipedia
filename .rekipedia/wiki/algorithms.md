@@ -1,154 +1,191 @@
 ---
 slug: algorithms
-title: "Algorithms"
+title: "Algorithms and Heuristics Reference"
 section: internals
-tags: [internals, algorithms]
+tags: [internals, algorithms, reference]
 pin: false
 importance: 50
-created_at: 2026-05-05T03:45:09Z
-rekipedia_version: 0.10.1
+created_at: 2026-05-05T04:25:38Z
+rekipedia_version: 0.10.2
 ---
 
-# Algorithms
+# Algorithms and Heuristics Reference
 
-## Overview
+This page focuses on the repository’s notable algorithmic pieces: tokenization, ranking, static walking, and severity filtering. The emphasis is on the concrete implementations in the Go command layer and the Python analysis layer, with cross-references to the exact functions that encode the behavior.
 
-This document provides a detailed overview of the algorithms used in the project. The algorithms are implemented across various modules and serve different purposes, including graph analysis, cross-repository search, impact analysis, and refactor detection. Each section will cover key algorithms, their implementation details, and performance considerations.
+## Tokenization
 
-## Key Algorithms
+The repository uses tokenization in its search path to convert symbol names into comparable terms. The Go implementation is [`tokenizeSymbol`](go/cmd/rekipedia/cmd/search.go#L20), while the Python-side analogue is ` _tokenize_symbol` in [`src/rekipedia/analysis/cross_repo_search.py`](src/rekipedia/analysis/cross_repo_search.py). The analysis data explicitly shows `tokenizeSymbol` is the search-layer function of interest, and its call structure mirrors the Python helper: split on name boundaries, normalize case, and keep both whole-name and sub-token forms when possible.
 
-### BM25-Inspired Scoring
+In practice, tokenization is used before BM25 scoring in [`scoreBM25`](go/cmd/rekipedia/cmd/search.go#L54), so the quality of token boundaries directly affects ranking quality.
 
-The BM25-inspired scoring algorithm is implemented in the function [`_score_bm25`](src/rekipedia/analysis/cross_repo_search.py#L18). This algorithm is used for scoring search results based on their relevance to a query. It is a simplified version of the BM25 ranking function, which is widely used in information retrieval.
+### Inputs, outputs, edge cases
 
-### God Node Detection
+| Aspect | Details |
+|---|---|
+| Inputs | Symbol names or query strings |
+| Outputs | A slice/list of normalized tokens |
+| Normalization | Lowercasing and token boundary splitting |
+| Edge cases | Empty names, names with underscores/camel-case, and repeated separators |
 
-The function [`compute_god_nodes`](src/rekipedia/analysis/graph_analysis.py#L11) is responsible for detecting "god nodes" in a graph. These are nodes with a high degree of connectivity, indicating that they are central to the graph's structure. The algorithm computes the in-degree and out-degree for each node and returns the top N nodes sorted by their degree.
+### Observed heuristics
 
-### Knowledge Gap Detection
+- Prefer simple, deterministic splitting over language-specific parsing.
+- Preserve semantic fragments of compound names so `getUserProfile` and `get_user_profile` can share terms.
+- Lowercasing reduces sensitivity to case-only differences.
 
-The function [`_build_knowledge_gaps`](src/rekipedia/analysis/graph_analysis.py#L37) identifies symbols with high call counts but no test coverage. This algorithm helps in detecting areas of the codebase that are critical but lack sufficient testing.
-
-### Impact Analysis
-
-The function [`compute_impact`](src/rekipedia/analysis/impact.py#L6) performs a breadth-first search (BFS) from a target file through the reverse dependency graph. It returns the affected files, symbols, and related tests, helping developers understand the impact of changes in the codebase.
-
-### Refactor Detection
-
-Several functions in the module `refactor_detector.py` are dedicated to detecting various refactor issues:
-- [`detect_god_nodes`](src/rekipedia/analysis/refactor_detector.py#L83)
-- [`detect_circular_deps`](src/rekipedia/analysis/refactor_detector.py#L134)
-- [`detect_dead_code`](src/rekipedia/analysis/refactor_detector.py#L199)
-- [`detect_high_fan_in`](src/rekipedia/analysis/refactor_detector.py#L229)
-- [`detect_high_fan_out`](src/rekipedia/analysis/refactor_detector.py#L266)
-- [`detect_deep_inheritance`](src/rekipedia/analysis/refactor_detector.py#L303)
-
-These functions analyze the codebase to identify potential refactor opportunities, such as god classes, circular dependencies, dead code, high fan-in/fan-out, and deep inheritance chains.
-
-## Implementation Details
-
-### BM25-Inspired Scoring
-
-The BM25-inspired scoring algorithm is implemented as follows:
-
-```python
-def _score_bm25(query_tokens, symbol_tokens):
-    """
-    Simple BM25-inspired scoring without external deps.
-    """
-    # Implementation details...
+```mermaid
+flowchart TD
+    A[Symbol name] --> B[Split on word boundaries]
+    B --> C[Normalize case]
+    C --> D[Emit tokens]
+    D --> E[Used by ranking]
 ```
 
-This function takes two arguments: `query_tokens` and `symbol_tokens`. It computes a relevance score based on the frequency of query tokens in the symbol tokens.
+> **Sources:** `go/cmd/rekipedia/cmd/search.go` · L20–L51 · [`tokenizeSymbol`](go/cmd/rekipedia/cmd/search.go#L20)
 
-### God Node Detection
+## Ranking
 
-The god node detection algorithm is implemented in the function `compute_god_nodes`:
+Ranking is implemented by [`scoreBM25`](go/cmd/rekipedia/cmd/search.go#L54). This function is the repository’s primary relevance heuristic for textual symbol search. The evidence shows it is called from the search flow in `src/rekipedia/analysis/cross_repo_search.py` via `_score_bm25`, which confirms the conceptual model: tokenized query terms are compared against tokenized symbol terms using a BM25-style relevance score.
 
-```python
-def compute_god_nodes(relationships, top_n):
-    """
-    Compute in+out degree for each symbol name and return top_n sorted by degree.
-    """
-    # Implementation details...
+BM25 is a pragmatic choice here because it balances term frequency and inverse document frequency while penalizing overly long documents. In this repository’s context, “documents” are symbols or symbol records rather than full source files, which makes the scoring model especially suitable for short textual fields.
+
+### Inputs, outputs, edge cases
+
+| Aspect | Details |
+|---|---|
+| Inputs | Query tokens, symbol tokens, and corpus statistics |
+| Outputs | A numeric relevance score |
+| Primary effect | Sorts candidate symbols by query match quality |
+| Edge cases | No overlap, very short token lists, repeated terms, and ties |
+
+### Heuristic behavior
+
+- Strong matches on rare terms should dominate the score.
+- Repetition helps, but not enough to swamp all other signals.
+- Shorter symbol descriptions should not be unfairly penalized when they match well.
+
+### Call chain
+
+The ranking path is effectively:
+
+`query → tokenizeSymbol → scoreBM25 → sorted results`
+
+```mermaid
+sequenceDiagram
+    participant Q as Query
+    participant T as tokenizeSymbol
+    participant S as scoreBM25
+    participant R as ResultSort
+
+    Q->>T: Normalize query terms
+    T->>S: Tokens + candidate symbol tokens
+    S->>R: Relevance score
+    R->>R: Sort descending
 ```
 
-This function takes a list of relationships and the number of top nodes to return. It calculates the degree for each node and sorts them to find the top N nodes.
+> **Sources:** `go/cmd/rekipedia/cmd/search.go` · L54–L71 · [`scoreBM25`](go/cmd/rekipedia/cmd/search.go#L54)
 
-### Knowledge Gap Detection
+## Static Walking
 
-The knowledge gap detection algorithm is implemented in the function `_build_knowledge_gaps`:
+Static walking is the repository’s file-system heuristic for identifying likely refactor candidates and code smells without invoking the LLM path. The core implementation is [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75), supported by the severity classifier [`severityIndex`](go/cmd/rekipedia/cmd/refactor.go#L65) and the post-processing gate [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130).
 
-```python
-def _build_knowledge_gaps(combined):
-    """
-    Detect symbols with high call counts but no test coverage.
-    """
-    # Implementation details...
+The walk is intentionally shallow in its semantics: it scans files, matches known smell patterns, and emits [`Finding`](go/cmd/rekipedia/cmd/refactor.go#L57) records. The tests in `go/cmd/rekipedia/cmd/refactor_test.go` show the intended behavior very clearly: TODO/FIXME detection, skipping `.git` and `node_modules`, and handling empty repositories.
+
+### Inputs, outputs, edge cases
+
+| Aspect | Details |
+|---|---|
+| Inputs | Repository root path and file contents |
+| Outputs | Slice of `Finding` values |
+| Pattern sources | Known marker strings / smell heuristics |
+| Edge cases | Empty repo, ignored directories, binary/unreadable files, test-only files |
+
+### What the walk does
+
+- Traverses the repository tree.
+- Skips ignored directories such as `.git` and `node_modules` as verified by `TestStaticWalkSkipsGitDir` and `TestStaticWalkSkipsNodeModules` in [`go/cmd/rekipedia/cmd/refactor_test.go`](go/cmd/rekipedia/cmd/refactor_test.go).
+- Detects smell markers like TODO and FIXME.
+- Produces findings with enough structure for severity filtering and markdown rendering.
+
+### Algorithmic shape
+
+The implementation is best thought of as:
+
+1. Walk files recursively.
+2. Exclude directories known to be noise.
+3. Inspect file contents for smell signatures.
+4. Record findings with severity and location metadata.
+5. Filter findings by user-selected threshold.
+
+```mermaid
+flowchart TD
+    A[Repo root] --> B[Walk filesystem]
+    B --> C{Ignored dir?}
+    C -- yes --> D[Skip]
+    C -- no --> E[Scan file]
+    E --> F{Pattern match?}
+    F -- no --> G[Continue]
+    F -- yes --> H[Emit Finding]
+    H --> I[Filter by severity]
 ```
 
-This function takes an `AnalysisResult` object and identifies symbols with high call counts but no associated test coverage.
+> **Sources:** `go/cmd/rekipedia/cmd/refactor.go` · L57–L175 · [`Finding`](go/cmd/rekipedia/cmd/refactor.go#L57), [`severityIndex`](go/cmd/rekipedia/cmd/refactor.go#L65), [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75), [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130)
 
-### Impact Analysis
+## Severity Filtering
 
-The impact analysis algorithm is implemented in the function `compute_impact`:
+Severity filtering is the repository’s primary way to turn a broad static scan into a targeted report. The logic lives in [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130) and depends on the severity ordering returned by [`severityIndex`](go/cmd/rekipedia/cmd/refactor.go#L65).
 
-```python
-def compute_impact(target_file, relationships, symbols, depth):
-    """
-    BFS from target_file through reverse dependency graph.
-    Returns affected_files, affected_symbols, related_tests.
-    """
-    # Implementation details...
-```
+The analysis data and tests indicate that the filter supports at least the following semantics:
 
-This function performs a BFS from the target file through the reverse dependency graph to determine the impact of changes.
+- `all` returns everything.
+- `high` keeps only higher-severity findings.
+- `critical` keeps only critical findings.
 
-### Refactor Detection
+This is a classic threshold filter, but the implementation is notable because it normalizes severity into an ordered index rather than comparing arbitrary strings. That makes the filter deterministic and easy to extend.
 
-The refactor detection algorithms are implemented in various functions in the `refactor_detector.py` module. For example, the function `detect_god_nodes` is implemented as follows:
+### Inputs, outputs, edge cases
 
-```python
-def detect_god_nodes(relationships, symbols, config):
-    """
-    Detect god classes/functions: top ``config.god_node_top_pct`` by total degree.
-    """
-    # Implementation details...
-```
+| Aspect | Details |
+|---|---|
+| Inputs | Findings plus a severity selector |
+| Outputs | Filtered findings |
+| Core dependency | `severityIndex` |
+| Edge cases | Unknown severity labels, empty finding lists, already-sorted input |
 
-Each function in this module focuses on detecting a specific type of refactor issue, such as god nodes, circular dependencies, dead code, high fan-in/fan-out, and deep inheritance chains.
+### Severity indexing
 
-## Performance Considerations
+[`severityIndex`](go/cmd/rekipedia/cmd/refactor.go#L65) maps a finding’s severity label to a comparable ordinal. The reason for this extra layer is simple: string comparison is not semantically safe for priorities like `critical > high > medium > low`. By converting labels into an integer-like rank, the filter can compare thresholds without hard-coding conditionals everywhere.
 
-### BM25-Inspired Scoring
+### Behavior pattern
 
-The BM25-inspired scoring algorithm is designed to be lightweight and efficient. It avoids external dependencies and focuses on simplicity. However, it may not be as accurate as the full BM25 algorithm used in advanced search engines.
+- `severityIndex` provides ordering semantics.
+- `applyFilter` applies a cutoff rule.
+- The output remains stable regardless of source order.
 
-### God Node Detection
+### Example flow
 
-The god node detection algorithm relies on computing the degree of each node in the graph. This operation is generally efficient, but the performance can degrade for very large graphs. Optimizations such as parallel processing can be considered for handling large datasets.
+`staticWalk → Finding(severity) → severityIndex → applyFilter → report`
 
-### Knowledge Gap Detection
+> **Sources:** `go/cmd/rekipedia/cmd/refactor.go` · L65–L145 · [`severityIndex`](go/cmd/rekipedia/cmd/refactor.go#L65), [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130)
 
-The knowledge gap detection algorithm involves analyzing call counts and test coverage. This process can be computationally intensive, especially for large codebases with extensive relationships. Caching intermediate results and using efficient data structures can help improve performance.
+## How These Pieces Fit Together
 
-### Impact Analysis
+Although each algorithm is independently useful, the repository uses them as a pipeline:
 
-The impact analysis algorithm uses BFS, which is efficient for most use cases. However, the performance can be affected by the depth of the search and the size of the dependency graph. Limiting the depth and optimizing the graph traversal can help mitigate performance issues.
+- tokenization prepares symbol and query text,
+- BM25 ranks candidate matches,
+- static walking produces candidate refactor findings,
+- severity filtering trims findings to the requested scope.
 
-### Refactor Detection
+This separation is important: the search path optimizes for relevance, while the refactor path optimizes for precision and triage speed. The two heuristics families do not share implementation, but they share a philosophy of deterministic, explainable scoring.
 
-The refactor detection algorithms involve analyzing various aspects of the codebase, such as dependencies, call counts, and inheritance chains. These analyses can be computationally intensive, especially for large codebases. Using efficient algorithms and data structures, as well as parallel processing, can help improve performance.
+| Stage | Function | Purpose |
+|---|---|---|
+| Tokenization | [`tokenizeSymbol`](go/cmd/rekipedia/cmd/search.go#L20) | Normalize symbol/query text |
+| Ranking | [`scoreBM25`](go/cmd/rekipedia/cmd/search.go#L54) | Compute relevance |
+| Walking | [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75) | Discover findings |
+| Severity ranking | [`severityIndex`](go/cmd/rekipedia/cmd/refactor.go#L65) | Order severities |
+| Filtering | [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130) | Keep only requested severities |
 
-## Sources
-
-> **Sources:** `src/rekipedia/analysis/cross_repo_search.py` · L18–L32 · [`_score_bm25`](src/rekipedia/analysis/cross_repo_search.py#L18)  
-> **Sources:** `src/rekipedia/analysis/graph_analysis.py` · L11–L34 · [`compute_god_nodes`](src/rekipedia/analysis/graph_analysis.py#L11)  
-> **Sources:** `src/rekipedia/analysis/graph_analysis.py` · L37–L103 · [`_build_knowledge_gaps`](src/rekipedia/analysis/graph_analysis.py#L37)  
-> **Sources:** `src/rekipedia/analysis/impact.py` · L6–L60 · [`compute_impact`](src/rekipedia/analysis/impact.py#L6)  
-> **Sources:** `src/rekipedia/analysis/refactor_detector.py` · L83–L131 · [`detect_god_nodes`](src/rekipedia/analysis/refactor_detector.py#L83)  
-> **Sources:** `src/rekipedia/analysis/refactor_detector.py` · L134–L196 · [`detect_circular_deps`](src/rekipedia/analysis/refactor_detector.py#L134)  
-> **Sources:** `src/rekipedia/analysis/refactor_detector.py` · L199–L226 · [`detect_dead_code`](src/rekipedia/analysis/refactor_detector.py#L199)  
-> **Sources:** `src/rekipedia/analysis/refactor_detector.py` · L229–L263 · [`detect_high_fan_in`](src/rekipedia/analysis/refactor_detector.py#L229)  
-> **Sources:** `src/rekipedia/analysis/refactor_detector.py` · L266–L300 · [`detect_high_fan_out`](src/rekipedia/analysis/refactor_detector.py#L266)  
-> **Sources:** `src/rekipedia/analysis/refactor_detector.py` · L303–L356 · [`detect_deep_inheritance`](src/rekipedia/analysis/refactor_detector.py#L303)
+> **Sources:** `go/cmd/rekipedia/cmd/search.go` · L20–L71 · [`tokenizeSymbol`](go/cmd/rekipedia/cmd/search.go#L20), [`scoreBM25`](go/cmd/rekipedia/cmd/search.go#L54); `go/cmd/rekipedia/cmd/refactor.go` · L57–L175 · [`Finding`](go/cmd/rekipedia/cmd/refactor.go#L57), [`severityIndex`](go/cmd/rekipedia/cmd/refactor.go#L65), [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75), [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130)

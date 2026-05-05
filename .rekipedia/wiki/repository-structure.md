@@ -1,342 +1,92 @@
 ---
 slug: repository-structure
-title: "Repository Structure"
-section: internals
-tags: [repository-structure, internals]
+title: "Repository Structure Overview"
+section: architecture
+tags: [repository-structure, overview]
 pin: false
 importance: 50
-created_at: 2026-05-05T03:36:19Z
-rekipedia_version: 0.10.1
+created_at: 2026-05-05T04:24:54Z
+rekipedia_version: 0.10.2
 ---
 
-# Repository Structure
+# Repository Structure Overview
 
-## Overview
+## Annotated Repository Tree
 
-This document provides a comprehensive map of the repository structure, detailing the purpose and key files of each top-level directory. It also explains the layout of the `src`, `tests`, and configuration files, and includes a Mermaid diagram showing the dependencies between top-level packages.
-
-## Annotated Directory Tree
-
-```plaintext
+```text
 .
-├── .coverage
-├── .editorconfig
-├── .env.sample
-├── .eslintrc.json
-├── .gitignore
-├── .golangci.yml
-├── .mcp.json
-├── .pre-commit-config.yaml
-├── .prettierrc.json
-├── AGENTS.md
-├── CLAUDE.md
-├── CONTRIBUTING.md
-├── Dockerfile.sandbox
-├── LICENSE
-├── Makefile
-├── README.md
-├── RELEASE-NOTES.md
-├── checkstyle.xml
-├── close-wiki-0.7.3.tgz
-├── close-wiki-0.8.4.tgz
-├── close-wiki-0.8.5.tgz
-├── close-wiki-0.9.0.tgz
-├── coverage.json
-├── package.json
-├── pmd-ruleset.xml
-├── pyproject.toml
-├── rekipedia-0.9.3.tgz
-├── rekipedia-0.9.4.tgz
-├── rekipedia-0.9.5.tgz
-├── rekipedia-0.9.7.tgz
-├── rekipedia-agent-skill.md
-├── uv.lock
-├── .github
-│   ├── _rules.instructions.md
-│   ├── clean-code-review.instructions.md
-│   ├── copilot-instructions.md
-│   ├── husky-enforcement.instructions.md
-│   ├── lint-report.instructions.md
-│   ├── scripts
-│   │   └── update-homebrew-tap.py
-│   ├── workflows
-│   │   ├── go-ci.yml
-│   │   ├── go-release.yml
-│   │   ├── npm-publish.yml
-│   │   ├── python-ci.yml
-│   │   ├── python-release.yml
-├── .pytest_cache
-│   ├── .gitignore
-│   ├── CACHEDIR.TAG
-│   ├── README.md
-│   ├── v/cache/lastfailed
-│   ├── v/cache/nodeids
-├── .ruff_cache
-│   ├── .gitignore
-│   ├── 0.15.8/15568880085755169911
-│   ├── 0.15.8/16622096983324106815
-│   ├── 0.15.8/4009862412007594282
-│   ├── CACHEDIR.TAG
-├── bin
-│   └── rekipedia.js
-├── docs
-│   ├── PLAN.md
-│   ├── customizing.md
-│   ├── plans
-│   │   ├── 2026-04-29-phase5-serve.md
-│   │   ├── golang-rewrite.md
-├── go
-│   ├── .goreleaser.yaml
-│   ├── Dockerfile
-│   ├── Makefile
-│   ├── README.md
-│   ├── RELEASE-NOTES.md
-│   ├── cmd
-│   │   ├── rekipedia
-│   │   │   ├── cmd
-│   │   │   │   ├── ask.go
-│   │   │   │   ├── context.go
-│   │   │   │   ├── diff.go
-│   │   │   │   ├── embed.go
-│   │   │   │   ├── embed_export_update_test.go
-│   │   │   │   ├── export.go
-│   │   │   │   ├── hook.go
-│   │   │   │   ├── hook_test.go
-│   │   │   │   ├── impact.go
-│   │   │   │   ├── init.go
-│   │   │   │   ├── refactor.go
-│   │   │   │   ├── refactor_test.go
-│   │   │   │   ├── root.go
-│   │   │   │   ├── root_test.go
-│   │   │   │   ├── scan.go
-│   │   │   │   ├── search.go
-│   │   │   │   ├── serve.go
-│   │   │   │   ├── update.go
-│   │   │   │   ├── watch.go
-│   │   │   ├── main.go
-│   ├── go.mod
-│   ├── go.sum
-│   ├── install.sh
-│   ├── internal
-│   │   ├── analysis
-│   │   │   ├── refactor_detector.go
-│   │   │   ├── refactor_detector_test.go
-│   │   │   ├── refactor_enricher.go
-│   │   │   ├── refactor_enricher_test.go
-│   │   │   ├── refactor_types.go
-│   │   │   ├── refactor_writer.go
-│   │   │   ├── refactor_writer_test.go
-│   │   ├── config
-│   │   │   ├── agent.go
-│   │   │   ├── loader.go
-│   │   │   ├── loader_test.go
-│   │   ├── exporter
-│   │   │   ├── exporter_test.go
-│   │   │   ├── json_exporter.go
-│   │   │   ├── markdown_exporter.go
-│   │   ├── extractor
-│   │   │   ├── config.go
-│   │   │   ├── extractor.go
-│   │   │   ├── extractor_test.go
-│   │   │   ├── golang.go
-│   │   │   ├── python.go
-│   │   │   ├── typescript.go
-│   │   ├── graph
-│   │   │   ├── graph_analysis.go
-│   │   │   ├── graph_analysis_test.go
-│   │   │   ├── hub_gap_test.go
-│   │   ├── llm
-│   │   │   ├── client.go
-│   │   │   ├── client_test.go
-│   │   ├── models
-│   │   │   ├── contracts.go
-│   │   │   ├── contracts_test.go
-│   │   ├── orchestrator
-│   │   │   ├── helpers.go
-│   │   │   ├── orchestrator_test.go
-│   │   │   ├── run_ask.go
-│   │   │   ├── run_digest.go
-│   │   │   ├── run_update.go
-│   │   │   ├── sharding.go
-│   │   │   ├── snapshotter.go
-│   │   ├── rag
-│   │   │   ├── chunker.go
-│   │   │   ├── embedder.go
-│   │   │   ├── rag_test.go
-│   │   │   ├── scan_meta.go
-│   │   │   ├── vector_store.go
-│   │   ├── server
-│   │   │   ├── server.go
-│   │   │   ├── server_test.go
-│   │   │   ├── templates
-│   │   │   │   ├── ask.html
-│   │   │   │   ├── base.html
-│   │   │   │   ├── graph.html
-│   │   │   │   ├── index.html
-│   │   │   │   ├── wiki.html
-│   │   ├── storage
-│   │   │   ├── aliases.go
-│   │   │   ├── store.go
-│   │   │   ├── store_test.go
-│   │   ├── synthesis
-│   │   │   ├── diagram_builder.go
-│   │   │   ├── page_builder.go
-│   │   │   ├── planner.go
-│   │   │   ├── synthesis_test.go
-│   │   ├── pkg
-│   │   │   ├── fsutil
-│   │   │   │   ├── walk.go
-│   │   │   │   ├── walk_test.go
-├── htmlcov
-│   ├── .gitignore
-│   ├── class_index.html
-│   ├── coverage_html_cb_dd2e7eb5.js
-│   ├── favicon_32_cb_c827f16f.png
-│   ├── function_index.html
-│   ├── index.html
-│   ├── keybd_closed_cb_900cfef5.png
-│   ├── status.json
-│   ├── style_cb_9ff733b0.css
-│   ├── z_0ae714acd8f88e56___init___py.html
-│   ├── z_0ae714acd8f88e56_client_py.html
-│   ├── z_1136fd4e7e454593___init___py.html
-│   ├── z_1136fd4e7e454593_json_export_py.html
-│   ├── z_1136fd4e7e454593_markdown_export_py.html
-│   ├── z_17cf55344efb66e6___init___py.html
-│   ├── z_17cf55344efb66e6_ask_py.html
-│   ├── z_17cf55344efb66e6_init_py.html
-│   ├── z_17cf55344efb66e6_scan_py.html
-│   ├── z_17cf55344efb66e6_update_py.html
-│   ├── z_38f53f4c2a135f0c___init___py.html
-│   ├── z_38f53f4c2a135f0c_runner_py.html
-│   ├── z_61b981ff590e613f___init___py.html
-│   ├── z_61b981ff590e613f_analyze_shard_py.html
-│   ├── z_71ca1a681c588863___init___py.html
-│   ├── z_71ca1a681c588863___main___py.html
-│   ├── z_7aefebc73fb285f1___init___py.html
-│   ├── z_7aefebc73fb285f1_sqlite_store_py.html
-│   ├── z_842b6b92605fd8fd___init___py.html
-│   ├── z_842b6b92605fd8fd_base_py.html
-│   ├── z_842b6b92605fd8fd_config_extractor_py.html
-│   ├── z_842b6b92605fd8fd_python_extractor_py.html
-│   ├── z_842b6b92605fd8fd_typescript_extractor_py.html
-│   ├── z_9a57c7756e01d46b___init___py.html
-│   ├── z_9a57c7756e01d46b_diagram_builder_py.html
-│   ├── z_9a57c7756e01d46b_page_builder_py.html
-│   ├── z_a1c4734f5d66c750___init___py.html
-│   ├── z_a1c4734f5d66c750_contracts_py.html
-│   ├── z_cfd03fba86859063___init___py.html
-│   ├── z_cfd03fba86859063_run_ask_py.html
-│   ├── z_cfd03fba86859063_run_digest_py.html
-│   ├── z_cfd03fba86859063_run_update_py.html
-│   ├── z_cfd03fba86859063_sharding_py.html
-│   ├── z_cfd03fba86859063_snapshotter_py.html
-├── pipelines
-│   ├── harness-canary.yaml
-│   ├── harness-ci.yaml
-│   ├── harness-feature-flag-gate.yaml
-├── schemas
-│   └── analysis_result.schema.json
-├── scripts
-│   └── lint-and-report.sh
-├── skills
-│   ├── harness
-│   │   ├── observability.md
-│   │   ├── progressive-delivery.md
-│   │   ├── testability.md
-│   ├── shared
-│   │   ├── harness-rules.md
-│   │   ├── husky-rules.md
-│   │   ├── lint-report-prompt.md
-│   │   ├── observability-report-prompt.md
-│   │   ├── rules.md
-│   │   ├── test-review-prompt.md
-├── src
-│   ├── rekipedia
-│   │   ├── __init__.py
-│   │   ├── __main__.py
-│   │   ├── analysis
-│   │   │   ├── __init__.py
-│   │   │   ├── cross_repo_search.py
-│   │   │   ├── graph_analysis.py
-│   │   │   ├── graph_export.py
-│   │   │   ├── impact.py
-│   │   │   ├── refactor_detector.py
-│   │   │   ├── refactor_enricher.py
-│   │   │   ├── refactor_writer.py
-│   │   ├── cli
-│   │   │   ├── __init__.py
-│   │   │   ├── ask.py
-│   │   │   ├── context.py
-│   │   │   ├── diff.py
-│   │   │   ├── embed.py
-│   │   │   ├── export.py
-│   │   │   ├── hook.py
-│   │   │   ├── impact.py
-│   │   │   ├── init.py
-│   │   │   ├── mcp_cmd.py
-│   │   │   ├── mcp_server.py
-│   │   │   ├── refactor.py
-│   │   │   ├── scan.py
-│   │   │   ├── search.py
-│   │   │   ├── serve.py
-│   │   │   ├── update.py
-│   │   │   ├── watch.py
-│   │   ├── exporters
-│   │   │   ├── __init__.py
-│   │   │   ├── json_export.py
-│   │   │   ├── markdown_export.py
-│   │   ├── extractors
-│   │   │   ├── __init__.py
-│   │   │   ├── base.py
-│   │   │   ├── config_extractor.py
-│   │   │   ├── go_extractor.py
-│   │   │   ├── java_extractor.py
-│   │   │   ├── python_extractor.py
-│   │   │   ├── rust_extractor.py
-│   │   │   ├── typescript_extractor.py
-│   │   ├── llm
-│   │   │   ├── __init__.py
-│   │   │   ├── client.py
-│   │   ├── models
-│   │   │   ├── __init__.py
-│   │   │   ├── contracts.py
-│   │   ├── orchestrator
-│   │   │   ├── __init__.py
-│   │   │   ├── agent_hints.py
-│   │   │   ├── run_ask.py
-│   │   │   ├── run_digest.py
-│   │   │   ├── run_update.py
-│   │   │   ├── sharding.py
-│   │   │   ├── snapshot.py
-│   │   │   ├── snapshotter.py
-│   │   ├── prompts
-│   │   │   ├── ask_system.md
-│   │   │   ├── digest_system.md
-│   │   ├── rag
-│   │   │   ├── __init__.py
-│   │   │   ├── embedder.py
-│   │   │   ├── scan_meta.py
-│   │   ├── sandbox
-│   │   │   ├── __init__.py
-│   │   │   ├── runner.py
-│   │   │   ├── tasks
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── analyze_shard.py
-│   │   ├── server
-│   │   │   ├── __init__.py
-│   │   │   ├── app.py
-│   │   │   ├── templates
-│   │   │   │   ├── ask.html
-│   │   │   │   ├── base.html
-│   │   │   │   ├── graph.html
-│   │   │   │   ├── index.html
-│   │   │   │   ├── wiki.html
-│   │   ├── storage
-│   │   │   ├── __init__.py
-│   │   │   ├── migrations
-│   │   │   │   ├── 001_initial.sql
-│   │   │   │   ├── 002_qa_history.sql
-│   │   │   ├── sqlite_store.py
-│   │   ├── synthesis
-│   │   │   ├── __
+├── .github/                         # Automation, CI rules, workflow definitions, and release helpers
+│   ├── scripts/                     # Maintenance scripts used by release/automation jobs
+│   └── workflows/                   # GitHub Actions pipelines for Go, Python, and npm publishing
+├── docs/                            # User-facing documentation and planning notes
+│   └── plans/                       # Time-boxed implementation plans and roadmap notes
+├── go/                              # Go implementation of the CLI and supporting packages
+│   ├── cmd/rekipedia/               # Cobra-style command entrypoint and subcommands
+│   ├── internal/                   # Core Go packages: analysis, extractor, server, storage, etc.
+│   └── pkg/fsutil/                  # Shared Go utility package(s)
+├── pipelines/                       # Harness/pipeline YAML definitions for CI and feature gating
+├── schemas/                        # JSON schema definitions for structured outputs
+├── scripts/                       # Shell automation and local reporting helpers
+├── skills/                        # Agent-facing guidance and shared operational instructions
+├── src/rekipedia/                  # Python package: CLI, sandbox, analysis, server, storage, synthesis
+│   ├── analysis/                   # Python analysis helpers
+│   ├── cli/                        # Python CLI modules
+│   ├── exporters/                  # Output formatters
+│   ├── extractors/                 # Language/file extractors
+│   ├── llm/                        # LLM client layer
+│   ├── orchestrator/               # Scan/update/ask orchestration
+│   ├── prompts/                    # Prompt templates
+│   ├── rag/                        # Retrieval-augmented generation helpers
+│   ├── sandbox/                    # Sandbox runtime and tasks
+│   ├── server/                     # Web server and templates
+│   ├── storage/                    # SQLite storage and migrations
+│   ├── synthesis/                  # Page/diagram generation
+│   └── watcher/                    # File watching support
+├── tests/                           # Python test suite and repository fixtures
+│   └── fixtures/                    # Miniature sample repositories for integration tests
+├── bin/                             # Small runtime shim(s)
+└── top-level config and metadata    # Repository-wide tooling, policy, and packaging files
+```
+
+The tree above is intentionally “map-like”: it highlights the main directories and the most visible subdirectories without diving into implementation internals. For example, the Go code lives under [`go/`](go/README.md) and the Python package under [`src/rekipedia/`](src/rekipedia/__init__.py), while docs, tests, and automation live in separate top-level areas.
+
+> **Sources:** `README.md` · `go/README.md` · `src/rekipedia/__init__.py` · `docs/PLAN.md` · `tests/test_server.py`
+
+## Path Summary Table
+
+| Path | Purpose | Notable Files |
+|------|---------|---------------|
+| `.github/` | Repository automation, contribution rules, and release workflows | `.github/workflows/go-ci.yml`, `.github/workflows/python-ci.yml`, `.github/workflows/go-release.yml`, `.github/scripts/update-homebrew-tap.py`, `.github/copilot-instructions.md` |
+| `docs/` | Human-readable documentation, planning, and customization guidance | `docs/PLAN.md`, `docs/customizing.md`, `docs/plans/golang-rewrite.md`, `docs/plans/2026-04-29-phase5-serve.md` |
+| `go/` | Standalone Go CLI implementation and related packages | `go/cmd/rekipedia/main.go`, `go/internal/orchestrator/run_update.go`, `go/internal/server/server.go`, `go/internal/storage/store.go`, `go/install.sh` |
+| `pipelines/` | Pipeline definitions for harness/CI style execution | `pipelines/harness-ci.yaml`, `pipelines/harness-canary.yaml`, `pipelines/harness-feature-flag-gate.yaml` |
+| `schemas/` | JSON schema for structured analysis outputs | `schemas/analysis_result.schema.json` |
+| `scripts/` | Shell scripts for local automation and reporting | `scripts/lint-and-report.sh` |
+| `skills/` | Agent instructions and shared operational guidance | `skills/shared/rules.md`, `skills/shared/husky-rules.md`, `skills/harness/observability.md`, `skills/harness/testability.md` |
+| `src/rekipedia/` | Python package containing the main application logic | `src/rekipedia/__main__.py`, `src/rekipedia/cli/scan.py`, `src/rekipedia/sandbox/runner.py`, `src/rekipedia/server/app.py`, `src/rekipedia/storage/sqlite_store.py`, `src/rekipedia/synthesis/page_builder.py` |
+| `tests/` | Python test suite and fixture repositories used for behavior verification | `tests/test_server.py`, `tests/test_python_extractor.py`, `tests/test_sandbox_coverage.py`, `tests/fixtures/mini-py-repo/main.py`, `tests/fixtures/mini-ts-repo/src/index.ts` |
+| `bin/` | Small executable shim(s) used by the repo’s tooling | `bin/rekipedia.js` |
+| Top-level config and metadata | Root packaging, linting, build, and release configuration | `pyproject.toml`, `package.json`, `go.mod` (in `go/`), `Makefile`, `Dockerfile.sandbox`, `uv.lock`, `CONTRIBUTING.md`, `LICENSE`, `README.md` |
+
+> **Sources:** `package.json` · `pyproject.toml` · `go/go.mod` · `Makefile` · `Dockerfile.sandbox` · `.github/workflows/python-ci.yml` · `.github/workflows/go-ci.yml`
+
+## How the Major Areas Relate
+
+The repository is organized around a split implementation strategy. The Go CLI under [`go/cmd/rekipedia/main.go`](go/cmd/rekipedia/main.go) and its internal packages provide one executable path, while the Python package under [`src/rekipedia/`](src/rekipedia/__init__.py) provides the application’s Python-side modules, including the sandbox entrypoint [`src/rekipedia/sandbox/tasks/analyze_shard.py`](src/rekipedia/sandbox/tasks/analyze_shard.py). Documentation in [`docs/`](docs/PLAN.md) explains product direction and usage, tests in [`tests/`](tests/test_server.py) validate the Python package and fixtures, and automation in [`.github/workflows/`](.github/workflows/go-ci.yml) and [`scripts/`](scripts/lint-and-report.sh) keeps builds, linting, and releases consistent.
+
+In practical terms, the directories complement each other rather than overlap: the Go CLI is the command-line implementation, the Python sandbox is the execution environment for analysis tasks, docs explain the workflow, tests verify the behavior of the Python modules and fixtures, and automation wires the repository together for CI/CD and release publishing.
+
+> **Sources:** `go/cmd/rekipedia/main.go` · `src/rekipedia/sandbox/tasks/analyze_shard.py` · `docs/PLAN.md` · `tests/test_server.py` · `.github/workflows/go-ci.yml` · `.github/workflows/python-ci.yml` · `scripts/lint-and-report.sh`
+
+## Notes on Repository Layout
+
+A few top-level files are worth calling out because they shape the whole repository:
+
+- [`pyproject.toml`](pyproject.toml), [`uv.lock`](uv.lock), and [`package.json`](package.json) indicate that the repo supports both Python and Node-based tooling.
+- [`Makefile`](Makefile) provides a conventional entry point for local development tasks.
+- [`Dockerfile.sandbox`](Dockerfile.sandbox) defines the sandbox runtime used by the Python-side execution flow.
+- [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), and [`RELEASE-NOTES.md`](RELEASE-NOTES.md) provide the primary user and contributor entry points.
+
+This layout suggests a repository that is intentionally multi-language, with clear separation between implementation, docs, test fixtures, and automation.
+
+> **Sources:** `pyproject.toml` · `uv.lock` · `package.json` · `Makefile` · `Dockerfile.sandbox` · `README.md` · `CONTRIBUTING.md` · `RELEASE-NOTES.md`

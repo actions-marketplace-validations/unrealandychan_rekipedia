@@ -1,395 +1,162 @@
 ---
 slug: python-api
-title: "Python API Reference"
+title: "Python-Facing Surface Reference"
 section: api-reference
-tags: [api, python, reference]
+tags: [api, reference]
 pin: false
 importance: 50
-created_at: 2026-05-05T03:45:02Z
-rekipedia_version: 0.10.1
+created_at: 2026-05-05T04:25:25Z
+rekipedia_version: 0.10.2
 ---
 
-# Python API Reference
+# Python-Facing Surface Reference
 
-## Function List
+## Overview
 
-### `read_checksums_from_dist()`
-**File:** `.github/scripts/update-homebrew-tap.py`  
-**Lines:** 36-55  
-**Signature:** `read_checksums_from_dist()`  
-**Description:**  
-Reads sha256 checksums from `goreleaser`'s `dist/checksums.txt` without needing to download the file.
+This page documents the repository’s Python-facing automation surface: standalone scripts, sandbox helpers, and Python-accessible repository utilities that are intended to be invoked as part of local automation or CI workflows. The strongest Python-specific entry point is the Homebrew tap updater in [`.github/scripts/update-homebrew-tap.py`](.github/scripts/update-homebrew-tap.py), which contains the repository’s explicit Python helper functions for release automation. The other notable Python asset is the sandbox task runner [``src/rekipedia/sandbox/tasks/analyze_shard.py``](src/rekipedia/sandbox/tasks/analyze_shard.py), which appears in the repository’s entry points list and is therefore part of the automation surface even though symbol-level analysis was not provided for its internals.
+
+Because the analysis data is heavily Go-oriented, this page is intentionally not a general Python programming guide. Instead, it focuses on what is actually observable: file-level responsibilities, callable helper functions, and how those pieces fit into the broader automation and sandbox workflow.
+
+### Scope of what is documented
+
+- Python scripts used for automation
+- Sandbox helper modules/tasks that are invoked by the repository
+- Automation-oriented Python symbols that can be called by tooling or CI
+- The calling contexts that are visible from the repository structure and cross-module summaries
+
+> **Sources:** `.github/scripts/update-homebrew-tap.py` · L1–L87 · [`read_checksums_from_dist`](.github/scripts/update-homebrew-tap.py#L36), [`gh_get_sha`](.github/scripts/update-homebrew-tap.py#L58), [`gh_put`](.github/scripts/update-homebrew-tap.py#L71); `src/rekipedia/sandbox/tasks/analyze_shard.py` · entry point listed in analysis data
+
+## Package / Module Overview
+
+The repository does not expose a large Python package hierarchy in the analysis payload. Instead, the Python-facing surface is concentrated in two areas:
+
+| Python module / script | Main functions / responsibilities | Calling context |
+|---|---|---|
+| [`.github/scripts/update-homebrew-tap.py`](.github/scripts/update-homebrew-tap.py) | `read_checksums_from_dist()`, `gh_get_sha(path)`, `gh_put(path, content, sha, message)` | Release automation / GitHub tap update workflow |
+| [`src/rekipedia/sandbox/tasks/analyze_shard.py`](src/rekipedia/sandbox/tasks/analyze_shard.py) | Sandbox task entry point (symbols not provided in analysis) | Entry point for shard analysis inside the sandbox workflow |
+| [`tests/fixtures/mini-py-repo/main.py`](tests/fixtures/mini-py-repo/main.py) | Fixture-only sample Python program | Test fixture, not production automation |
+| [`bin/rekipedia.js`](bin/rekipedia.js) | `tryRun(cmd, cmdArgs)` is a Node wrapper around command execution | Cross-language launcher; relevant because it can dispatch Python or other automation commands |
+
+A practical way to think about this surface is that Python is used in two roles here:
+
+1. **Repository automation script** — the Homebrew updater script performs a narrow release-maintenance job.
+2. **Sandbox task module** — `analyze_shard.py` participates in repository automation by being an executable task in the sandboxed analysis pipeline.
+
+The repository’s core orchestration is otherwise implemented in Go, so the Python surface is intentionally narrow and task-oriented.
+
+```mermaid
+flowchart TD
+    GHRelease[GitHub Release Workflow] --> HBTap[update-homebrew-tap.py]
+    HBTap --> DistChecksums[dist/checksums.txt]
+    HBTap --> GitHubAPI[GitHub Contents API]
+    Sandbox[Sandbox Automation] --> AnalyzeShard[src/rekipedia/sandbox/tasks/analyze_shard.py]
+    NodeBin[bin/rekipedia.js] --> tryRun[tryRun]
+    tryRun --> PythonScript[Python command]
+```
+
+> **Sources:** `.github/scripts/update-homebrew-tap.py` · L1–L87; `bin/rekipedia.js` · `tryRun(cmd, cmdArgs)`; `src/rekipedia/sandbox/tasks/analyze_shard.py` · entry point listed in analysis data
+
+## Key Functions
+
+### `.github/scripts/update-homebrew-tap.py`
+
+The automation script exposes three concrete helpers:
+
+- [`read_checksums_from_dist()`](.github/scripts/update-homebrew-tap.py#L36) reads SHA-256 values from Goreleaser’s `dist/checksums.txt`, explicitly avoiding a download step.
+- [`gh_get_sha(path)`](.github/scripts/update-homebrew-tap.py#L58) retrieves the current blob SHA for a file path in the GitHub-hosted tap repository.
+- [`gh_put(path, content, sha, message)`](.github/scripts/update-homebrew-tap.py#L71) writes updated content back to GitHub using the expected SHA and commit message.
+
+These functions show a very targeted workflow: derive release checksums locally, inspect the remote file state, then update the tap file atomically using the GitHub API’s SHA-based concurrency model.
+
+| Function | Purpose | Notable behavior |
+|---|---|---|
+| `read_checksums_from_dist()` | Parse generated release checksums | Uses `dist/checksums.txt`; avoids re-downloading artifacts |
+| `gh_get_sha(path)` | Read remote object SHA | Enables safe update semantics |
+| `gh_put(path, content, sha, message)` | Update remote content | Requires the current SHA and a commit message |
+
+### Sandbox task surface
+
+The analysis data lists [`src/rekipedia/sandbox/tasks/analyze_shard.py`](src/rekipedia/sandbox/tasks/analyze_shard.py) as an entry point. While symbol-level internals were not provided, its presence as an entry point indicates that it is intended to be run directly by the sandbox automation pipeline, not imported as a general-purpose library.
+
+### Cross-language launcher
+
+The repository also contains the Node helper [`tryRun(cmd, cmdArgs)`](bin/rekipedia.js#L4) in `bin/rekipedia.js`. Even though it is not Python, it matters to Python automation because it likely serves as a command runner for scripts invoked from tooling or local developer workflows.
+
+> **Sources:** `.github/scripts/update-homebrew-tap.py` · L36–L87 · [`read_checksums_from_dist`](.github/scripts/update-homebrew-tap.py#L36), [`gh_get_sha`](.github/scripts/update-homebrew-tap.py#L58), [`gh_put`](.github/scripts/update-homebrew-tap.py#L71); `src/rekipedia/sandbox/tasks/analyze_shard.py` · entry point listed in analysis data; `bin/rekipedia.js` · [`tryRun`](bin/rekipedia.js#L4)
+
+## Calling Contexts
+
+The repository’s Python surface is used in a few distinct contexts:
+
+### 1. Release automation
+
+The Homebrew updater script fits a CI/release pipeline use case. It is specifically concerned with reading generated artifacts, updating tap metadata, and synchronizing with GitHub. The use of `read_checksums_from_dist()` is especially telling: it assumes a prior build step has already produced `dist/checksums.txt`.
+
+### 2. Sandbox task execution
+
+`analyze_shard.py` is treated as a task entry point inside `src/rekipedia/sandbox/tasks/`. That suggests the file is invoked by a higher-level runner rather than being a utility library.
+
+### 3. Test fixtures
+
+`tests/fixtures/mini-py-repo/main.py` is a fixture, not an automation module. It exists to support tests around repository scanning/extraction and should not be confused with the production Python surface.
+
+### 4. Launcher-mediated execution
+
+The Node helper [`tryRun`](bin/rekipedia.js#L4) can serve as a bridge for executing scripts from the repository’s command-line tooling. This is relevant when Python scripts are invoked indirectly rather than by hand.
+
+> **Sources:** `tests/fixtures/mini-py-repo/main.py` · fixture entry point listed in analysis data; `bin/rekipedia.js` · [`tryRun`](bin/rekipedia.js#L4); `.github/scripts/update-homebrew-tap.py` · L36–L87
+
+## Example Usage
+
+### Update the Homebrew tap from release artifacts
+
+The observable purpose of [`.github/scripts/update-homebrew-tap.py`](.github/scripts/update-homebrew-tap.py) is to consume release output and refresh the tap repository state. A typical flow is:
+
+1. Build the release artifacts so `dist/checksums.txt` exists.
+2. Run the checksum reader.
+3. Retrieve the remote SHA for the target tap file.
+4. Write the updated content back with the expected SHA.
+
+Conceptually:
 
 ```python
-def read_checksums_from_dist():
-    # Implementation here
-```
+from .github.scripts.update_homebrew_tap import read_checksums_from_dist, gh_get_sha, gh_put
 
-> **Sources:** `.github/scripts/update-homebrew-tap.py` · L36–L55 · [`read_checksums_from_dist`](.github/scripts/update-homebrew-tap.py#L36)
-
-### `gh_get_sha(path)`
-**File:** `.github/scripts/update-homebrew-tap.py`  
-**Lines:** 58-68  
-**Signature:** `gh_get_sha(path)`  
-**Description:**  
-Fetches the SHA value for a given path from GitHub.
-
-```python
-def gh_get_sha(path):
-    # Implementation here
-```
-
-> **Sources:** `.github/scripts/update-homebrew-tap.py` · L58–L68 · [`gh_get_sha`](.github/scripts/update-homebrew-tap.py#L58)
-
-### `gh_put(path, content, sha, message)`
-**File:** `.github/scripts/update-homebrew-tap.py`  
-**Lines:** 71-87  
-**Signature:** `gh_put(path, content, sha, message)`  
-**Description:**  
-Updates content on GitHub at the specified path with the given SHA and commit message.
-
-```python
-def gh_put(path, content, sha, message):
-    # Implementation here
-```
-
-> **Sources:** `.github/scripts/update-homebrew-tap.py` · L71–L87 · [`gh_put`](.github/scripts/update-homebrew-tap.py#L71)
-
-### `tryRun(cmd, cmdArgs)`
-**File:** `bin/rekipedia.js`  
-**Lines:** 4-  
-**Signature:** `tryRun(cmd, cmdArgs)`  
-**Description:**  
-Attempts to run a command with the provided arguments.
-
-```javascript
-function tryRun(cmd, cmdArgs) {
-    // Implementation here
-}
-```
-
-> **Sources:** `bin/rekipedia.js` · L4– · [`tryRun`](bin/rekipedia.js#L4)
-
-### `debounce(callback, wait)`
-**File:** `htmlcov/coverage_html_cb_dd2e7eb5.js`  
-**Lines:** 4-  
-**Signature:** `debounce(callback, wait)`  
-**Description:**  
-Creates a debounced function that delays invoking `callback` until after `wait` milliseconds have elapsed since the last time the debounced function was invoked.
-
-```javascript
-function debounce(callback, wait) {
-    // Implementation here
-}
-```
-
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L4– · [`debounce`](htmlcov/coverage_html_cb_dd2e7eb5.js#L4)
-
-### `checkVisible(element)`
-**File:** `htmlcov/coverage_html_cb_dd2e7eb5.js`  
-**Lines:** 11-  
-**Signature:** `checkVisible(element)`  
-**Description:**  
-Checks if the specified element is visible in the viewport.
-
-```javascript
-function checkVisible(element) {
-    // Implementation here
-}
-```
-
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L11– · [`checkVisible`](htmlcov/coverage_html_cb_dd2e7eb5.js#L11)
-
-### `on_click(sel, fn)`
-**File:** `htmlcov/coverage_html_cb_dd2e7eb5.js`  
-**Lines:** 22-  
-**Signature:** `on_click(sel, fn)`  
-**Description:**  
-Attaches a click event listener to elements matching the selector `sel` and executes the function `fn` when clicked.
-
-```javascript
-function on_click(sel, fn) {
-    // Implementation here
-}
-```
-
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L22– · [`on_click`](htmlcov/coverage_html_cb_dd2e7eb5.js#L22)
-
-### `getCellValue(row, column = 0)`
-**File:** `htmlcov/coverage_html_cb_dd2e7eb5.js`  
-**Lines:** 24-  
-**Signature:** `getCellValue(row, column = 0)`  
-**Description:**  
-Retrieves the value of a cell in the specified row and column.
-
-```javascript
-function getCellValue(row, column = 0) {
-    // Implementation here
-}
-```
-
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L24– · [`getCellValue`](htmlcov/coverage_html_cb_dd2e7eb5.js#L24)
-
-### `rowComparator(rowA, rowB, column = 0)`
-**File:** `htmlcov/coverage_html_cb_dd2e7eb5.js`  
-**Lines:** 39-  
-**Signature:** `rowComparator(rowA, rowB, column = 0)`  
-**Description:**  
-Compares two rows based on the values in the specified column.
-
-```javascript
-function rowComparator(rowA, rowB, column = 0) {
-    // Implementation here
-}
-```
-
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L39– · [`rowComparator`](htmlcov/coverage_html_cb_dd2e7eb5.js#L39)
-
-### `sortColumn(th)`
-**File:** `htmlcov/coverage_html_cb_dd2e7eb5.js`  
-**Lines:** 50-  
-**Signature:** `sortColumn(th)`  
-**Description:**  
-Sorts the table column represented by the header `th`.
-
-```javascript
-function sortColumn(th) {
-    // Implementation here
-}
-```
-
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L50– · [`sortColumn`](htmlcov/coverage_html_cb_dd2e7eb5.js#L50)
-
-### `updateHeader()`
-**File:** `htmlcov/coverage_html_cb_dd2e7eb5.js`  
-**Lines:** 572-  
-**Signature:** `updateHeader()`  
-**Description:**  
-Updates the table header based on the current sorting state.
-
-```javascript
-function updateHeader() {
-    // Implementation here
-}
-```
-
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L572– · [`updateHeader`](htmlcov/coverage_html_cb_dd2e7eb5.js#L572)
-
-## Class List
-
-### `RefactorConfig`
-**File:** `src/rekipedia/analysis/refactor_detector.py`  
-**Lines:** 13-19  
-**Description:**  
-Defines thresholds for refactor checks, which can be overridden via `.rekipedia/config.yml` refactor block.
-
-```python
-class RefactorConfig:
-    # Implementation here
-```
-
-> **Sources:** `src/rekipedia/analysis/refactor_detector.py` · L13–L19 · [`RefactorConfig`](src/rekipedia/analysis/refactor_detector.py#L13)
-
-### `RefactorIssue`
-**File:** `src/rekipedia/analysis/refactor_enricher.py`  
-**Lines:** 41-70  
-**Description:**  
-Represents a single detected refactoring issue.
-
-```python
-class RefactorIssue:
-    # Implementation here
-```
-
-> **Sources:** `src/rekipedia/analysis/refactor_enricher.py` · L41–L70 · [`RefactorIssue`](src/rekipedia/analysis/refactor_enricher.py#L41)
-
-### `RefactorEnricher`
-**File:** `src/rekipedia/analysis/refactor_enricher.py`  
-**Lines:** 374-461  
-**Description:**  
-Enriches static-analysis issues with LLM explanations and suggestions.
-
-```python
-class RefactorEnricher:
-    # Implementation here
-```
-
-> **Sources:** `src/rekipedia/analysis/refactor_enricher.py` · L374–L461 · [`RefactorEnricher`](src/rekipedia/analysis/refactor_enricher.py#L374)
-
-### `Calculator`
-**File:** `tests/fixtures/mini-py-repo/core.py`  
-**Lines:** 5-9  
-**Description:**  
-A simple calculator using shared utilities.
-
-```python
-class Calculator:
-    # Implementation here
-```
-
-> **Sources:** `tests/fixtures/mini-py-repo/core.py` · L5–L9 · [`Calculator`](tests/fixtures/mini-py-repo/core.py#L5)
-
-## Parameters
-
-### `gh_get_sha(path)`
-- **path**: The path for which the SHA value is to be fetched.
-
-### `gh_put(path, content, sha, message)`
-- **path**: The path to update on GitHub.
-- **content**: The content to be updated.
-- **sha**: The SHA value.
-- **message**: The commit message.
-
-### `tryRun(cmd, cmdArgs)`
-- **cmd**: The command to run.
-- **cmdArgs**: The arguments for the command.
-
-### `debounce(callback, wait)`
-- **callback**: The function to debounce.
-- **wait**: The delay in milliseconds.
-
-### `checkVisible(element)`
-- **element**: The element to check visibility for.
-
-### `on_click(sel, fn)`
-- **sel**: The selector for elements to attach the click event.
-- **fn**: The function to execute on click.
-
-### `getCellValue(row, column = 0)`
-- **row**: The row from which to get the cell value.
-- **column**: The column index (default is 0).
-
-### `rowComparator(rowA, rowB, column = 0)`
-- **rowA**: The first row to compare.
-- **rowB**: The second row to compare.
-- **column**: The column index (default is 0).
-
-### `sortColumn(th)`
-- **th**: The table header element representing the column to sort.
-
-## Return Values
-
-### `read_checksums_from_dist()`
-- **Returns**: The sha256 checksums from `dist/checksums.txt`.
-
-### `gh_get_sha(path)`
-- **Returns**: The SHA value for the specified path.
-
-### `gh_put(path, content, sha, message)`
-- **Returns**: None.
-
-### `tryRun(cmd, cmdArgs)`
-- **Returns**: None.
-
-### `debounce(callback, wait)`
-- **Returns**: The debounced function.
-
-### `checkVisible(element)`
-- **Returns**: Boolean indicating visibility.
-
-### `on_click(sel, fn)`
-- **Returns**: None.
-
-### `getCellValue(row, column = 0)`
-- **Returns**: The value of the specified cell.
-
-### `rowComparator(rowA, rowB, column = 0)`
-- **Returns**: Comparison result.
-
-### `sortColumn(th)`
-- **Returns**: None.
-
-### `updateHeader()`
-- **Returns**: None.
-
-## Examples
-
-### Example of `read_checksums_from_dist()`
-
-```python
 checksums = read_checksums_from_dist()
-print(checksums)
+current_sha = gh_get_sha("Formula/rekipedia.rb")
+gh_put(
+    path="Formula/rekipedia.rb",
+    content="new formula content here",
+    sha=current_sha,
+    message="Update Homebrew formula for new release",
+)
 ```
 
-### Example of `gh_get_sha(path)`
+This is illustrative, but it matches the actual function boundaries in the script: local checksum parsing plus GitHub-backed update operations.
 
-```python
-sha_value = gh_get_sha('/path/to/file')
-print(sha_value)
+### Invoke sandbox shard analysis
+
+Since [`src/rekipedia/sandbox/tasks/analyze_shard.py`](src/rekipedia/sandbox/tasks/analyze_shard.py) is an entry point, it should be executed in the sandbox task context rather than imported as a library. The exact CLI shape is not available in the analysis data, so the safe repository-specific guidance is simply:
+
+```bash
+python src/rekipedia/sandbox/tasks/analyze_shard.py
 ```
 
-### Example of `gh_put(path, content, sha, message)`
+If the sandbox runner passes arguments, those are controlled by the repository’s automation layer rather than by a stable public Python API.
 
-```python
-gh_put('/path/to/file', 'new content', 'abc123', 'Updated content')
-```
+### Automation from the launcher
 
-### Example of `tryRun(cmd, cmdArgs)`
+If a workflow needs to dispatch a Python script through the repository launcher, `tryRun(cmd, cmdArgs)` in [`bin/rekipedia.js`](bin/rekipedia.js#L4) is the relevant hook. In practice, that means the Python surface may be invoked as an implementation detail of higher-level commands.
 
-```javascript
-tryRun('echo', ['Hello, World!'])
-```
+> **Sources:** `.github/scripts/update-homebrew-tap.py` · L36–L87 · [`read_checksums_from_dist`](.github/scripts/update-homebrew-tap.py#L36), [`gh_get_sha`](.github/scripts/update-homebrew-tap.py#L58), [`gh_put`](.github/scripts/update-homebrew-tap.py#L71); `src/rekipedia/sandbox/tasks/analyze_shard.py` · entry point listed in analysis data; `bin/rekipedia.js` · [`tryRun`](bin/rekipedia.js#L4)
 
-### Example of `debounce(callback, wait)`
+## Notes on Repository Fit
 
-```javascript
-const debouncedFunction = debounce(() => console.log('Debounced!'), 300)
-debouncedFunction()
-```
+This repository’s Python surface is deliberately lightweight. The main codebase is Go, and the Python files serve supporting roles: release automation and sandbox task execution. That means the most important contract is not a general importable API, but rather **stable script behavior**, **predictable file locations**, and **integration with surrounding automation**.
 
-### Example of `checkVisible(element)`
+For maintainers, the key takeaway is that the Python code should be treated as operational glue:
+- keep the Homebrew updater aligned with release artifact generation,
+- preserve the sandbox task entry point location,
+- and avoid turning these scripts into broad utility modules unless the repository’s automation model expands.
 
-```javascript
-const isVisible = checkVisible(document.getElementById('myElement'))
-console.log(isVisible)
-```
-
-### Example of `on_click(sel, fn)`
-
-```javascript
-on_click('.myButton', () => alert('Button clicked!'))
-```
-
-### Example of `getCellValue(row, column = 0)`
-
-```javascript
-const value = getCellValue(myRow, 1)
-console.log(value)
-```
-
-### Example of `rowComparator(rowA, rowB, column = 0)`
-
-```javascript
-const result = rowComparator(rowA, rowB, 1)
-console.log(result)
-```
-
-### Example of `sortColumn(th)`
-
-```javascript
-sortColumn(document.querySelector('th'))
-```
-
-### Example of `updateHeader()`
-
-```javascript
-updateHeader()
-```
-
-## Sources
-
-> **Sources:** `.github/scripts/update-homebrew-tap.py` · L36–L55 · [`read_checksums_from_dist`](.github/scripts/update-homebrew-tap.py#L36)  
-> **Sources:** `.github/scripts/update-homebrew-tap.py` · L58–L68 · [`gh_get_sha`](.github/scripts/update-homebrew-tap.py#L58)  
-> **Sources:** `.github/scripts/update-homebrew-tap.py` · L71–L87 · [`gh_put`](.github/scripts/update-homebrew-tap.py#L71)  
-> **Sources:** `bin/rekipedia.js` · L4– · [`tryRun`](bin/rekipedia.js#L4)  
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L4– · [`debounce`](htmlcov/coverage_html_cb_dd2e7eb5.js#L4)  
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L11– · [`checkVisible`](htmlcov/coverage_html_cb_dd2e7eb5.js#L11)  
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L22– · [`on_click`](htmlcov/coverage_html_cb_dd2e7eb5.js#L22)  
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L24– · [`getCellValue`](htmlcov/coverage_html_cb_dd2e7eb5.js#L24)  
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L39– · [`rowComparator`](htmlcov/coverage_html_cb_dd2e7eb5.js#L39)  
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L50– · [`sortColumn`](htmlcov/coverage_html_cb_dd2e7eb5.js#L50)  
-> **Sources:** `htmlcov/coverage_html_cb_dd2e7eb5.js` · L572– · [`updateHeader`](htmlcov/coverage_html_cb_dd2e7eb5.js#L572)  
-> **Sources:** `src/rekipedia/analysis/refactor_detector.py` · L13–L19 · [`RefactorConfig`](src/rekipedia/analysis/refactor_detector.py#L13)  
-> **Sources:** `src/rekipedia/analysis/refactor_enricher.py` · L41–L70 · [`RefactorIssue`](src/rekipedia/analysis/refactor_enricher.py#L41)  
-> **Sources:** `src/rekipedia/analysis/refactor_enricher.py` · L374–L461 · [`RefactorEnricher`](src/rekipedia/analysis/refactor_enricher.py#L374)  
-> **Sources:** `tests/fixtures/mini-py-repo/core.py` · L5–L9 · [`Calculator`](tests/fixtures/mini-py-repo/core.py#L5)
+> **Sources:** `.github/scripts/update-homebrew-tap.py` · L1–L87; `src/rekipedia/sandbox/tasks/analyze_shard.py` · entry point listed in analysis data
