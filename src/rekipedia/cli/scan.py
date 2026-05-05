@@ -134,11 +134,16 @@ def scan_cmd(
         console.print(f"  embed key: [cyan]{'(set)' if llm_config.embed_api_key else '(not set)'}[/cyan]")
     if verbose:
         console.print("  mode     : [yellow]verbose (debug logging ON)[/yellow]")
-    # Parse languages filter
+    # Parse languages filter — CLI flag takes priority; fall back to config.yml
     lang_list: list[str] | None = None
     if languages:
         lang_list = [l.strip().lower() for l in languages.split(",") if l.strip()]
         console.print(f"  languages: [cyan]{', '.join(lang_list)}[/cyan]")
+    elif cfg.get("languages"):
+        lang_list = [l.strip().lower() for l in cfg["languages"] if l.strip()]
+        console.print(f"  languages: [cyan]{', '.join(lang_list)}[/cyan] [dim](from config.yml)[/dim]")
+    else:
+        console.print("  languages: [cyan]all[/cyan]")
 
     console.rule()
 

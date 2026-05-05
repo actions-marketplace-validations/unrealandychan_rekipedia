@@ -4,27 +4,60 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
-import yaml
 from rich.console import Console
 
 console = Console()
 
-_DEFAULT_CONFIG: dict = {
-    "version": 1,
-    "ignore": [
-        ".git",
-        "node_modules",
-        "__pycache__",
-        ".rekipedia",
-    ],
-    "languages": ["python", "typescript"],
-    "llm": {
-        "model": "ollama/llama4",
-        "api_key": "",
-        "base_url": "",
-        "temperature": 0.2,
-    },
-}
+_DEFAULT_CONFIG_YAML = """\
+# rekipedia configuration — .rekipedia/config.yml
+# Run `reki init` to regenerate this file.
+version: 1
+
+# ── Files to ignore (gitignore-style patterns) ───────────────────────────────
+ignore:
+  - .git
+  - node_modules
+  - __pycache__
+  - .rekipedia
+
+# ── Language filter ───────────────────────────────────────────────────────────
+# Controls which source files are scanned.
+#
+# Supported values:
+#   python, typescript, javascript, go, rust, java, kotlin, ruby,
+#   markdown, yaml, json, toml, sql, shell, docker, terraform, html, css, scss
+#
+# Set to `null` (or remove the key) to scan ALL supported languages — recommended
+# for mixed-language repos (e.g. Python + Go).
+#
+# Examples:
+#   languages: null           # scan everything (DEFAULT)
+#   languages: [python]       # Python only
+#   languages: [python, go]   # Python + Go
+#   languages: [typescript, javascript, go]
+#
+languages:   # null = all languages
+
+# ── LLM settings ─────────────────────────────────────────────────────────────
+llm:
+  # Model in litellm format: provider/model-name
+  # Examples:
+  #   ollama/llama4          (local Ollama — default)
+  #   openai/gpt-4o
+  #   anthropic/claude-sonnet-4
+  #   openrouter/google/gemini-2.5-pro
+  model: ollama/llama4
+  api_key: ""        # or set env var REKIPEDIA_API_KEY / OPENAI_API_KEY
+  base_url: ""       # override API base URL (e.g. http://localhost:11434 for Ollama)
+  temperature: 0.2
+
+  # ── Embedding model (for semantic search / RAG) ───────────────────────────
+  # Leave blank to use the same model as above (not recommended for large repos).
+  # embed_model: text-embedding-3-small
+  # embed_provider: openai
+  # embed_api_key: ""
+  # embed_base_url: ""
+"""
 
 _GITIGNORE_ENTRY = ".rekipedia/store.db\n"
 
@@ -95,7 +128,7 @@ def run_init(repo_path: Path, no_agent_files: bool = False) -> None:
         )
     else:
         config_path.write_text(
-            yaml.dump(_DEFAULT_CONFIG, default_flow_style=False, sort_keys=False),
+            _DEFAULT_CONFIG_YAML,
             encoding="utf-8",
         )
         console.print(f"[green]✔[/green]  Created [bold]{config_path}[/bold]")
