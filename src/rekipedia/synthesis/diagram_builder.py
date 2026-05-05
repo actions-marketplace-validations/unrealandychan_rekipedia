@@ -21,15 +21,54 @@ class DiagramBuilder:
 # ── diagram builders ─────────────────────────────────────────────────
 
 def _build_module_graph(rows: list[dict], entry_points: list[str] | None = None) -> str:
-    """flowchart LR showing module relationships with labelled edges and entry point highlights."""
+    """flowchart LR showing top-level MODULE relationships (not individual symbols).
+
+    Groups files by top-level package/directory so the diagram shows
+    high-level architecture instead of a symbol soup.
+    """
     entry_set = set(entry_points or [])
 
-    # Collect all edges by type
-    import_edges: list[tuple[str, str]] = []
-    call_edges: list[tuple[str, str]] = []
-    inherit_edges: list[tuple[str, str]] = []
+    _EXTERNAL_PREFIXES = (
+        "os", "sys", "re", "io", "json", "time", "math", "typing", "pathlib",
+        "collections", "itertools", "functools", "dataclasses", "enum", "abc",
+        "logging", "threading", "subprocess", "asyncio", "contextlib", "copy",
+        "hashlib", "base64", "uuid", "random", "datetime", "string", "struct",
+        "importlib", "inspect", "warnings", "weakref", "traceback", "textwrap",
+        # popular third-party
+        "fastapi", "pydantic", "sqlalchemy", "django", "flask", "requests",
+        "httpx", "aiohttp", "numpy", "pandas", "torch", "sklearn", "openai",
+        "boto3", "celery", "redis", "pytest", "click", "typer", "rich",
+        "starlette", "uvicorn", "gunicorn", "alembic", "litellm", "faiss",
+        "tree_sitter", "pathspec", "pyfiglet", "markdown", "certifi",
+        # Go stdlib
+        "fmt", "strings", "strconv", "bytes", "errors", "sort", "sync",
+        "bufio", "reflect", "unicode", "flag", "net", "log", "context",
+        "runtime", "encoding", "crypto", "regexp", "path/filepath", "http",
+        "grpc", "testing", "os/exec", "io/fs",
+    )
 
-    seen_nodes: set[str] = set()
+    def _top_module(name: str) -> str:
+        """Extract the top-level module/package name from a file path or import."""
+        # File path: src/rekipedia/cli/scan.py  → src/rekipedia/cli  → rekipedia.cli
+        # Import: rekipedia.extractors.go_extractor  → rekipedia.extractors
+        # Go import: github.com/user/repo/internal/foo  → internal/foo
+        if "/" in name:
+            parts = name.split("/")
+            # For Python src layout: src/pkg → pkg
+            if parts[0] == "src" and len(parts) > 1:
+                parts = parts[1:]
+            # Return top two components for depth
+            pkg = "/".join(parts[:2]) if len(parts) > 1 else parts[0]
+            return pkg.replace(".py", "").replace(".go", "").replace(".ts", "")
+        elif "." in name:
+            parts = name.split(".")
+            return ".".join(parts[:2]) if len(parts) > 1 else parts[0]
+        return name
+
+    # Build module-level edges (deduplicated)
+    module_import_edges: set[tuple[str, str]] = set()
+    module_call_edges: set[tuple[str, str]] = set()
+    module_inherit_edges: set[tuple[str, str]] = set()
 
     for r in rows:
         frm = r.get("from_") or r.get("from") or ""
@@ -37,58 +76,59 @@ def _build_module_graph(rows: list[dict], entry_points: list[str] | None = None)
         kind = r.get("kind") or ""
         if not frm or not to:
             continue
-        # Only keep internal relationships — filter out stdlib/well-known external packages
-        _EXTERNAL_PREFIXES = (
-            "os", "sys", "re", "io", "json", "time", "math", "typing", "pathlib",
-            "collections", "itertools", "functools", "dataclasses", "enum", "abc",
-            "logging", "threading", "subprocess", "asyncio", "contextlib", "copy",
-            "hashlib", "base64", "uuid", "random", "datetime", "string", "struct",
-            # popular third-party
-            "fastapi", "pydantic", "sqlalchemy", "django", "flask", "requests",
-            "httpx", "aiohttp", "numpy", "pandas", "torch", "sklearn", "openai",
-            "boto3", "celery", "redis", "pytest", "click", "typer", "rich",
-            "starlette", "uvicorn", "gunicorn", "alembic", "litellm", "faiss",
-            # Go stdlib
-            "fmt", "strings", "strconv", "bytes", "errors", "sort", "sync",
-            "bufio", "reflect", "unicode", "flag", "net", "log", "context",
-            "runtime", "encoding", "crypto", "regexp", "path/filepath", "http",
-            "grpc", "testing",
-        )
-        if kind == "import":
-            # Keep if it looks internal: has path separator, has dot-notation, or
-            # doesn't start with a known external package name
-            is_external = any(to == p or to.startswith(p + ".") or to.startswith(p + "/")
-                              for p in _EXTERNAL_PREFIXES)
-            if not is_external and to:
-                import_edges.append((frm, to))
-                seen_nodes.add(frm)
-                seen_nodes.add(to)
-        elif kind == "call":
-            call_edges.append((frm, to))
-            seen_nodes.add(frm)
-            seen_nodes.add(to)
-        elif kind == "inherits":
-            inherit_edges.append((frm, to))
-            seen_nodes.add(frm)
-            seen_nodes.add(to)
 
-    if not seen_nodes:
+        is_external = any(
+            to == p or to.startswith(p + ".") or to.startswith(p + "/")
+            for p in _EXTERNAL_PREFIXES
+        )
+        if is_external:
+            continue
+
+        frm_mod = _top_module(frm)
+        to_mod = _top_module(to)
+        if frm_mod == to_mod:
+            continue  # Skip intra-module edges
+
+        if kind in ("import", "imports"):
+            module_import_edges.add((frm_mod, to_mod))
+        elif kind in ("call", "calls"):
+            module_call_edges.add((frm_mod, to_mod))
+        elif kind in ("inherits", "inherit"):
+            module_inherit_edges.add((frm_mod, to_mod))
+
+    all_nodes: set[str] = set()
+    for a, b in module_import_edges | module_call_edges | module_inherit_edges:
+        all_nodes.add(a)
+        all_nodes.add(b)
+
+    if not all_nodes:
         return "flowchart LR\n  A[No internal relationships detected]"
 
-    # Build id -> display label mapping
+    # Limit total nodes to keep diagram readable
+    _MAX_NODES = 20
+    if len(all_nodes) > _MAX_NODES:
+        # Keep nodes with most connections
+        node_degree: dict[str, int] = {}
+        for a, b in module_import_edges | module_call_edges | module_inherit_edges:
+            node_degree[a] = node_degree.get(a, 0) + 1
+            node_degree[b] = node_degree.get(b, 0) + 1
+        top_nodes = {n for n, _ in sorted(node_degree.items(), key=lambda x: -x[1])[:_MAX_NODES]}
+        all_nodes = top_nodes
+        module_import_edges = {(a, b) for a, b in module_import_edges if a in top_nodes and b in top_nodes}
+        module_call_edges = {(a, b) for a, b in module_call_edges if a in top_nodes and b in top_nodes}
+        module_inherit_edges = {(a, b) for a, b in module_inherit_edges if a in top_nodes and b in top_nodes}
+
     def node_id(name: str) -> str:
         return re.sub(r"[^A-Za-z0-9_]", "_", name)
 
     def node_label(name: str) -> str:
-        # Use last path component or class name as display label
-        label = name.split("/")[-1].split(".")[0]
+        label = name.split("/")[-1].split(".")[-1]
         return label or name
 
     lines = ["flowchart LR"]
 
-    # Define nodes with display labels
     defined: set[str] = set()
-    for name in sorted(seen_nodes):
+    for name in sorted(all_nodes):
         nid = node_id(name)
         if nid not in defined:
             label = node_label(name)
@@ -97,23 +137,21 @@ def _build_module_graph(rows: list[dict], entry_points: list[str] | None = None)
 
     lines.append("")
 
-    # Import edges (limit 25)
-    for frm, to in import_edges[:25]:
+    for frm, to in sorted(module_import_edges)[:30]:
         lines.append(f"  {node_id(frm)} -->|imports| {node_id(to)}")
 
-    # Call edges (limit 15)
-    for frm, to in call_edges[:15]:
+    for frm, to in sorted(module_call_edges)[:15]:
         lines.append(f"  {node_id(frm)} -.->|calls| {node_id(to)}")
 
-    # Inheritance edges (limit 10) — use flowchart arrow syntax, NOT classDiagram <|--
-    for child, parent in inherit_edges[:10]:
+    for child, parent in sorted(module_inherit_edges)[:10]:
         lines.append(f"  {node_id(child)} -->|inherits| {node_id(parent)}")
 
     lines.append("")
 
-    # Style entry points in gold
+    # Style entry-point modules in gold
     for ep in (entry_points or []):
-        nid = node_id(ep)
+        ep_mod = _top_module(ep)
+        nid = node_id(ep_mod)
         if nid in defined:
             lines.append(f"  style {nid} fill:#f4a700,stroke:#c47d00,color:#000")
 

@@ -102,7 +102,21 @@ Example focus for `repository-structure`:
 Example focus for `index`:
 "Write a project overview for a developer landing on this page for the first time. Sections: What is it (2 sentences), Key Features (bullet list), Quick Start (code block with install + first command), Repository Map (tree of top dirs), Architecture at a glance (one-paragraph summary + link to architecture page). Include version badge and build status."
 
-## required_data minimisation:
+## top_level_dirs field:
+Each entry is `{dir, languages, file_count}` — use this to identify multi-language repos and ensure every significant language runtime gets its own documentation page.
+Example: if `go/` dir has `{go: 45}` files, it warrants a dedicated `module-go` or `go-codebase` page.
+
+## file_role_counts field:
+`{impl, test, ci, config, doc}` counts. Use this to calibrate:
+- `impl` count → depth of core-module coverage needed
+- `test` count → whether a dedicated `testing` page is warranted (skip if test < 3)
+- `ci` count → whether a `ci-cd` page is warranted
+IMPORTANT: `ci` files (e.g. `.github/scripts/`) are NOT part of the public API. Never include CI helper functions in `python-api` or `cli-reference` pages.
+
+## symbols in the data:
+Each symbol has a `role` field: `impl` / `test` / `ci` / `config`. For API reference pages, ONLY document symbols where `role == "impl"`. Ignore `ci`, `test`, and `config` symbols in api-reference pages.
+
+
 - `index`, `repository-structure`: files_seen, entry_points, build_commands, symbol_index
 - `architecture-*`, `data-flow`: relationships, symbols, pre_built_module_graph, pre_built_dependency_graph, symbol_index
 - module-specific pages: symbols (filtered), relationships (filtered), symbol_index
@@ -267,6 +281,25 @@ class PlannerAgent:
         return plan
 
 
+def _classify_file_role(path: str) -> str:
+    """Classify a file as impl / test / ci / config / doc."""
+    p = path.lower()
+    parts = Path(p).parts
+    ext = Path(path).suffix.lower()
+    _CI_DIRS = {".github", ".gitlab", ".circleci", ".travis"}
+    _DOC_EXTS = {".md", ".txt", ".rst"}
+    _CONFIG_EXTS = {".yaml", ".yml", ".toml", ".json", ".env", ".cfg", ".ini"}
+    if any(part in _CI_DIRS for part in parts):
+        return "ci"
+    if any(part.startswith("test") or part in ("tests", "spec", "specs", "__tests__") for part in parts):
+        return "test"
+    if ext in _DOC_EXTS:
+        return "doc"
+    if ext in _CONFIG_EXTS or any(kw in p for kw in ("config", "conf", "setting", "setup", ".env")):
+        return "config"
+    return "impl"
+
+
 def _build_planning_summary(combined: AnalysisResult, diagrams: dict | None) -> dict:
     """Compact summary for the planner — enough to make structural decisions."""
     # Count files by extension
@@ -280,47 +313,59 @@ def _build_planning_summary(combined: AnalysisResult, diagrams: dict | None) -> 
     for s in combined.symbols:
         kind_counts[s.kind] = kind_counts.get(s.kind, 0) + 1
 
-    # Detect what's present
-    has_tests = any(
-        "test" in f.lower() or "spec" in f.lower()
-        for f in combined.files_seen
-    ) or bool(combined.test_commands)
+    # File role classification
+    role_counts: dict[str, int] = {"impl": 0, "test": 0, "ci": 0, "config": 0, "doc": 0}
+    file_roles: dict[str, str] = {}
+    for f in combined.files_seen:
+        role = _classify_file_role(f)
+        file_roles[f] = role
+        role_counts[role] = role_counts.get(role, 0) + 1
 
+    impl_file_count = role_counts["impl"]
+    test_file_count = role_counts["test"]
+    config_file_count = role_counts["config"]
+
+    # Detect what's present
+    has_tests = test_file_count > 0 or bool(combined.test_commands)
     has_cli = any(
         any(kw in (s.name or "").lower() for kw in ("cli", "command", "cmd", "click", "argparse", "argv"))
         for s in combined.symbols
     ) or any(kw in str(combined.evidence).lower() for kw in ("click", "argparse"))
+    has_config = config_file_count > 0 or bool(combined.evidence)
 
-    has_config = any(
-        Path(f).suffix.lower() in (".yaml", ".yml", ".toml", ".json", ".env", ".cfg", ".ini")
-        for f in combined.files_seen
-    ) or bool(combined.evidence)
-
-    # Implementation vs test/config file counts (same heuristic as RAG embedder)
-    _DOC_EXTS = {".md", ".txt", ".rst", ".yaml", ".yml", ".toml", ".json"}
-    impl_file_count = 0
-    test_file_count = 0
-    config_file_count = 0
+    # Top-level directories with language breakdown
+    from rekipedia.orchestrator.snapshotter import _LANGUAGE_MAP  # noqa: PLC0415
+    _EXT_TO_LANG = _LANGUAGE_MAP
+    dir_languages: dict[str, dict[str, int]] = {}
     for f in combined.files_seen:
-        p = f.lower()
-        parts = Path(p).parts
-        ext = Path(f).suffix.lower()
-        if any(part.startswith("test") or part in ("tests", "spec", "specs", "__tests__") for part in parts):
-            test_file_count += 1
-        elif ext in _DOC_EXTS or any(kw in p for kw in ("config", "conf", "setting", "setup", ".env")):
-            config_file_count += 1
+        parts = Path(f).parts
+        if len(parts) < 2:
+            top = "."
         else:
-            impl_file_count += 1
+            top = parts[0]
+        lang = _EXT_TO_LANG.get(Path(f).suffix.lower(), "other")
+        dir_languages.setdefault(top, {})
+        dir_languages[top][lang] = dir_languages[top].get(lang, 0) + 1
 
-    # Top-level modules/directories
-    top_dirs = sorted({
-        Path(f).parts[0] for f in combined.files_seen if "/" in f
-    })
+    top_dirs_with_langs = [
+        {"dir": d, "languages": langs, "file_count": sum(langs.values())}
+        for d, langs in sorted(dir_languages.items(), key=lambda x: -sum(x[1].values()))
+    ][:20]
 
-    # Sample of symbols for planner context (just names + kinds, not full dump)
+    # Symbol sample: impl files first (exclude CI/test/config symbols), then fill from rest
+    # This ensures Planner sees real code symbols, not CI helper functions
+    impl_symbols = [
+        s for s in combined.symbols
+        if file_roles.get(s.file, "impl") == "impl"
+    ]
+    other_symbols = [
+        s for s in combined.symbols
+        if file_roles.get(s.file, "impl") != "impl"
+    ]
+    ordered_symbols = impl_symbols + other_symbols
     symbol_sample = [
         {"name": s.name, "kind": s.kind, "file": s.file}
-        for s in combined.symbols[:80]
+        for s in ordered_symbols[:100]
     ]
 
     return {
@@ -328,8 +373,9 @@ def _build_planning_summary(combined: AnalysisResult, diagrams: dict | None) -> 
         "impl_file_count": impl_file_count,
         "test_file_count": test_file_count,
         "config_file_count": config_file_count,
+        "file_role_counts": role_counts,
         "file_extensions": ext_counts,
-        "top_level_dirs": top_dirs[:20],
+        "top_level_dirs": top_dirs_with_langs,
         "entry_points": combined.entry_points[:10],
         "symbol_count": len(combined.symbols),
         "symbol_kinds": kind_counts,

@@ -296,7 +296,12 @@ class PageBuilder:
             title = title_hint
             content = f"# {title}\n\n> *LLM synthesis failed: {exc}*\n"
 
-        content = _ensure_frontmatter(slug, title, content, tags=spec.get("tags", []), section=spec.get("section"))
+        content = _ensure_frontmatter(
+            slug, title, content,
+            tags=spec.get("tags", []),
+            section=spec.get("section"),
+            importance=spec.get("importance", 50),
+        )
         return (title, content)
 
     def build_one(self, slug: str, combined: AnalysisResult, _payload: dict | None = None) -> tuple[str, str] | None:
@@ -438,21 +443,62 @@ def _build_cross_module_summary(
     return summary
 
 
+def _classify_file_role(path: str) -> str:
+    """Classify a file as impl / test / ci / config / doc."""
+    p = path.lower()
+    parts = Path(p).parts
+    ext = Path(path).suffix.lower()
+    _CI_DIRS = {".github", ".gitlab", ".circleci", ".travis"}
+    _DOC_EXTS = {".md", ".txt", ".rst"}
+    _CONFIG_EXTS = {".yaml", ".yml", ".toml", ".json", ".env", ".cfg", ".ini"}
+    if any(part in _CI_DIRS for part in parts):
+        return "ci"
+    if any(part.startswith("test") or part in ("tests", "spec", "specs", "__tests__") for part in parts):
+        return "test"
+    if ext in _DOC_EXTS:
+        return "doc"
+    if ext in _CONFIG_EXTS or any(kw in p for kw in ("config", "conf", "setting", "setup", ".env")):
+        return "config"
+    return "impl"
+
+
 def _build_payload(combined: AnalysisResult, diagrams: dict | None = None) -> dict:
-    # Build a compact symbol index: name -> {file, line_start, line_end, kind}
+    # Build file role map so LLM can distinguish impl vs CI/test/config
+    file_roles = {f: _classify_file_role(f) for f in combined.files_seen}
+
+    # Build a compact symbol index: name -> {file, line_start, line_end, kind, role}
+    # Prioritise impl symbols — they are far more useful than CI/test helpers
+    impl_symbols = [s for s in combined.symbols if file_roles.get(s.file, "impl") == "impl"]
+    other_symbols = [s for s in combined.symbols if file_roles.get(s.file, "impl") != "impl"]
+    ordered_symbols = impl_symbols + other_symbols
+
     symbol_index = {
         s.name: {
             "file": s.file,
             "line_start": s.line_start,
             "line_end": s.line_end,
             "kind": s.kind,
+            "role": file_roles.get(s.file, "impl"),
         }
-        for s in combined.symbols[:600]
+        for s in ordered_symbols[:600]
     }
+
+    # Separate files by role for LLM context clarity
+    impl_files = [f for f in combined.files_seen if file_roles.get(f) == "impl"]
+    test_files = [f for f in combined.files_seen if file_roles.get(f) == "test"]
+    ci_files = [f for f in combined.files_seen if file_roles.get(f) == "ci"]
+
     payload = {
         "files_seen": combined.files_seen[:500],
+        "impl_files": impl_files[:300],
+        "test_files": test_files[:100],
+        "ci_files": ci_files[:50],
+        "file_roles": file_roles,
         "entry_points": combined.entry_points,
-        "symbols": [s.model_dump() for s in combined.symbols[:600]],
+        "symbols": [
+            {**s.model_dump(), "role": file_roles.get(s.file, "impl")}
+            for s in ordered_symbols[:600]
+        ],
         "symbol_index": symbol_index,
         "relationships": [r.model_dump(by_alias=True) for r in combined.relationships[:1500]],
         "build_commands": combined.build_commands,

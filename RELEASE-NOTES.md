@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.10.3 — Wiki Generation Quality Improvements
+
+### Improvements
+- **Symbol sample sorted by importance**: Planner summary now shows `impl` files first, CI/test/config files last — LLM sees relevant source code, not GitHub Actions scripts.
+- **File role classification**: Each symbol and relationship tagged with `file_role` (`impl`/`test`/`ci`/`config`/`doc`) in planner payload — LLM can filter noise.
+- **Planner summary enhanced**: Includes `file_role_counts`, per-dir language breakdown, and multi-language instructions so LLM creates per-language pages for polyglot repos.
+- **Architecture diagram improved**: Module graph now groups by top-level module (not individual symbols), filters external/stdlib packages, limits to top-20 modules by edge count — produces readable Mermaid diagrams.
+- **Importance scores fixed**: Wiki pages now correctly inherit importance from planner spec (was always defaulting to 50).
+
+---
+
 ## v0.9.38 — Refactor Analysis Pipeline
 
 ### New Features
