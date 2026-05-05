@@ -41,6 +41,17 @@ _TEXT_EXTENSIONS = {
     ".yaml", ".yml", ".toml", ".json", ".md",
 }
 
+# Maps annotation tag → severity level.  All severity values must be members of
+# _SEVERITY_ORDER so that _apply_severity_filter can index them correctly.
+_TAG_SEVERITY: dict[str, str] = {
+    "FIXME": "high",
+    "BUG":   "high",
+    "TODO":  "medium",
+    "HACK":  "medium",
+    "XXX":   "medium",
+    "NOTE":  "low",
+}
+
 
 def _load_config(repo: Path) -> dict:
     cfg_path = repo / ".rekipedia" / "config.yml"
@@ -69,7 +80,7 @@ def _static_walk(repo_root: Path) -> list[dict]:
             if m:
                 tag = m.group(1).upper()
                 content = m.group(2).strip()
-                severity = "high" if tag in ("FIXME", "BUG") else "medium"
+                severity = _TAG_SEVERITY.get(tag, "medium")
                 findings.append({
                     "type": tag,
                     "severity": severity,
