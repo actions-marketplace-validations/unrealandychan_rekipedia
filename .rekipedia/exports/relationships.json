@@ -1,0 +1,7386 @@
+[
+  {
+    "from": ".github/scripts/update-homebrew-tap.py",
+    "to": "sys",
+    "kind": "import",
+    "file": ".github/scripts/update-homebrew-tap.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": ".github/scripts/update-homebrew-tap.py",
+    "to": "os",
+    "kind": "import",
+    "file": ".github/scripts/update-homebrew-tap.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": ".github/scripts/update-homebrew-tap.py",
+    "to": "json",
+    "kind": "import",
+    "file": ".github/scripts/update-homebrew-tap.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": ".github/scripts/update-homebrew-tap.py",
+    "to": "base64",
+    "kind": "import",
+    "file": ".github/scripts/update-homebrew-tap.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": ".github/scripts/update-homebrew-tap.py",
+    "to": "urllib.request",
+    "kind": "import",
+    "file": ".github/scripts/update-homebrew-tap.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "bin/rekipedia.js",
+    "to": "child_process",
+    "kind": "import",
+    "file": "bin/rekipedia.js",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/__main__.py",
+    "to": "rekipedia.cli",
+    "kind": "import",
+    "file": "src/rekipedia/__main__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/cross_repo_search.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/cross_repo_search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/cross_repo_search.py",
+    "to": "re",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/cross_repo_search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/cross_repo_search.py",
+    "to": "concurrent.futures",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/cross_repo_search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/cross_repo_search.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/cross_repo_search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/cross_repo_search.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/cross_repo_search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/cross_repo_search.py",
+    "to": "rekipedia.watcher.watcher",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/cross_repo_search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/graph_analysis.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/graph_analysis.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/graph_analysis.py",
+    "to": "collections",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/graph_analysis.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/graph_analysis.py",
+    "to": "typing",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/graph_analysis.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/graph_analysis.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/graph_analysis.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/graph_analysis.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/graph_analysis.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/graph_analysis.py",
+    "to": "collections",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/graph_analysis.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/graph_export.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/graph_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/graph_export.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/graph_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/graph_export.py",
+    "to": "xml.etree",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/graph_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/impact.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/impact.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/impact.py",
+    "to": "collections",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/impact.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_detector.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_detector.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_detector.py",
+    "to": "collections",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_detector.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_detector.py",
+    "to": "dataclasses",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_detector.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_enricher.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_enricher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_enricher.py",
+    "to": "logging",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_enricher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_enricher.py",
+    "to": "collections",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_enricher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_enricher.py",
+    "to": "concurrent.futures",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_enricher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_enricher.py",
+    "to": "dataclasses",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_enricher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_enricher.py",
+    "to": "typing",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_enricher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_enricher.py",
+    "to": "rekipedia.llm.client",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_enricher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_enricher.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_enricher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_writer.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_writer.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_writer.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_writer.py",
+    "to": "collections",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_writer.py",
+    "to": "datetime",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_writer.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_writer.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/analysis/refactor_writer.py",
+    "to": "importlib.metadata",
+    "kind": "import",
+    "file": "src/rekipedia/analysis/refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.ask",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.embed",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.export",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.init",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.scan",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.serve",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.context",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.diff",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.hook",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.update",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.impact",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.mcp_cmd",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.watch",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.search",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/__init__.py",
+    "to": "rekipedia.cli.refactor",
+    "kind": "import",
+    "file": "src/rekipedia/cli/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "os",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "threading",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "pyfiglet",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "yaml",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "rich.console",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "rich.live",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "rich.panel",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "rich.rule",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "rich.spinner",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "rich.text",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "datetime",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/ask.py",
+    "to": "os",
+    "kind": "import",
+    "file": "src/rekipedia/cli/ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/context.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/context.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/context.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/cli/context.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/context.py",
+    "to": "datetime",
+    "kind": "import",
+    "file": "src/rekipedia/cli/context.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/context.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/context.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/context.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/context.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/context.py",
+    "to": "rich.console",
+    "kind": "import",
+    "file": "src/rekipedia/cli/context.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/diff.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/diff.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/diff.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/diff.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/diff.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/diff.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/diff.py",
+    "to": "rich.console",
+    "kind": "import",
+    "file": "src/rekipedia/cli/diff.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/diff.py",
+    "to": "rich.table",
+    "kind": "import",
+    "file": "src/rekipedia/cli/diff.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/diff.py",
+    "to": "rekipedia.orchestrator.snapshot",
+    "kind": "import",
+    "file": "src/rekipedia/cli/diff.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "os",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "rich.console",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "logging",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "rekipedia.cli.scan",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "rekipedia.rag.scan_meta",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "tqdm",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "faiss",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/embed.py",
+    "to": "traceback",
+    "kind": "import",
+    "file": "src/rekipedia/cli/embed.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/export.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/export.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/cli/export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/export.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "src/rekipedia/cli/export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/export.py",
+    "to": "zipfile",
+    "kind": "import",
+    "file": "src/rekipedia/cli/export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/export.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/export.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/export.py",
+    "to": "rich.console",
+    "kind": "import",
+    "file": "src/rekipedia/cli/export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/export.py",
+    "to": "rekipedia.analysis.graph_export",
+    "kind": "import",
+    "file": "src/rekipedia/cli/export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/export.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "src/rekipedia/cli/export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/export.py",
+    "to": "rekipedia.analysis.graph_export",
+    "kind": "import",
+    "file": "src/rekipedia/cli/export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/export.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "src/rekipedia/cli/export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/export.py",
+    "to": "shutil",
+    "kind": "import",
+    "file": "src/rekipedia/cli/export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/hook.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/hook.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/hook.py",
+    "to": "os",
+    "kind": "import",
+    "file": "src/rekipedia/cli/hook.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/hook.py",
+    "to": "stat",
+    "kind": "import",
+    "file": "src/rekipedia/cli/hook.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/hook.py",
+    "to": "datetime",
+    "kind": "import",
+    "file": "src/rekipedia/cli/hook.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/hook.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/hook.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/hook.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/hook.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/impact.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/impact.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/impact.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/impact.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/impact.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/impact.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/impact.py",
+    "to": "rich.console",
+    "kind": "import",
+    "file": "src/rekipedia/cli/impact.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/impact.py",
+    "to": "rich.tree",
+    "kind": "import",
+    "file": "src/rekipedia/cli/impact.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/impact.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "src/rekipedia/cli/impact.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/impact.py",
+    "to": "rekipedia.analysis.impact",
+    "kind": "import",
+    "file": "src/rekipedia/cli/impact.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/init.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/init.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/init.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/init.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/init.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/init.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/init.py",
+    "to": "yaml",
+    "kind": "import",
+    "file": "src/rekipedia/cli/init.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/init.py",
+    "to": "rich.console",
+    "kind": "import",
+    "file": "src/rekipedia/cli/init.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/mcp_cmd.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/mcp_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/mcp_cmd.py",
+    "to": "rekipedia.cli.mcp_server",
+    "kind": "import",
+    "file": "src/rekipedia/cli/mcp_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/mcp_server.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/mcp_server.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/cli/mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/mcp_server.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "src/rekipedia/cli/mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/mcp_server.py",
+    "to": "os",
+    "kind": "import",
+    "file": "src/rekipedia/cli/mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/mcp_server.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/mcp_server.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "src/rekipedia/cli/mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/mcp_server.py",
+    "to": "rekipedia.analysis.graph_analysis",
+    "kind": "import",
+    "file": "src/rekipedia/cli/mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/mcp_server.py",
+    "to": "rekipedia.analysis.graph_analysis",
+    "kind": "import",
+    "file": "src/rekipedia/cli/mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/mcp_server.py",
+    "to": "rekipedia.analysis.impact",
+    "kind": "import",
+    "file": "src/rekipedia/cli/mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/mcp_server.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "src/rekipedia/cli/mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/mcp_server.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/cli/mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "re",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "yaml",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "rich.console",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "rich.progress",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "rekipedia.orchestrator.sharding",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "rekipedia.orchestrator.snapshotter",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/refactor.py",
+    "to": "rekipedia.synthesis.page_builder",
+    "kind": "import",
+    "file": "src/rekipedia/cli/refactor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/scan.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/scan.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "src/rekipedia/cli/scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/scan.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/scan.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/scan.py",
+    "to": "yaml",
+    "kind": "import",
+    "file": "src/rekipedia/cli/scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/scan.py",
+    "to": "rich.console",
+    "kind": "import",
+    "file": "src/rekipedia/cli/scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/scan.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/cli/scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/scan.py",
+    "to": "rekipedia.orchestrator.run_digest",
+    "kind": "import",
+    "file": "src/rekipedia/cli/scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/scan.py",
+    "to": "rekipedia.cli.refactor",
+    "kind": "import",
+    "file": "src/rekipedia/cli/scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/scan.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "src/rekipedia/cli/scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/scan.py",
+    "to": "traceback",
+    "kind": "import",
+    "file": "src/rekipedia/cli/scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/search.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/search.py",
+    "to": "rich.console",
+    "kind": "import",
+    "file": "src/rekipedia/cli/search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/search.py",
+    "to": "rich.table",
+    "kind": "import",
+    "file": "src/rekipedia/cli/search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/search.py",
+    "to": "rekipedia.analysis.cross_repo_search",
+    "kind": "import",
+    "file": "src/rekipedia/cli/search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/search.py",
+    "to": "rekipedia.analysis.cross_repo_search",
+    "kind": "import",
+    "file": "src/rekipedia/cli/search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/search.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/serve.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/serve.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/serve.py",
+    "to": "os",
+    "kind": "import",
+    "file": "src/rekipedia/cli/serve.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/serve.py",
+    "to": "webbrowser",
+    "kind": "import",
+    "file": "src/rekipedia/cli/serve.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/serve.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/serve.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/serve.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/serve.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/serve.py",
+    "to": "yaml",
+    "kind": "import",
+    "file": "src/rekipedia/cli/serve.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/serve.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/cli/serve.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/serve.py",
+    "to": "uvicorn",
+    "kind": "import",
+    "file": "src/rekipedia/cli/serve.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/serve.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "src/rekipedia/cli/serve.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/serve.py",
+    "to": "threading",
+    "kind": "import",
+    "file": "src/rekipedia/cli/serve.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/update.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/cli/update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/update.py",
+    "to": "os",
+    "kind": "import",
+    "file": "src/rekipedia/cli/update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/update.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "src/rekipedia/cli/update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/update.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/cli/update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/update.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/update.py",
+    "to": "yaml",
+    "kind": "import",
+    "file": "src/rekipedia/cli/update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/update.py",
+    "to": "rich.console",
+    "kind": "import",
+    "file": "src/rekipedia/cli/update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/update.py",
+    "to": "rich.progress",
+    "kind": "import",
+    "file": "src/rekipedia/cli/update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/update.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/cli/update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/update.py",
+    "to": "rekipedia.orchestrator.run_update",
+    "kind": "import",
+    "file": "src/rekipedia/cli/update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/watch.py",
+    "to": "click",
+    "kind": "import",
+    "file": "src/rekipedia/cli/watch.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/watch.py",
+    "to": "rich.console",
+    "kind": "import",
+    "file": "src/rekipedia/cli/watch.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/watch.py",
+    "to": "rekipedia.watcher.watcher",
+    "kind": "import",
+    "file": "src/rekipedia/cli/watch.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/watch.py",
+    "to": "rekipedia.watcher.watcher",
+    "kind": "import",
+    "file": "src/rekipedia/cli/watch.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/watch.py",
+    "to": "rekipedia.watcher.watcher",
+    "kind": "import",
+    "file": "src/rekipedia/cli/watch.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/cli/watch.py",
+    "to": "rekipedia.watcher.watcher",
+    "kind": "import",
+    "file": "src/rekipedia/cli/watch.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/exporters/json_export.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/exporters/json_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/exporters/json_export.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/exporters/json_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/exporters/json_export.py",
+    "to": "datetime",
+    "kind": "import",
+    "file": "src/rekipedia/exporters/json_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/exporters/json_export.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/exporters/json_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/exporters/json_export.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/exporters/json_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/exporters/json_export.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/exporters/json_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/exporters/markdown_export.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/exporters/markdown_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/exporters/markdown_export.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/exporters/markdown_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/exporters/markdown_export.py",
+    "to": "re",
+    "kind": "import",
+    "file": "src/rekipedia/exporters/markdown_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/__init__.py",
+    "to": "rekipedia.extractors.config_extractor",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/__init__.py",
+    "to": "rekipedia.extractors.go_extractor",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/__init__.py",
+    "to": "rekipedia.extractors.java_extractor",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/__init__.py",
+    "to": "rekipedia.extractors.python_extractor",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/__init__.py",
+    "to": "rekipedia.extractors.rust_extractor",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/__init__.py",
+    "to": "rekipedia.extractors.typescript_extractor",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/__init__.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/base.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/base.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/base.py",
+    "to": "abc",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/base.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/base.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/base.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/base.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/base.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "BaseExtractor",
+    "to": "ABC",
+    "kind": "inherits",
+    "file": "src/rekipedia/extractors/base.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/config_extractor.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/config_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/config_extractor.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/config_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/config_extractor.py",
+    "to": "re",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/config_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/config_extractor.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/config_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/config_extractor.py",
+    "to": "rekipedia.extractors.base",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/config_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/config_extractor.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/config_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "ConfigExtractor",
+    "to": "BaseExtractor",
+    "kind": "inherits",
+    "file": "src/rekipedia/extractors/config_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/go_extractor.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/go_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/go_extractor.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/go_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/go_extractor.py",
+    "to": "tree_sitter_go",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/go_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/go_extractor.py",
+    "to": "tree_sitter",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/go_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/go_extractor.py",
+    "to": "rekipedia.extractors.base",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/go_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/go_extractor.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/go_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "GoExtractor",
+    "to": "BaseExtractor",
+    "kind": "inherits",
+    "file": "src/rekipedia/extractors/go_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/java_extractor.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/java_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/java_extractor.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/java_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/java_extractor.py",
+    "to": "tree_sitter_java",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/java_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/java_extractor.py",
+    "to": "tree_sitter",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/java_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/java_extractor.py",
+    "to": "rekipedia.extractors.base",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/java_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/java_extractor.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/java_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "JavaExtractor",
+    "to": "BaseExtractor",
+    "kind": "inherits",
+    "file": "src/rekipedia/extractors/java_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/python_extractor.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/python_extractor.py",
+    "to": "ast",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/python_extractor.py",
+    "to": "re",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/python_extractor.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/python_extractor.py",
+    "to": "rekipedia.extractors.base",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/python_extractor.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "PythonExtractor",
+    "to": "BaseExtractor",
+    "kind": "inherits",
+    "file": "src/rekipedia/extractors/python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/rust_extractor.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/rust_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/rust_extractor.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/rust_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/rust_extractor.py",
+    "to": "tree_sitter_rust",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/rust_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/rust_extractor.py",
+    "to": "tree_sitter",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/rust_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/rust_extractor.py",
+    "to": "rekipedia.extractors.base",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/rust_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/rust_extractor.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/rust_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "RustExtractor",
+    "to": "BaseExtractor",
+    "kind": "inherits",
+    "file": "src/rekipedia/extractors/rust_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/typescript_extractor.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/typescript_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/typescript_extractor.py",
+    "to": "re",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/typescript_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/typescript_extractor.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/typescript_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/typescript_extractor.py",
+    "to": "rekipedia.extractors.base",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/typescript_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/extractors/typescript_extractor.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/extractors/typescript_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "TypeScriptExtractor",
+    "to": "BaseExtractor",
+    "kind": "inherits",
+    "file": "src/rekipedia/extractors/typescript_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/llm/client.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/llm/client.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/llm/client.py",
+    "to": "logging",
+    "kind": "import",
+    "file": "src/rekipedia/llm/client.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/llm/client.py",
+    "to": "os",
+    "kind": "import",
+    "file": "src/rekipedia/llm/client.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/llm/client.py",
+    "to": "threading",
+    "kind": "import",
+    "file": "src/rekipedia/llm/client.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/llm/client.py",
+    "to": "time",
+    "kind": "import",
+    "file": "src/rekipedia/llm/client.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/llm/client.py",
+    "to": "typing",
+    "kind": "import",
+    "file": "src/rekipedia/llm/client.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/llm/client.py",
+    "to": "certifi",
+    "kind": "import",
+    "file": "src/rekipedia/llm/client.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/llm/client.py",
+    "to": "litellm",
+    "kind": "import",
+    "file": "src/rekipedia/llm/client.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/llm/client.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/llm/client.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "LLMCaller",
+    "to": "Protocol",
+    "kind": "inherits",
+    "file": "src/rekipedia/llm/client.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/models/contracts.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/models/contracts.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/models/contracts.py",
+    "to": "typing",
+    "kind": "import",
+    "file": "src/rekipedia/models/contracts.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/models/contracts.py",
+    "to": "pydantic",
+    "kind": "import",
+    "file": "src/rekipedia/models/contracts.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "LLMConfig",
+    "to": "BaseModel",
+    "kind": "inherits",
+    "file": "src/rekipedia/models/contracts.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "FileManifest",
+    "to": "BaseModel",
+    "kind": "inherits",
+    "file": "src/rekipedia/models/contracts.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "Symbol",
+    "to": "BaseModel",
+    "kind": "inherits",
+    "file": "src/rekipedia/models/contracts.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "Relationship",
+    "to": "BaseModel",
+    "kind": "inherits",
+    "file": "src/rekipedia/models/contracts.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "RationaleNote",
+    "to": "BaseModel",
+    "kind": "inherits",
+    "file": "src/rekipedia/models/contracts.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "AnalysisResult",
+    "to": "BaseModel",
+    "kind": "inherits",
+    "file": "src/rekipedia/models/contracts.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "Shard",
+    "to": "BaseModel",
+    "kind": "inherits",
+    "file": "src/rekipedia/models/contracts.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/agent_hints.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/agent_hints.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/agent_hints.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/agent_hints.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/agent_hints.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/agent_hints.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_ask.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_ask.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_ask.py",
+    "to": "re",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_ask.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_ask.py",
+    "to": "typing",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_ask.py",
+    "to": "rekipedia.llm.client",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_ask.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_ask.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_ask.py",
+    "to": "re",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_ask.py",
+    "to": "os",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_ask.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "logging",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "uuid",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "concurrent.futures",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "typing",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rich.progress",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rich.console",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.orchestrator.sharding",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.orchestrator.snapshotter",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.llm.client",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "litellm",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.synthesis.diagram_builder",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.analysis.refactor_enricher",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.llm.client",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.synthesis.planner",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.synthesis.page_builder",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.synthesis.page_builder",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.exporters.json_export",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.exporters.markdown_export",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.rag.scan_meta",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.orchestrator.agent_hints",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.analysis.refactor_writer",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.llm.client",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_digest.py",
+    "to": "rekipedia.rag.scan_meta",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "uuid",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "typing",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "rekipedia.orchestrator.run_digest",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "rekipedia.orchestrator.sharding",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "rekipedia.orchestrator.snapshotter",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "rekipedia.synthesis.page_builder",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "rekipedia.synthesis.diagram_builder",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "rekipedia.exporters.markdown_export",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/run_update.py",
+    "to": "rekipedia.exporters.json_export",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/run_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/sharding.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/sharding.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/sharding.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/sharding.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/sharding.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/sharding.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/snapshot.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/snapshot.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/snapshot.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/snapshot.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/snapshot.py",
+    "to": "datetime",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/snapshot.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/snapshot.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/snapshot.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/snapshot.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/snapshot.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/snapshotter.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/snapshotter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/snapshotter.py",
+    "to": "hashlib",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/snapshotter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/snapshotter.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/snapshotter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/snapshotter.py",
+    "to": "pathspec",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/snapshotter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/orchestrator/snapshotter.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/orchestrator/snapshotter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "logging",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "os",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "time",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "typing",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "faiss",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "litellm",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "datetime",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "faiss",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/embedder.py",
+    "to": "faiss",
+    "kind": "import",
+    "file": "src/rekipedia/rag/embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/scan_meta.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/rag/scan_meta.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/scan_meta.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/rag/scan_meta.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/scan_meta.py",
+    "to": "datetime",
+    "kind": "import",
+    "file": "src/rekipedia/rag/scan_meta.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/scan_meta.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/rag/scan_meta.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/rag/scan_meta.py",
+    "to": "rekipedia",
+    "kind": "import",
+    "file": "src/rekipedia/rag/scan_meta.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/runner.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/runner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/runner.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/runner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/runner.py",
+    "to": "shutil",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/runner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/runner.py",
+    "to": "subprocess",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/runner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/runner.py",
+    "to": "tempfile",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/runner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/runner.py",
+    "to": "abc",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/runner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/runner.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/runner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/runner.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/runner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/runner.py",
+    "to": "rekipedia.extractors",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/runner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "BaseRunner",
+    "to": "ABC",
+    "kind": "inherits",
+    "file": "src/rekipedia/sandbox/runner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "LocalRunner",
+    "to": "BaseRunner",
+    "kind": "inherits",
+    "file": "src/rekipedia/sandbox/runner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "DockerSandboxRunner",
+    "to": "BaseRunner",
+    "kind": "inherits",
+    "file": "src/rekipedia/sandbox/runner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/tasks/analyze_shard.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/tasks/analyze_shard.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/tasks/analyze_shard.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/tasks/analyze_shard.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/tasks/analyze_shard.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/tasks/analyze_shard.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/tasks/analyze_shard.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/tasks/analyze_shard.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/tasks/analyze_shard.py",
+    "to": "rekipedia.extractors",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/tasks/analyze_shard.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/sandbox/tasks/analyze_shard.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/sandbox/tasks/analyze_shard.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "re",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "typing",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "markdown",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "fastapi",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "fastapi.responses",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "fastapi.templating",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "asyncio",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/server/app.py",
+    "to": "concurrent.futures",
+    "kind": "import",
+    "file": "src/rekipedia/server/app.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/storage/sqlite_store.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/storage/sqlite_store.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/storage/sqlite_store.py",
+    "to": "datetime",
+    "kind": "import",
+    "file": "src/rekipedia/storage/sqlite_store.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/storage/sqlite_store.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/storage/sqlite_store.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/storage/sqlite_store.py",
+    "to": "typing",
+    "kind": "import",
+    "file": "src/rekipedia/storage/sqlite_store.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/storage/sqlite_store.py",
+    "to": "turso",
+    "kind": "import",
+    "file": "src/rekipedia/storage/sqlite_store.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/storage/sqlite_store.py",
+    "to": "sqlite3",
+    "kind": "import",
+    "file": "src/rekipedia/storage/sqlite_store.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/storage/sqlite_store.py",
+    "to": "rekipedia.analysis.graph_analysis",
+    "kind": "import",
+    "file": "src/rekipedia/storage/sqlite_store.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/diagram_builder.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/diagram_builder.py",
+    "to": "re",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/page_builder.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/page_builder.py",
+    "to": "importlib.metadata",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/page_builder.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/page_builder.py",
+    "to": "re",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/page_builder.py",
+    "to": "datetime",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/page_builder.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/page_builder.py",
+    "to": "rekipedia.llm.client",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/page_builder.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/page_builder.py",
+    "to": "rekipedia.synthesis.slug_utils",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/page_builder.py",
+    "to": "rekipedia.analysis.graph_analysis",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/page_builder.py",
+    "to": "rekipedia.analysis.graph_analysis",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/page_builder.py",
+    "to": "concurrent.futures",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/planner.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/planner.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/planner.py",
+    "to": "logging",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/planner.py",
+    "to": "os",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/planner.py",
+    "to": "re",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/planner.py",
+    "to": "collections.abc",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/planner.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/planner.py",
+    "to": "rekipedia.llm.client",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/planner.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/planner.py",
+    "to": "rekipedia.synthesis.slug_utils",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/planner.py",
+    "to": "threading",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/slug_utils.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/slug_utils.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/synthesis/slug_utils.py",
+    "to": "re",
+    "kind": "import",
+    "file": "src/rekipedia/synthesis/slug_utils.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/watcher/watcher.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "src/rekipedia/watcher/watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/watcher/watcher.py",
+    "to": "json",
+    "kind": "import",
+    "file": "src/rekipedia/watcher/watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/watcher/watcher.py",
+    "to": "os",
+    "kind": "import",
+    "file": "src/rekipedia/watcher/watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/watcher/watcher.py",
+    "to": "subprocess",
+    "kind": "import",
+    "file": "src/rekipedia/watcher/watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/watcher/watcher.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "src/rekipedia/watcher/watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/watcher/watcher.py",
+    "to": "threading",
+    "kind": "import",
+    "file": "src/rekipedia/watcher/watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/watcher/watcher.py",
+    "to": "time",
+    "kind": "import",
+    "file": "src/rekipedia/watcher/watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/watcher/watcher.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "src/rekipedia/watcher/watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/watcher/watcher.py",
+    "to": "watchdog.observers",
+    "kind": "import",
+    "file": "src/rekipedia/watcher/watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "src/rekipedia/watcher/watcher.py",
+    "to": "watchdog.events",
+    "kind": "import",
+    "file": "src/rekipedia/watcher/watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/fixtures/mini-py-repo/core.py",
+    "to": "utils",
+    "kind": "import",
+    "file": "tests/fixtures/mini-py-repo/core.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/fixtures/mini-ts-repo/src/index.ts",
+    "to": "./greet",
+    "kind": "import",
+    "file": "tests/fixtures/mini-ts-repo/src/index.ts",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_agent_hints.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_agent_hints.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_agent_hints.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_agent_hints.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_agent_hints.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_agent_hints.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_agent_hints.py",
+    "to": "rekipedia.orchestrator.agent_hints",
+    "kind": "import",
+    "file": "tests/test_agent_hints.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_agent_hints.py",
+    "to": "rekipedia.orchestrator.agent_hints",
+    "kind": "import",
+    "file": "tests/test_agent_hints.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_agent_hints.py",
+    "to": "rekipedia.orchestrator.agent_hints",
+    "kind": "import",
+    "file": "tests/test_agent_hints.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_agent_hints.py",
+    "to": "rekipedia.orchestrator.agent_hints",
+    "kind": "import",
+    "file": "tests/test_agent_hints.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_agent_hints.py",
+    "to": "rekipedia.orchestrator.agent_hints",
+    "kind": "import",
+    "file": "tests/test_agent_hints.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_agent_hints.py",
+    "to": "rekipedia.orchestrator.agent_hints",
+    "kind": "import",
+    "file": "tests/test_agent_hints.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask.py",
+    "to": "shutil",
+    "kind": "import",
+    "file": "tests/test_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask.py",
+    "to": "rekipedia.orchestrator.run_digest",
+    "kind": "import",
+    "file": "tests/test_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask_coverage.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_ask_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask_coverage.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_ask_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask_coverage.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "tests/test_ask_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask_coverage.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_ask_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask_coverage.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_ask_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask_coverage.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_ask_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask_coverage.py",
+    "to": "yaml",
+    "kind": "import",
+    "file": "tests/test_ask_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask_coverage.py",
+    "to": "rekipedia.cli.ask",
+    "kind": "import",
+    "file": "tests/test_ask_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask_coverage.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_ask_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask_coverage.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_ask_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask_coverage.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_ask_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask_coverage.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_ask_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_ask_coverage.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_ask_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_confidence.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_confidence.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_confidence.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_confidence.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_context_cmd.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_context_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_context_cmd.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_context_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_context_cmd.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_context_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_context_cmd.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_context_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_context_cmd.py",
+    "to": "click.testing",
+    "kind": "import",
+    "file": "tests/test_context_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_context_cmd.py",
+    "to": "rekipedia.cli.context",
+    "kind": "import",
+    "file": "tests/test_context_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_conversation_memory.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_conversation_memory.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_conversation_memory.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_conversation_memory.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_conversation_memory.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_conversation_memory.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_conversation_memory.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_conversation_memory.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_conversation_memory.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_conversation_memory.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_conversation_memory.py",
+    "to": "rekipedia.llm.client",
+    "kind": "import",
+    "file": "tests/test_conversation_memory.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_conversation_memory.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_conversation_memory.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_conversation_memory.py",
+    "to": "datetime",
+    "kind": "import",
+    "file": "tests/test_conversation_memory.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "click.testing",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "rekipedia.cli",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "rekipedia.cli.scan",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "rekipedia.cli.scan",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "rekipedia.synthesis.diagram_builder",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "rekipedia.synthesis.diagram_builder",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "rekipedia.synthesis.diagram_builder",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "rekipedia.llm.client",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "rekipedia.llm.client",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "litellm",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "rekipedia.llm.client",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_coverage_boost.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_coverage_boost.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_cross_repo_search.py",
+    "to": "rekipedia.analysis.cross_repo_search",
+    "kind": "import",
+    "file": "tests/test_cross_repo_search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_cross_repo_search.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_cross_repo_search.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_diff_cmd.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_diff_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_diff_cmd.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_diff_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_diff_cmd.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_diff_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_diff_cmd.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_diff_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_diff_cmd.py",
+    "to": "click.testing",
+    "kind": "import",
+    "file": "tests/test_diff_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_diff_cmd.py",
+    "to": "rekipedia.cli.diff",
+    "kind": "import",
+    "file": "tests/test_diff_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_diff_cmd.py",
+    "to": "rekipedia.orchestrator.snapshot",
+    "kind": "import",
+    "file": "tests/test_diff_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_diff_cmd.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_diff_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_embedder.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_embedder.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_embedder.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_embedder.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_embedder.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_embedder.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_embedder.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_embedder.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_embedder.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_embedder.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_embedder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_analysis.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_graph_analysis.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_analysis.py",
+    "to": "rekipedia.analysis.graph_analysis",
+    "kind": "import",
+    "file": "tests/test_graph_analysis.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_analysis.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_graph_analysis.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api.py",
+    "to": "tempfile",
+    "kind": "import",
+    "file": "tests/test_graph_api.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_graph_api.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_graph_api.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_graph_api.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_graph_api.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_graph_api.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_graph_api.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api_edges.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_graph_api_edges.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api_edges.py",
+    "to": "os",
+    "kind": "import",
+    "file": "tests/test_graph_api_edges.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api_edges.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "tests/test_graph_api_edges.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api_edges.py",
+    "to": "tempfile",
+    "kind": "import",
+    "file": "tests/test_graph_api_edges.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api_edges.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_graph_api_edges.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api_edges.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_graph_api_edges.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api_edges.py",
+    "to": "tempfile",
+    "kind": "import",
+    "file": "tests/test_graph_api_edges.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api_edges.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_graph_api_edges.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api_edges.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_graph_api_edges.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api_edges.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_graph_api_edges.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api_edges.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_graph_api_edges.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_api_edges.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_graph_api_edges.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_export.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_graph_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_export.py",
+    "to": "rekipedia.analysis.graph_export",
+    "kind": "import",
+    "file": "tests/test_graph_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_export.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_graph_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_export.py",
+    "to": "xml.etree",
+    "kind": "import",
+    "file": "tests/test_graph_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_filter.py",
+    "to": "tempfile",
+    "kind": "import",
+    "file": "tests/test_graph_filter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_filter.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_graph_filter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_filter.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_graph_filter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_filter.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_graph_filter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_filter.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_graph_filter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_filter.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_graph_filter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_graph_filter.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_graph_filter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_homebrew_formula.py",
+    "to": "re",
+    "kind": "import",
+    "file": "tests/test_homebrew_formula.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_homebrew_formula.py",
+    "to": "textwrap",
+    "kind": "import",
+    "file": "tests/test_homebrew_formula.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_homebrew_formula.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_homebrew_formula.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_hook.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_hook.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_hook.py",
+    "to": "click.testing",
+    "kind": "import",
+    "file": "tests/test_hook.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_hook.py",
+    "to": "rekipedia.cli.hook",
+    "kind": "import",
+    "file": "tests/test_hook.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_hub_nodes.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_hub_nodes.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_hub_nodes.py",
+    "to": "rekipedia.analysis.graph_analysis",
+    "kind": "import",
+    "file": "tests/test_hub_nodes.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_impact.py",
+    "to": "rekipedia.analysis.impact",
+    "kind": "import",
+    "file": "tests/test_impact.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "zipfile",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "rekipedia.synthesis.planner",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "os",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "click.testing",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "rekipedia.cli.export",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "click.testing",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "rekipedia.cli.export",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "click.testing",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_importance_export.py",
+    "to": "rekipedia.cli.export",
+    "kind": "import",
+    "file": "tests/test_importance_export.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_init.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_init.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_init.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_init.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_init.py",
+    "to": "yaml",
+    "kind": "import",
+    "file": "tests/test_init.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_init.py",
+    "to": "click.testing",
+    "kind": "import",
+    "file": "tests/test_init.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_init.py",
+    "to": "rekipedia.cli",
+    "kind": "import",
+    "file": "tests/test_init.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_knowledge_gaps.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_knowledge_gaps.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_knowledge_gaps.py",
+    "to": "rekipedia.analysis.graph_analysis",
+    "kind": "import",
+    "file": "tests/test_knowledge_gaps.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_knowledge_gaps.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_knowledge_gaps.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_mcp_server.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_mcp_server.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_mcp_server.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_mcp_server.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_mcp_server.py",
+    "to": "rekipedia.cli.mcp_server",
+    "kind": "import",
+    "file": "tests/test_mcp_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_multilang_extractors.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_multilang_extractors.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_multilang_extractors.py",
+    "to": "tempfile",
+    "kind": "import",
+    "file": "tests/test_multilang_extractors.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_multilang_extractors.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_multilang_extractors.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_multilang_extractors.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_multilang_extractors.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_multilang_extractors.py",
+    "to": "rekipedia.extractors.go_extractor",
+    "kind": "import",
+    "file": "tests/test_multilang_extractors.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_multilang_extractors.py",
+    "to": "rekipedia.extractors.java_extractor",
+    "kind": "import",
+    "file": "tests/test_multilang_extractors.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_multilang_extractors.py",
+    "to": "rekipedia.extractors.rust_extractor",
+    "kind": "import",
+    "file": "tests/test_multilang_extractors.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_page_builder.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_page_builder.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_page_builder.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_page_builder.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_page_builder.py",
+    "to": "rekipedia.synthesis.page_builder",
+    "kind": "import",
+    "file": "tests/test_page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_page_builder.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_page_builder.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_page_builder_relationships.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_page_builder_relationships.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_page_builder_relationships.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_page_builder_relationships.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_page_builder_relationships.py",
+    "to": "rekipedia.synthesis.page_builder",
+    "kind": "import",
+    "file": "tests/test_page_builder_relationships.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_page_builder_relationships.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_page_builder_relationships.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_planner.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_planner.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_planner.py",
+    "to": "rekipedia.synthesis.planner",
+    "kind": "import",
+    "file": "tests/test_planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_planner.py",
+    "to": "rekipedia.synthesis.page_builder",
+    "kind": "import",
+    "file": "tests/test_planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_planner.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_planner.py",
+    "to": "rekipedia.synthesis.planner",
+    "kind": "import",
+    "file": "tests/test_planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "subprocess",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.tasks.analyze_shard",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "tempfile",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.tasks.analyze_shard",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.tasks.analyze_shard",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.tasks.analyze_shard",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.tasks.analyze_shard",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "tempfile",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "contextlib",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_coverage_boost2.py",
+    "to": "rekipedia.sandbox.tasks.analyze_shard",
+    "kind": "import",
+    "file": "tests/test_python_coverage_boost2.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_extractor.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_extractor.py",
+    "to": "textwrap",
+    "kind": "import",
+    "file": "tests/test_python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_extractor.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_extractor.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_extractor.py",
+    "to": "rekipedia.extractors.python_extractor",
+    "kind": "import",
+    "file": "tests/test_python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_extractor.py",
+    "to": "tempfile",
+    "kind": "import",
+    "file": "tests/test_python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_python_extractor.py",
+    "to": "os",
+    "kind": "import",
+    "file": "tests/test_python_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_qa_history.py",
+    "to": "tempfile",
+    "kind": "import",
+    "file": "tests/test_qa_history.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_qa_history.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_qa_history.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_qa_history.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_qa_history.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rag.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_rag.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rag.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_rag.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rag.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_rag.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rag.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_rag.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rag.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_rag.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rag.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_rag.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rag.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_rag.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rag.py",
+    "to": "rekipedia.rag.scan_meta",
+    "kind": "import",
+    "file": "tests/test_rag.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rag.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_rag.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rag.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_rag.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rag.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_rag.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rag.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_rag.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rag.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_rag.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rationale.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_rationale.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rationale.py",
+    "to": "re",
+    "kind": "import",
+    "file": "tests/test_rationale.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rationale.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_rationale.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_rationale.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_rationale.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_cmd.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_refactor_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_cmd.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_refactor_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_cmd.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_refactor_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_cmd.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_refactor_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_cmd.py",
+    "to": "click.testing",
+    "kind": "import",
+    "file": "tests/test_refactor_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_cmd.py",
+    "to": "rekipedia.cli",
+    "kind": "import",
+    "file": "tests/test_refactor_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_cmd.py",
+    "to": "rekipedia.cli.refactor",
+    "kind": "import",
+    "file": "tests/test_refactor_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_cmd.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_refactor_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_cmd.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_refactor_cmd.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_detector.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_refactor_detector.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_detector.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_refactor_detector.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_detector.py",
+    "to": "rekipedia.analysis.refactor_detector",
+    "kind": "import",
+    "file": "tests/test_refactor_detector.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_detector.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_refactor_detector.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_enricher.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_refactor_enricher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_enricher.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_refactor_enricher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_enricher.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_refactor_enricher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_enricher.py",
+    "to": "rekipedia.analysis.refactor_enricher",
+    "kind": "import",
+    "file": "tests/test_refactor_enricher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_enricher.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_refactor_enricher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_writer.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_writer.py",
+    "to": "io",
+    "kind": "import",
+    "file": "tests/test_refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_writer.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_writer.py",
+    "to": "sys",
+    "kind": "import",
+    "file": "tests/test_refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_writer.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_writer.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_writer.py",
+    "to": "rekipedia.analysis.refactor_writer",
+    "kind": "import",
+    "file": "tests/test_refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_refactor_writer.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_refactor_writer.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "os",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "rekipedia.orchestrator.run_ask",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_run_ask.py",
+    "to": "rekipedia.orchestrator",
+    "kind": "import",
+    "file": "tests/test_run_ask.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_sandbox_coverage.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_sandbox_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_sandbox_coverage.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_sandbox_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_sandbox_coverage.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_sandbox_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_sandbox_coverage.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_sandbox_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_sandbox_coverage.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_sandbox_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_sandbox_coverage.py",
+    "to": "rekipedia.sandbox.runner",
+    "kind": "import",
+    "file": "tests/test_sandbox_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan.py",
+    "to": "rekipedia.orchestrator.run_digest",
+    "kind": "import",
+    "file": "tests/test_scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan.py",
+    "to": "sqlite_utils",
+    "kind": "import",
+    "file": "tests/test_scan.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan_progress.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_scan_progress.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan_progress.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_scan_progress.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan_progress.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_scan_progress.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan_progress.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_scan_progress.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan_progress.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_scan_progress.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan_progress.py",
+    "to": "rekipedia.orchestrator.run_digest",
+    "kind": "import",
+    "file": "tests/test_scan_progress.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_scan_progress.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_scan_progress.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_serve_coverage.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_serve_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_serve_coverage.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_serve_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_serve_coverage.py",
+    "to": "tempfile",
+    "kind": "import",
+    "file": "tests/test_serve_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_serve_coverage.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_serve_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_serve_coverage.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_serve_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_serve_coverage.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_serve_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_serve_coverage.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_serve_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_serve_coverage.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_serve_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_serve_coverage.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_serve_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_serve_coverage.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_serve_coverage.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_server.py",
+    "to": "tempfile",
+    "kind": "import",
+    "file": "tests/test_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_server.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_server.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_server.py",
+    "to": "fastapi.testclient",
+    "kind": "import",
+    "file": "tests/test_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_server.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_server.py",
+    "to": "rekipedia.server.app",
+    "kind": "import",
+    "file": "tests/test_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_server.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_server.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_sharding.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_sharding.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_sharding.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_sharding.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_sharding.py",
+    "to": "rekipedia.orchestrator.sharding",
+    "kind": "import",
+    "file": "tests/test_sharding.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_snapshot_diff.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_snapshot_diff.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_snapshot_diff.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_snapshot_diff.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_snapshot_diff.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_snapshot_diff.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_snapshot_diff.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_snapshot_diff.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_snapshot_diff.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_snapshot_diff.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_snapshot_diff.py",
+    "to": "rekipedia.orchestrator.snapshot",
+    "kind": "import",
+    "file": "tests/test_snapshot_diff.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_snapshot_diff.py",
+    "to": "time",
+    "kind": "import",
+    "file": "tests/test_snapshot_diff.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_snapshotter.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_snapshotter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_snapshotter.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_snapshotter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_snapshotter.py",
+    "to": "rekipedia.orchestrator.snapshotter",
+    "kind": "import",
+    "file": "tests/test_snapshotter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_sqlite_store.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_sqlite_store.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_sqlite_store.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_sqlite_store.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_sqlite_store.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_sqlite_store.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_sqlite_store.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_sqlite_store.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_typescript_extractor.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_typescript_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_typescript_extractor.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_typescript_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_typescript_extractor.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_typescript_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_typescript_extractor.py",
+    "to": "rekipedia.extractors.typescript_extractor",
+    "kind": "import",
+    "file": "tests/test_typescript_extractor.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_update.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_update.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_update.py",
+    "to": "shutil",
+    "kind": "import",
+    "file": "tests/test_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_update.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_update.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_update.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_update.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_update.py",
+    "to": "rekipedia.orchestrator.run_digest",
+    "kind": "import",
+    "file": "tests/test_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_update.py",
+    "to": "rekipedia.orchestrator.run_update",
+    "kind": "import",
+    "file": "tests/test_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_update.py",
+    "to": "rekipedia.storage.sqlite_store",
+    "kind": "import",
+    "file": "tests/test_update.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "numpy",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "rekipedia.models.contracts",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "rekipedia.synthesis.planner",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "rekipedia.synthesis.planner",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "rekipedia.synthesis.planner",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "rekipedia.synthesis.planner",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "rekipedia.synthesis.planner",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_v073_features.py",
+    "to": "rekipedia.rag.embedder",
+    "kind": "import",
+    "file": "tests/test_v073_features.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_watcher.py",
+    "to": "json",
+    "kind": "import",
+    "file": "tests/test_watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_watcher.py",
+    "to": "pytest",
+    "kind": "import",
+    "file": "tests/test_watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_watcher.py",
+    "to": "pathlib",
+    "kind": "import",
+    "file": "tests/test_watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_watcher.py",
+    "to": "unittest.mock",
+    "kind": "import",
+    "file": "tests/test_watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_watcher.py",
+    "to": "rekipedia.watcher",
+    "kind": "import",
+    "file": "tests/test_watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_watcher.py",
+    "to": "importlib",
+    "kind": "import",
+    "file": "tests/test_watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_watcher.py",
+    "to": "rekipedia.watcher",
+    "kind": "import",
+    "file": "tests/test_watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_watcher.py",
+    "to": "importlib",
+    "kind": "import",
+    "file": "tests/test_watcher.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_wiki_frontmatter.py",
+    "to": "__future__",
+    "kind": "import",
+    "file": "tests/test_wiki_frontmatter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_wiki_frontmatter.py",
+    "to": "re",
+    "kind": "import",
+    "file": "tests/test_wiki_frontmatter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_wiki_frontmatter.py",
+    "to": "yaml",
+    "kind": "import",
+    "file": "tests/test_wiki_frontmatter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_wiki_frontmatter.py",
+    "to": "rekipedia.synthesis.page_builder",
+    "kind": "import",
+    "file": "tests/test_wiki_frontmatter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_wiki_frontmatter.py",
+    "to": "yaml",
+    "kind": "import",
+    "file": "tests/test_wiki_frontmatter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "tests/test_wiki_frontmatter.py",
+    "to": "re",
+    "kind": "import",
+    "file": "tests/test_wiki_frontmatter.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  }
+]

@@ -1,0 +1,106 @@
+{
+  "run_id": "ddd07b2a-4b8b-4eba-87b9-f18420b0a066",
+  "generated_at": "2026-05-05T03:45:22.006394+00:00",
+  "file_count": 344,
+  "symbol_count": 905,
+  "relationship_count": 923,
+  "nav_order": [
+    "installation",
+    "index",
+    "architecture-overview",
+    "data-flow",
+    "module-llm",
+    "module-storage",
+    "module-cli",
+    "cli-reference",
+    "python-api",
+    "data-structures",
+    "testing",
+    "algorithms",
+    "deployment",
+    "integrations",
+    "technical-debt"
+  ],
+  "pages": [
+    {
+      "slug": "installation",
+      "title": "Installation Instructions"
+    },
+    {
+      "slug": "index",
+      "title": "Project Overview"
+    },
+    {
+      "slug": "architecture-overview",
+      "title": "System Architecture Overview"
+    },
+    {
+      "slug": "data-flow",
+      "title": "Data Flow within the System"
+    },
+    {
+      "slug": "module-llm",
+      "title": "LLM Module Documentation"
+    },
+    {
+      "slug": "module-storage",
+      "title": "Storage Module Documentation"
+    },
+    {
+      "slug": "module-cli",
+      "title": "CLI Module Documentation"
+    },
+    {
+      "slug": "cli-reference",
+      "title": "CLI Commands Reference"
+    },
+    {
+      "slug": "python-api",
+      "title": "Python API Reference"
+    },
+    {
+      "slug": "data-structures",
+      "title": "Data Structures in Rekipedia"
+    },
+    {
+      "slug": "testing",
+      "title": "Testing Strategy and Practices"
+    },
+    {
+      "slug": "algorithms",
+      "title": "Algorithms"
+    },
+    {
+      "slug": "deployment",
+      "title": "Deployment Process"
+    },
+    {
+      "slug": "integrations",
+      "title": "Third-Party Integrations"
+    },
+    {
+      "slug": "technical-debt",
+      "title": "Technical Debt Analysis"
+    }
+  ],
+  "diagrams": [
+    "module-graph",
+    "class-hierarchy"
+  ],
+  "risks": [],
+  "build_commands": [
+    "uv build",
+    "CGO_ENABLED=0 go build -ldflags \"-s -w\" -o /tmp/reki ./cmd/rekipedia",
+    "hatch build",
+    "hatch build",
+    "docker build .",
+    "npm run build  # tsc"
+  ],
+  "test_commands": [
+    "pytest",
+    "go test ./... -v -count=1 -timeout 120s",
+    "pytest tests/ -v --timeout=60 \\",
+    "pip install pytest",
+    "pytest"
+  ]
+}

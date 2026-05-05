@@ -26,5 +26,7 @@ node_modules/
 # Backup files created by migration scripts
 *.bak.*
 
-# rekipedia store (for if this repo is scanned)
+# rekipedia (store and config contain local/sensitive data)
 .rekipedia/store.db
+.rekipedia/config.yml
+.mcp.json
