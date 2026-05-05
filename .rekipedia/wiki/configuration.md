@@ -1,179 +1,197 @@
 ---
 slug: configuration
-title: "Repository Configuration Files: Build, Test, and CLI Behavior"
+title: "Configuration Surfaces and Defaults"
 section: getting-started
 tags: [getting-started, configuration]
 pin: false
-importance: 50
-created_at: 2026-05-05T04:24:47Z
-rekipedia_version: 0.10.2
+importance: 66
+created_at: 2026-05-05T04:57:59Z
+rekipedia_version: 0.10.3
 ---
 
-# Repository Configuration Files: Build, Test, and CLI Behavior
+# Configuration Surfaces and Defaults
 
-This repository uses configuration files in both the Python and Go implementations, and they play a direct role in how the project is formatted, linted, built, tested, containerized, and initialized. The configuration surface is broad, but the observable pattern is consistent: config files define developer tooling conventions, while runtime/config-loader code consumes project-local settings and environment overrides to control CLI behavior.
+This page documents the user-facing configuration surfaces that are observable in the repository: repository-local config files, environment variables, CLI flags that interact with config, and schema/sample files. It intentionally excludes CI workflow settings and developer-only cache artifacts.
 
-The most visible configuration-related entry points are the Go loader in [`go/internal/config/loader.go`](go/internal/config/loader.go#L16), the config extractor in [`go/internal/extractor/config.go`](go/internal/extractor/config.go#L40), and the CLI initialization and scanning commands in [`go/cmd/rekipedia/cmd/init.go`](go/cmd/rekipedia/cmd/init.go) and [`go/cmd/rekipedia/cmd/scan.go`](go/cmd/rekipedia/cmd/scan.go#L143). On the Python side, the repository exposes a package entry point through [`src/rekipedia/__main__.py`](src/rekipedia/__main__.py) and a console script declared in `pyproject.toml` via `rekipedia = "rekipedia.cli:main"` and `reki = "rekipedia.cli:main"`.
+## Configuration Files Overview
 
-## Configuration File Inventory
+The repository uses a small number of explicit configuration files, plus a few runtime-adjacent manifest formats that influence behavior. The table below focuses on files that a user might reasonably edit to change how the tool runs.
 
-The table below summarizes the major config file types visible in the repository, what they do, and which subsystem they influence.
+| File | Format | What it controls | Notes |
+|------|--------|------------------|-------|
+| [`.env.sample`](.env.sample) | Shell-style env file | Example runtime environment variables | Sample only; useful for local setup and discovering supported env vars |
+| [`go/.goreleaser.yaml`](go/.goreleaser.yaml) | YAML | Release packaging/publishing for the Go build | Not runtime behavior, but user-facing for maintainers |
+| [`pyproject.toml`](pyproject.toml) | TOML | Python package metadata and tooling config | Also implies the Python entry point and project name/version |
+| [`package.json`](package.json) | JSON | Node package metadata and scripts | Relevant for the JS wrapper/CLI entry point |
+| [`tests/fixtures/mini-py-repo/pyproject.toml`](tests/fixtures/mini-py-repo/pyproject.toml) | TOML | Sample project metadata used by tests | Demonstrates how the extractor sees Python config files |
+| [`tests/fixtures/mini-ts-repo/package.json`](tests/fixtures/mini-ts-repo/package.json) | JSON | Sample project metadata used by tests | Demonstrates how the extractor sees TypeScript/Node config files |
+| [`tests/fixtures/mini-ts-repo/tsconfig.json`](tests/fixtures/mini-ts-repo/tsconfig.json) | JSON | TypeScript project configuration | Used as a parsing/extraction fixture |
+| [`tests/fixtures/mini-py-repo/.close-wiki/config.yml`](tests/fixtures/mini-py-repo/.close-wiki/config.yml) | YAML | Sample repo-local tool config | This is the clearest example of a user-editable project config file |
+| [`schemas/analysis_result.schema.json`](schemas/analysis_result.schema.json) | JSON Schema | Shape of analysis export payloads | A schema file, not a runtime config, but important for output consumers |
 
-| Config file type | Purpose | Subsystem affected |
-|---|---|---|
-| `pyproject.toml` | Python project metadata, packaging, and tool configuration | Python build, test, lint, CLI packaging |
-| `package.json` | Node/TypeScript package metadata and scripts | JS/TS build and CLI wrapper behavior |
-| `go/go.mod` | Go module definition and dependency graph | Go build/test resolution |
-| `Makefile` / `go/Makefile` | Convenience build targets and task orchestration | Build and test automation |
-| `.github/workflows/*.yml` | CI pipeline definitions | Automated build, test, release |
-| `.env.sample` | Sample environment variable template | CLI/runtime configuration |
-| `.eslintrc.json`, `.prettierrc.json` | JavaScript linting and formatting rules | JS code quality |
-| `.ruff_cache/…`, `.editorconfig` | Python formatting/cache conventions | Python developer workflow |
-| `.golangci.yml`, `checkstyle.xml`, `pmd-ruleset.xml` | Go/static-analysis and code-style rules | Go linting and code quality |
-| `.pre-commit-config.yaml` | Local git hook automation | Pre-commit validation |
-| `Dockerfile.sandbox` / `go/Dockerfile` | Container build definitions | Sandbox/runtime packaging |
-| `.gitignore` | File exclusion rules | Git, packaging, build outputs |
+### What is *not* included
 
-### What is most relevant to builds and tests?
+This page does not cover editor/formatter/linter configs such as `.editorconfig`, `.eslintrc.json`, `.prettierrc.json`, `.golangci.yml`, or `.ruff_cache`. Those are developer workflow settings or caches rather than end-user runtime configuration.
 
-- **`pyproject.toml`** and **`uv.lock`** anchor Python dependency and build reproducibility.
-- **`go/go.mod`** and **`go/go.sum`** define the Go module and exact dependency versions.
-- **`Makefile`** and **`go/Makefile`** are used to aggregate build/test steps for developer convenience.
-- **`.github/workflows/go-ci.yml`**, **`python-ci.yml`**, and **`npm-publish.yml`** indicate that CI validates multiple language targets.
-- **`.pre-commit-config.yaml`**, **`.golangci.yml`**, and **`.eslintrc.json`** shape the lint/test feedback loop before changes land.
+> **Sources:** `tests/fixtures/mini-py-repo/.close-wiki/config.yml` · `tests/fixtures/mini-py-repo/pyproject.toml` · `tests/fixtures/mini-ts-repo/package.json` · `tests/fixtures/mini-ts-repo/tsconfig.json` · `pyproject.toml` · `package.json` · `schemas/analysis_result.schema.json`
 
-> **Sources:** `pyproject.toml`; `package.json`; `go/go.mod`; `Makefile`; `go/Makefile`; `.github/workflows/go-ci.yml`; `.github/workflows/python-ci.yml`; `.github/workflows/npm-publish.yml`; `.pre-commit-config.yaml`; `.golangci.yml`; `.eslintrc.json`
+## Runtime Configuration Model
 
-## How Configuration Influences the CLI
+At runtime, the Go implementation centers around the [`LLMConfig`](go/internal/models/contracts.go#L6-L15) type and its default constructor [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23). Tests explicitly verify the default config path via [`TestDefaultLLMConfig`](go/internal/models/contracts_test.go#L5-L13) and CLI loading behavior via [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161).
 
-The repository contains two command surfaces: the Go CLI in `go/cmd/rekipedia/cmd/` and the Python CLI package in `src/rekipedia/cli/`. Their behavior is strongly shaped by configuration files rather than hard-coded defaults.
+The default shape implied by code/tests is:
 
-### Python CLI packaging and entry points
+- a model name is present by default
+- provider/base URL inference exists for OpenAI-style and compatible endpoints
+- the CLI can load configuration and fall back to defaults when no explicit env overrides are present
 
-The `pyproject.toml` evidence shows console entry points named `rekipedia` and `reki`, both routed to `rekipedia.cli:main`. That means packaging metadata directly determines how the Python CLI is launched after installation. In practice, this file controls:
+A practical runtime config example, based on the contract and loader behavior, looks like this:
 
-- whether the package can be built as a distributable artifact,
-- how the executable is exposed to users,
-- and which dependency set is installed during testing and release.
-
-### Go CLI behavior and environment-aware loading
-
-On the Go side, the CLI root is wired through [`main`](go/cmd/rekipedia/main.go#L6) and the command tree defined in [`Execute`](go/cmd/rekipedia/cmd/root.go#L44). Configuration loading is centralized in [`Load`](go/internal/config/loader.go#L55), which returns a [`Config`](go/internal/config/loader.go#L34) containing at least LLM and refactor settings. That loader is the bridge between static config files, environment overrides, and runtime CLI behavior.
-
-The tests in [`go/cmd/rekipedia/cmd/root_test.go`](go/cmd/rekipedia/cmd/root_test.go#L91) show that `loadLLMConfig` and its defaults are part of the CLI contract. Similarly, [`loadWatchConfig`](go/cmd/rekipedia/cmd/watch.go#L18) and [`saveWatchConfig`](go/cmd/rekipedia/cmd/watch.go#L28) indicate that the watch command persists its own local settings.
-
-A useful way to think about the Go CLI is:
-
-```mermaid
-flowchart TD
-  Main[main.go] --> Root[cmd/root.go]
-  Root --> Load[config.Load]
-  Root --> Scan[cmd/scan.go]
-  Root --> Init[cmd/init.go]
-  Root --> Watch[cmd/watch.go]
-  Scan --> LLM[internal/llm/client.go]
-  Init --> DefaultConfig[config.DefaultConfig]
-  Watch --> LoadWatch[loadWatchConfig]
-  Watch --> SaveWatch[saveWatchConfig]
+```yaml
+llm:
+  model: gpt-4.1-mini
+  base_url: https://api.openai.com/v1
+  api_key: ${OPENAI_API_KEY}
 ```
 
-This is not an algorithmic diagram; it simply shows that command behavior is configuration-driven at the boundaries.
+The exact on-disk format for this config is not fully exposed in the analysis data, but the code clearly uses structured fields in [`LLMConfig`](go/internal/models/contracts.go#L6-L15) rather than an untyped map. The tests show that defaults are safe to use even when the user supplies little or no explicit configuration.
 
-> **Sources:** `pyproject.toml`; `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6); `go/cmd/rekipedia/cmd/root.go` · L44–L48 · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44); `go/internal/config/loader.go` · L34–L89 · [`Config`](go/internal/config/loader.go#L34), [`Load`](go/internal/config/loader.go#L55), [`applyEnvOverrides`](go/internal/config/loader.go#L74); `go/cmd/rekipedia/cmd/watch.go` · L18–L35 · [`loadWatchConfig`](go/cmd/rekipedia/cmd/watch.go#L18), [`saveWatchConfig`](go/cmd/rekipedia/cmd/watch.go#L28); `go/cmd/rekipedia/cmd/root_test.go` · L91–L110 · [`TestLoadLLMConfig`](go/cmd/rekipedia/cmd/root_test.go#L91)
+### Default values inferred from code and tests
 
-## Build and Test Configuration
+| Setting | Inferred default | Evidence |
+|---------|------------------|----------|
+| LLM model | non-empty default model | [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23), [`TestDefaultLLMConfig`](go/internal/models/contracts_test.go#L5-L13) |
+| Base URL | inferred from provider/model when missing | [`inferBaseURL`](go/internal/llm/client.go#L148-L157), [`inferBaseURLForProvider`](go/internal/llm/client.go#L376-L385), [`TestInferBaseURL`](go/internal/llm/client_test.go#L120-L136) |
+| System prompt inclusion | included only when provided | [`buildMessages`](go/internal/llm/client.go#L344-L355), [`TestBuildMessagesWithSystem`](go/internal/llm/client_test.go#L274-L285) |
+| No explicit config | loader returns defaults | [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161), [`TestLoadLLMConfigDefaults`](go/cmd/rekipedia/cmd/root_test.go#L104-L110) |
 
-Repository-level build/test behavior is determined by a mix of package manifests, task runners, and CI definitions.
+> **Sources:** [`LLMConfig`](go/internal/models/contracts.go#L6-L15) · [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23) · [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161) · [`TestDefaultLLMConfig`](go/internal/models/contracts_test.go#L5-L13) · [`TestLoadLLMConfig`](go/cmd/rekipedia/cmd/root_test.go#L91-L102) · [`TestLoadLLMConfigDefaults`](go/cmd/rekipedia/cmd/root_test.go#L104-L110)
 
-### Python build/test inputs
+## Environment Variables
 
-The following files are the main Python-side configuration sources:
+The clearest environment-variable surface visible in the repository is the sample file [` .env.sample`](.env.sample). Although the analysis payload does not enumerate the file contents line-by-line, its presence strongly indicates that the project supports environment-based local configuration, especially for credentials and provider endpoints.
 
-- [`pyproject.toml`](pyproject.toml): canonical project metadata and tool settings.
-- [`uv.lock`](uv.lock): pinned dependency resolution for reproducible installs.
-- [`CONTRIBUTING.md`](CONTRIBUTING.md): contributor expectations that often constrain test and lint workflows.
-- `.github/workflows/python-ci.yml`: CI execution of the Python pipeline.
+The supporting code also suggests the following runtime concerns are env-driven:
 
-These files collectively determine whether the Python package is built with the intended versions and whether local/test environments match CI.
+- LLM provider authentication
+- provider selection / base URL inference
+- possibly local server or storage paths, although those are not explicitly surfaced in the indexed symbols
 
-### Go build/test inputs
+The LLM client is constructed around [`Client`](go/internal/llm/client.go#L110-L115) and uses provider inference helpers like [`providerFromModel`](go/internal/llm/client.go#L369-L374) and [`inferBaseURLForProvider`](go/internal/llm/client.go#L376-L385). This makes environment variables the natural way to supply secrets or override endpoints without editing a config file.
 
-The Go pipeline is governed by:
+### Likely user-facing env-var categories
 
-- [`go/go.mod`](go/go.mod) and [`go/go.sum`](go/go.sum) for dependency pinning,
-- [`go/Makefile`](go/Makefile) for build helpers,
-- [`go/.goreleaser.yaml`](go/.goreleaser.yaml) for release packaging,
-- `.github/workflows/go-ci.yml` and `.github/workflows/go-release.yml` for validation and release automation.
+| Category | Purpose | Evidence |
+|----------|---------|----------|
+| API credentials | authenticate requests to the LLM provider | `LLMConfig`, `Client`, `.env.sample` |
+| Base URL override | direct requests to an OpenAI-compatible server | [`inferBaseURL`](go/internal/llm/client.go#L148-L157) |
+| Model selection | choose the chat/completions model | [`LLMConfig`](go/internal/models/contracts.go#L6-L15) |
 
-The repository evidence also shows a Go build command using `CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia`, which indicates that build reproducibility and static linking are part of the intended release process.
+Because the sample file is not expanded in the provided analysis data, the exact variable names should be read from [` .env.sample`](.env.sample) itself.
 
-### Linting and code style controls
+> **Sources:** [`.env.sample`](.env.sample) · [`Client`](go/internal/llm/client.go#L110-L115) · [`inferBaseURL`](go/internal/llm/client.go#L148-L157) · [`providerFromModel`](go/internal/llm/client.go#L369-L374) · [`inferBaseURLForProvider`](go/internal/llm/client.go#L376-L385)
 
-Static analysis and formatting are split across language ecosystems:
+## CLI Configuration and Precedence
 
-- JavaScript: [`package.json`](package.json), `.eslintrc.json`, `.prettierrc.json`
-- Python: `.editorconfig`, `.pre-commit-config.yaml`, `.ruff_cache/…`
-- Go: `.golangci.yml`, `checkstyle.xml`
-- Cross-language workflow helpers: `scripts/lint-and-report.sh`
+The repository has a CLI surface defined under [`go/cmd/rekipedia/cmd`](go/cmd/rekipedia/cmd/root.go#L36-L48) and mirrored in Python entry points. The primary runtime commands that interact with config are:
 
-These do not change runtime behavior directly, but they affect whether changes are accepted by CI and by local hook enforcement.
+- [`scan`](go/cmd/rekipedia/cmd/scan.go)
+- [`serve`](go/cmd/rekipedia/cmd/serve.go#L29-L51)
+- [`ask`](go/cmd/rekipedia/cmd/ask.go#L87-L174)
+- [`update`](go/cmd/rekipedia/cmd/update.go)
+- [`watch`](go/cmd/rekipedia/cmd/watch.go#L14-L35)
 
-> **Sources:** `pyproject.toml`; `uv.lock`; `go/go.mod`; `go/go.sum`; `go/Makefile`; `go/.goreleaser.yaml`; `.github/workflows/python-ci.yml`; `.github/workflows/go-ci.yml`; `.github/workflows/go-release.yml`; `.eslintrc.json`; `.prettierrc.json`; `.golangci.yml`; `.pre-commit-config.yaml`; `scripts/lint-and-report.sh`
+The tests show that config defaults are loadable through CLI-adjacent helpers and that flags are registered on individual subcommands. For example, [`TestEmbedCmdFlags`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L30-L37), [`TestExportCmdFlags`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L62-L69), and [`TestUpdateCmdFlags`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L98-L105) confirm that user-facing commands expose additional tuning flags.
 
-## Configuration Loading and Initialization
+### Observed precedence model
 
-The most concrete runtime configuration behavior is in [`go/internal/config/loader.go`](go/internal/config/loader.go#L16). It defines:
+The explicit precedence order is not fully codified in a single symbol, but the code strongly suggests the standard pattern:
 
-- [`RefactorConfig`](go/internal/config/loader.go#L16), which governs refactor-related thresholds or modes,
-- [`Config`](go/internal/config/loader.go#L34), which aggregates runtime configuration,
-- [`DefaultConfig`](go/internal/config/loader.go#L43), which creates the baseline values,
-- [`Load`](go/internal/config/loader.go#L55), which reads configuration from disk and environment,
-- [`applyEnvOverrides`](go/internal/config/loader.go#L74), which applies environment-variable precedence,
-- [`InitDir`](go/internal/config/loader.go#L92), which prepares a repository for first use.
+1. CLI flags win when a command exposes them
+2. Environment variables provide runtime overrides and secrets
+3. Config-file/default values fill in the rest
 
-The presence of [`ensureGitIgnore`](go/internal/config/loader.go#L113) suggests initialization also writes or updates ignore rules to keep generated artifacts out of version control. That is an important operational detail: initialization is not just “create config”; it also aligns repo hygiene with expected tool output.
+This is supported by the presence of a loader function [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161), the model defaults in [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23), and provider inference in the LLM client.
 
-The companion type [`AgentFile`](go/internal/config/agent.go#L63) and function [`WriteAgentFiles`](go/internal/config/agent.go#L76) show that the repository may also generate agent-specific instruction files as part of setup.
+### Practical precedence example
 
-### Observable effect on CLI behavior
+If a user launches the CLI with a model flag, that should override any config file value. If no flag is supplied, the loader consults environment-derived state. If neither is present, the app falls back to [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23).
 
-- `init` likely establishes baseline config and ignore files.
-- `scan` reads config and applies LLM-related settings.
-- `watch` persists its own state between runs.
-- `serve` and `ask` depend on whatever config has already been loaded and stored.
+```bash
+# Highest precedence: explicit CLI selection
+reki scan --model gpt-4.1-mini
 
-This makes config a first-class runtime dependency, not a passive metadata layer.
+# Next: environment-based configuration
+export OPENAI_API_KEY=...
+reki scan
 
-> **Sources:** `go/internal/config/loader.go` · L16–L129 · [`RefactorConfig`](go/internal/config/loader.go#L16), [`Config`](go/internal/config/loader.go#L34), [`DefaultConfig`](go/internal/config/loader.go#L43), [`Load`](go/internal/config/loader.go#L55), [`applyEnvOverrides`](go/internal/config/loader.go#L74), [`InitDir`](go/internal/config/loader.go#L92), [`ensureGitIgnore`](go/internal/config/loader.go#L113); `go/internal/config/agent.go` · L63–L95 · [`AgentFile`](go/internal/config/agent.go#L63), [`WriteAgentFiles`](go/internal/config/agent.go#L76)
+# Fallback: code defaults
+reki scan
+```
 
-## Major Config File Types and Their Effects
+> **Sources:** [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48) · [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161) · [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23) · [`TestRootCommandHasSubcommands`](go/cmd/rekipedia/cmd/root_test.go#L19-L29) · [`TestLoadLLMConfig`](go/cmd/rekipedia/cmd/root_test.go#L91-L102)
 
-| File type | Example files | Purpose | Subsystem affected |
-|---|---|---|---|
-| Project/package manifest | `pyproject.toml`, `package.json`, `go/go.mod` | Declares package identity, dependencies, and tooling | Build, packaging, test resolution |
-| Lock file | `uv.lock`, `go/go.sum` | Pins versions for reproducibility | Dependency installation, CI stability |
-| Style/lint config | `.eslintrc.json`, `.prettierrc.json`, `.golangci.yml`, `checkstyle.xml`, `pmd-ruleset.xml` | Enforces formatting and static analysis | Developer workflow, pre-merge checks |
-| Hook config | `.pre-commit-config.yaml` | Runs checks before commits | Local validation and hygiene |
-| CI workflow | `.github/workflows/*.yml` | Automates build/test/release | Continuous integration and release |
-| Runtime env sample | `.env.sample` | Documents required/optional env vars | CLI/runtime configuration |
-| Container build file | `Dockerfile.sandbox`, `go/Dockerfile` | Creates runtime or sandbox images | Deployment, reproducible execution |
-| Repo initialization artifacts | `AGENTS.md`, `CLAUDE.md`, `.github/*instructions.md` | Tooling/instruction files for agents and contributors | CLI init, AI-assisted workflow setup |
+## Sample and Schema Files
 
-Notably, some files are “configuration” in a human/workflow sense rather than a parser-driven application sense. For example, `AGENTS.md` and `CLAUDE.md` are instruction artifacts that influence how automated agents or contributors behave, and [`WriteAgentFiles`](go/internal/config/agent.go#L76) suggests the toolchain may generate them as part of setup.
+### `.env.sample`
 
-> **Sources:** `pyproject.toml`; `package.json`; `go/go.mod`; `uv.lock`; `go/go.sum`; `.eslintrc.json`; `.prettierrc.json`; `.golangci.yml`; `checkstyle.xml`; `pmd-ruleset.xml`; `.pre-commit-config.yaml`; `.github/workflows/go-ci.yml`; `.github/workflows/python-ci.yml`; `.github/workflows/go-release.yml`; `.env.sample`; `Dockerfile.sandbox`; `go/Dockerfile`; `AGENTS.md`; `CLAUDE.md`; `go/internal/config/agent.go` · L76–L95 · [`WriteAgentFiles`](go/internal/config/agent.go#L76)
+[` .env.sample`](.env.sample) is the main onboarding aid for environment-based configuration. Users should treat it as the authoritative template for required secrets and optional overrides.
 
-## Environment Variables and Flags
+### `tests/fixtures/mini-py-repo/.close-wiki/config.yml`
 
-The repository evidence is clear that environment overrides exist in the Go config loader via [`applyEnvOverrides`](go/internal/config/loader.go#L74). However, the analysis payload does **not** enumerate the exact variable names, so it would be speculative to list them individually here.
+[`tests/fixtures/mini-py-repo/.close-wiki/config.yml`](tests/fixtures/mini-py-repo/.close-wiki/config.yml) is a representative project-local configuration file. It demonstrates that the tool can consume repo-scoped YAML config, which is the kind of file most users would add or edit in a target repository.
 
-What is observable:
+### `schemas/analysis_result.schema.json`
 
-- environment values can override file-based config,
-- defaults are available through [`DefaultConfig`](go/internal/config/loader.go#L43) and [`DefaultLLMConfig`](go/internal/models/contracts.go#L18),
-- tests explicitly cover environment override behavior in [`TestEnvOverride`](go/internal/config/loader_test.go#L53) and [`TestEnvOverrideFallbackOpenAI`](go/internal/config/loader_test.go#L71),
-- CLI commands such as `scan` and `watch` read configuration during execution.
+[`schemas/analysis_result.schema.json`](schemas/analysis_result.schema.json) defines the JSON schema for analysis output. This is not a runtime control file, but it is relevant for integrations, downstream processors, and validating exported results.
 
-The repository also shows command-line flags in tests for subcommands like `embed`, `export`, `update`, and `refactor`, but because the task is focused on configuration files rather than command reference details, the exact flags are intentionally omitted here.
+### Language-specific fixture configs
 
-> **Sources:** `go/internal/config/loader.go` · L43–L89 · [`DefaultConfig`](go/internal/config/loader.go#L43), [`applyEnvOverrides`](go/internal/config/loader.go#L74); `go/internal/models/contracts.go` · L18–L23 · [`DefaultLLMConfig`](go/internal/models/contracts.go#L18); `go/internal/config/loader_test.go` · L53–L79 · [`TestEnvOverride`](go/internal/config/loader_test.go#L53), [`TestEnvOverrideFallbackOpenAI`](go/internal/config/loader_test.go#L71)
+The extractor test suite proves that config files in the target repo are first-class inputs for analysis:
+
+- [`TestConfigPackageJSON`](go/internal/extractor/extractor_test.go#L296-L332)
+- [`TestConfigPyprojectToml`](go/internal/extractor/extractor_test.go#L334-L356)
+- [`TestConfigDockerfile`](go/internal/extractor/extractor_test.go#L358-L376)
+- [`TestConfigGoMod`](go/internal/extractor/extractor_test.go#L378-L401)
+- [`TestConfigMakefile`](go/internal/extractor/extractor_test.go#L403-L426)
+
+These tests indicate the supported config surface is intentionally broad: repository metadata and build files are scanned and can influence the generated wiki, graph, and RAG content.
+
+> **Sources:** [`TestConfigPackageJSON`](go/internal/extractor/extractor_test.go#L296-L332) · [`TestConfigPyprojectToml`](go/internal/extractor/extractor_test.go#L334-L356) · [`TestConfigDockerfile`](go/internal/extractor/extractor_test.go#L358-L376) · [`TestConfigGoMod`](go/internal/extractor/extractor_test.go#L378-L401) · [`TestConfigMakefile`](go/internal/extractor/extractor_test.go#L403-L426) · [`schemas/analysis_result.schema.json`](schemas/analysis_result.schema.json)
+
+## Main Runtime Configuration Example
+
+A user running the tool locally will typically need to configure an LLM provider and optionally adjust how the CLI resolves defaults. Based on the code paths around [`RunAsk`](go/internal/orchestrator/run_ask.go#L59-L109), [`RunUpdate`](go/internal/orchestrator/run_update.go#L30-L179), and [`RunDigest`](go/internal/orchestrator/run_digest.go#L48-L309), a minimal working configuration is conceptually:
+
+```env
+# Example only; see .env.sample for the exact variable names
+OPENAI_API_KEY=...
+REKIPEDIA_MODEL=gpt-4.1-mini
+REKIPEDIA_BASE_URL=https://api.openai.com/v1
+```
+
+In practice, the CLI may also work with an OpenAI-compatible local endpoint, since the client has dedicated inference helpers for provider-specific base URLs.
+
+### Safe defaults
+
+The codebase is designed so that the tool can start with limited user input:
+
+- default model values are supplied by [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23)
+- base URL can be inferred via [`inferBaseURL`](go/internal/llm/client.go#L148-L157)
+- CLI commands are registered under the root command with sensible subcommand structure
+
+That means the main configuration burden for end users is usually just credentials and provider choice, not a large bespoke config file.
+
+> **Sources:** [`RunAsk`](go/internal/orchestrator/run_ask.go#L59-L109) · [`RunUpdate`](go/internal/orchestrator/run_update.go#L30-L179) · [`RunDigest`](go/internal/orchestrator/run_digest.go#L48-L309) · [`inferBaseURL`](go/internal/llm/client.go#L148-L157) · [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23)
+
+## Notes on Unsupported or Internal-Only Settings
+
+Some configuration-looking files in the repository are not part of the user-facing runtime surface and should generally be ignored for this page:
+
+- CI and release workflow files under [`.github/workflows`](.github/workflows)
+- lint/pre-commit/editor settings at the repository root
+- cache directories such as [`.ruff_cache`](.ruff_cache)
+
+The implementation also contains several internal constants, helper functions, and storage defaults that are user-visible only indirectly. For example, [`DefaultPath`](go/internal/storage/store.go#L38-L40) and [`Open`](go/internal/storage/store.go#L24-L35) determine where the SQLite store lives, but the analysis data does not expose a user-editable config file for that path.
+
+> **Sources:** [`Open`](go/internal/storage/store.go#L24-L35) · [`DefaultPath`](go/internal/storage/store.go#L38-L40) · [`Store`](go/internal/storage/store.go#L18-L21)

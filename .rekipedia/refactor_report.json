@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-05T04:26:10.786801+00:00",
-  "rekipedia_version": "0.10.2",
+  "generated_at": "2026-05-05T04:59:13.735579+00:00",
+  "rekipedia_version": "0.10.3",
   "summary": {
     "high": 9,
     "medium": 0,
@@ -2311,7 +2311,7 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 16
+        "fan_out": 17
       },
       "suggestion": "Remove `PageBuilder._build_page_from_spec` — 0 callers detected",
       "callers": []

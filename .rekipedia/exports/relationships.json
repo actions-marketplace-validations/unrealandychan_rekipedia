@@ -29737,6 +29737,30 @@
   },
   {
     "from": "_build_module_graph",
+    "to": "set",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "set",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "set",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
     "to": "sorted",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/diagram_builder.py",
@@ -29769,6 +29793,54 @@
   },
   {
     "from": "_build_module_graph",
+    "to": "any",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "_top_module",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "_top_module",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "add",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "add",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "len",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
     "to": "sub",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/diagram_builder.py",
@@ -29785,7 +29857,7 @@
   },
   {
     "from": "_build_module_graph",
-    "to": "append",
+    "to": "sorted",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/diagram_builder.py",
     "confidence": 0.8,
@@ -29801,7 +29873,39 @@
   },
   {
     "from": "_build_module_graph",
+    "to": "sorted",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
     "to": "append",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "sorted",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "append",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "_top_module",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/diagram_builder.py",
     "confidence": 0.8,
@@ -29817,7 +29921,15 @@
   },
   {
     "from": "_build_module_graph",
-    "to": "get",
+    "to": "split",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "replace",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/diagram_builder.py",
     "confidence": 0.8,
@@ -29849,7 +29961,15 @@
   },
   {
     "from": "_build_module_graph",
-    "to": "any",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "add",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/diagram_builder.py",
     "confidence": 0.8,
@@ -29897,135 +30017,7 @@
   },
   {
     "from": "_build_module_graph",
-    "to": "append",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "add",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "add",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "append",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "add",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "add",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "append",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "add",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "add",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "node_id",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "node_id",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "node_id",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "node_id",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "node_id",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "node_id",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "startswith",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/diagram_builder.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_module_graph",
-    "to": "startswith",
+    "to": "join",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/diagram_builder.py",
     "confidence": 0.8,
@@ -30034,6 +30026,174 @@
   {
     "from": "_build_module_graph",
     "to": "split",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "add",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "len",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "len",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "replace",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "join",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "startswith",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "startswith",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "add",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "sorted",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "node_id",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "node_id",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "node_id",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "node_id",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "node_id",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "node_id",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "len",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "items",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "split",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/diagram_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_module_graph",
+    "to": "replace",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/diagram_builder.py",
     "confidence": 0.8,
@@ -30481,6 +30641,14 @@
   },
   {
     "from": "PageBuilder._build_page_from_spec",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "PageBuilder._build_page_from_spec",
     "to": "replace",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/page_builder.py",
@@ -30744,6 +30912,70 @@
     "evidence_tag": "EXTRACTED"
   },
   {
+    "from": "_classify_file_role",
+    "to": "lower",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "lower",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "any",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "any",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "Path",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "any",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "Path",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "startswith",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
     "from": "_build_payload",
     "to": "_build_cross_module_summary",
     "kind": "calls",
@@ -30762,6 +30994,14 @@
   {
     "from": "_build_payload",
     "to": "_build_hub_nodes",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_payload",
+    "to": "_classify_file_role",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/page_builder.py",
     "confidence": 0.8,
@@ -30809,7 +31049,7 @@
   },
   {
     "from": "_build_payload",
-    "to": "model_dump",
+    "to": "get",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/page_builder.py",
     "confidence": 0.8,
@@ -30834,6 +31074,62 @@
   {
     "from": "_build_payload",
     "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_payload",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_payload",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_payload",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_payload",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_payload",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_payload",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/page_builder.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_payload",
+    "to": "model_dump",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/page_builder.py",
     "confidence": 0.8,
@@ -31234,6 +31530,14 @@
   {
     "from": "rekipedia.synthesis.planner",
     "to": "rekipedia.synthesis.slug_utils",
+    "kind": "imports",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 1.0,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "rekipedia.synthesis.planner",
+    "to": "rekipedia.orchestrator.snapshotter",
     "kind": "imports",
     "file": "src/rekipedia/synthesis/planner.py",
     "confidence": 1.0,
@@ -31688,6 +31992,262 @@
     "evidence_tag": "EXTRACTED"
   },
   {
+    "from": "_classify_file_role",
+    "to": "lower",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "lower",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "any",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "any",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "Path",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "any",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "Path",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_classify_file_role",
+    "to": "startswith",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "_classify_file_role",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "bool",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "any",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "any",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "bool",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "setdefault",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "len",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "len",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "len",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "len",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "list",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "lower",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "Path",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "len",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "lower",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "get",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "list",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "keys",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "any",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "sum",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
     "from": "_build_planning_summary",
     "to": "sorted",
     "kind": "calls",
@@ -31697,126 +32257,6 @@
   },
   {
     "from": "_build_planning_summary",
-    "to": "any",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "bool",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "any",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "any",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "any",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "bool",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "lower",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "lower",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "any",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "len",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "len",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "len",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "len",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "list",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "lower",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
     "to": "get",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/planner.py",
@@ -31826,46 +32266,6 @@
   {
     "from": "_build_planning_summary",
     "to": "get",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "Path",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "list",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "keys",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "any",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "any",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/planner.py",
     "confidence": 0.8,
@@ -31889,7 +32289,7 @@
   },
   {
     "from": "_build_planning_summary",
-    "to": "lower",
+    "to": "values",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/planner.py",
     "confidence": 0.8,
@@ -31897,15 +32297,7 @@
   },
   {
     "from": "_build_planning_summary",
-    "to": "Path",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "startswith",
+    "to": "items",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/planner.py",
     "confidence": 0.8,
@@ -31922,22 +32314,6 @@
   {
     "from": "_build_planning_summary",
     "to": "Path",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "lower",
-    "kind": "calls",
-    "file": "src/rekipedia/synthesis/planner.py",
-    "confidence": 0.8,
-    "evidence_tag": "EXTRACTED"
-  },
-  {
-    "from": "_build_planning_summary",
-    "to": "lower",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/planner.py",
     "confidence": 0.8,
@@ -31961,7 +32337,15 @@
   },
   {
     "from": "_build_planning_summary",
-    "to": "Path",
+    "to": "sum",
+    "kind": "calls",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "confidence": 0.8,
+    "evidence_tag": "EXTRACTED"
+  },
+  {
+    "from": "_build_planning_summary",
+    "to": "values",
     "kind": "calls",
     "file": "src/rekipedia/synthesis/planner.py",
     "confidence": 0.8,

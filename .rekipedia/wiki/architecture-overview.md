@@ -1,161 +1,222 @@
 ---
 slug: architecture-overview
-title: "Architecture Overview"
+title: "System Overview"
 section: architecture
-tags: [architecture, overview, data-flow]
+tags: [overview, architecture, data-flow]
 pin: false
-importance: 50
-created_at: 2026-05-05T04:24:57Z
-rekipedia_version: 0.10.2
+importance: 98
+created_at: 2026-05-05T04:58:06Z
+rekipedia_version: 0.10.3
 ---
 
-# Architecture Overview
-
-## Components
-
-Rekipedia is organized around a small set of top-level subsystems that turn a repository scan into searchable, exportable, and refactor-oriented knowledge. The CLI entry point [`main`](go/cmd/rekipedia/main.go#L6) delegates into the Cobra command tree defined in [`Execute`](go/cmd/rekipedia/cmd/root.go#L44) and the command registration in [`init`](go/cmd/rekipedia/cmd/root.go#L50-L77). From there, the runtime fans out into distinct flows: repository scanning, search and ask/RAG interaction, refactor analysis, and presentation/export.
-
-The primary orchestration layer lives in [`RunUpdate`](go/internal/orchestrator/run_update.go#L30-L179), [`RunDigest`](go/internal/orchestrator/run_digest.go#L48-L309), and [`RunAsk`](go/internal/orchestrator/run_ask.go#L59-L109). These functions coordinate lower-level services rather than performing all work themselves. For example, scanning starts with [`Snapshotter`](go/internal/orchestrator/snapshotter.go#L57-L62) and [`Snapshotter.Snapshot`](go/internal/orchestrator/snapshotter.go#L89-L147), which produces file manifests and language-aware file metadata. Those manifests are then partitioned by [`ShardPlanner`](go/internal/orchestrator/sharding.go#L17-L19) via [`ShardPlanner.Plan`](go/internal/orchestrator/sharding.go#L31-L54). The digest path then feeds shard content into extraction and synthesis helpers, combining [`extractShard`](go/internal/orchestrator/run_digest.go#L313-L331), [`combineResults`](go/internal/orchestrator/run_digest.go#L346-L361), and the synthesis layer in [`PageBuilder`](go/internal/synthesis/page_builder.go#L60-L62) and [`DiagramBuilder`](go/internal/synthesis/diagram_builder.go#L16-L16).
-
-The data model is centralized in [`LLMConfig`](go/internal/models/contracts.go#L6-L15), [`Symbol`](go/internal/models/contracts.go#L53-L61), [`Relationship`](go/internal/models/contracts.go#L64-L71), [`AnalysisResult`](go/internal/models/contracts.go#L82-L94), [`Shard`](go/internal/models/contracts.go#L97-L101), [`WikiPageSpec`](go/internal/models/contracts.go#L119-L129), and related contracts in [`go/internal/models/contracts.go`](go/internal/models/contracts.go). These structs define the shape of data flowing between CLI, storage, analysis, and export steps.
-
-Storage is handled by [`Store`](go/internal/storage/store.go#L18-L21), opened with [`Open`](go/internal/storage/store.go#L24-L35), and accessed through the alias methods in [`go/internal/storage/aliases.go`](go/internal/storage/aliases.go). This is the persistence backbone for runs, symbols, relationships, wiki pages, QA history, and manifests.
-
-Search and retrieval are split between full-text-ish ranking and vector retrieval. The CLI-facing search path relies on [`tokenizeSymbol`](go/cmd/rekipedia/cmd/search.go#L20-L51) and [`scoreBM25`](go/cmd/rekipedia/cmd/search.go#L54-L71), while the ask flow consults the RAG pipeline implemented by [`EmbedPipeline`](go/internal/rag/embedder.go#L15-L18), [`EmbedPipeline.Build`](go/internal/rag/embedder.go#L30-L84), [`EmbedPipeline.Search`](go/internal/rag/embedder.go#L87-L102), and [`VectorStore`](go/internal/rag/vector_store.go#L15-L18).
-
-Refactor analysis is also a first-class subsystem. The static detectors in [`DetectAll`](go/internal/analysis/refactor_detector.go#L404-L413), the enrichment pipeline in [`RefactorEnricher`](go/internal/analysis/refactor_enricher.go#L296-L298), and the report writer in [`WriteRefactorOutputs`](go/internal/analysis/refactor_writer.go#L269-L326) form the refactor flow used by the `refactor` command.
+# System Overview
 
 ```mermaid
 flowchart LR
-  CLI[CLI entry point]
-  ROOT[Cobra root/commands]
-  SCAN[Scan pipeline]
-  DIGEST[Digest / extraction]
-  SEARCH[Search / ask]
-  REFACTOR[Refactor analysis]
-  SYNTHESIS[Synthesis]
-  STORAGE[SQLite storage]
-  RAG[RAG / vector search]
-  SERVER[Web server]
-  EXPORT[Export]
-  CLI --> ROOT
-  ROOT --> SCAN
-  ROOT --> SEARCH
-  ROOT --> REFACTOR
-  ROOT --> EXPORT
-  ROOT --> SERVER
-  SCAN --> DIGEST
-  DIGEST --> STORAGE
-  DIGEST --> SYNTHESIS
-  SEARCH --> RAG
-  SEARCH --> STORAGE
-  REFACTOR --> STORAGE
-  REFACTOR --> SYNTHESIS
-  SERVER --> STORAGE
-  SERVER --> RAG
-  EXPORT --> STORAGE
+  GoCLI[Go CLI]
+  PyAnalysis[Python analysis tasks]
+  Tests[Tests]
+  Scripts[Helper scripts]
+  Config[Config files]
+  Store[(SQLite store)]
+  Export[Exporters]
+  Server[Web server]
+  RAG[RAG / embeddings]
+  Orchestrator[Orchestrator]
+  Analysis[Static analysis]
+  LLM[LLM client]
+
+  GoCLI --> Orchestrator
+  GoCLI --> Analysis
+  GoCLI --> Store
+  GoCLI --> Export
+  GoCLI --> Server
+  GoCLI --> RAG
+  GoCLI --> Config
+
+  Orchestrator --> Analysis
+  Orchestrator --> LLM
+  Orchestrator --> Store
+  Orchestrator --> Export
+  Orchestrator --> RAG
+
+  PyAnalysis --> Store
+  PyAnalysis --> Analysis
+  PyAnalysis --> LLM
+
+  Tests --> GoCLI
+  Tests --> Orchestrator
+  Tests --> Analysis
+  Tests --> Store
+  Tests --> Export
+  Tests --> Server
+  Tests --> RAG
+
+  Scripts --> GoCLI
+  Scripts --> Config
+  Scripts --> Store
+
+  Export --> Store
+  Server --> Store
+  RAG --> Store
 ```
 
-> **Sources:** `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6)  
-> **Sources:** `go/cmd/rekipedia/cmd/root.go` · L44–L77 · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44)  
-> **Sources:** `go/internal/orchestrator/run_update.go` · L30–L179 · [`RunUpdate`](go/internal/orchestrator/run_update.go#L30)  
-> **Sources:** `go/internal/orchestrator/run_digest.go` · L48–L309 · [`RunDigest`](go/internal/orchestrator/run_digest.go#L48)  
-> **Sources:** `go/internal/orchestrator/run_ask.go` · L59–L109 · [`RunAsk`](go/internal/orchestrator/run_ask.go#L59)  
-> **Sources:** `go/internal/analysis/refactor_detector.go` · L404–L413 · [`DetectAll`](go/internal/analysis/refactor_detector.go#L404)  
-> **Sources:** `go/internal/analysis/refactor_enricher.go` · L296–L347 · [`RefactorEnricher`](go/internal/analysis/refactor_enricher.go#L296)  
-> **Sources:** `go/internal/analysis/refactor_writer.go` · L269–L326 · [`WriteRefactorOutputs`](go/internal/analysis/refactor_writer.go#L269)
+This repository is a cross-language system for building, storing, analyzing, and presenting code intelligence. The runtime shape is centered on a Go command-line application, with Python analysis modules providing complementary repository analytics and search behavior. The shared data backbone is the SQLite-backed [`Store`](go/internal/storage/store.go#L18), which persists runs, symbols, relationships, wiki pages, QA history, and manifests across the workflow.
 
-## Data Flow
+The Go side provides the operational pipeline: command entrypoint, orchestration, extraction, analysis, refactor detection, RAG embedding, export, and the web server. The Python side mirrors some of those concerns for its own package namespace and includes repository analysis helpers such as [`rekipedia.analysis.cross_repo_search`](src/rekipedia/analysis/cross_repo_search.py) and [`rekipedia.analysis.graph_analysis`](src/rekipedia/analysis/graph_analysis.py). The tests are extensive and act as executable documentation for almost every subsystem.
 
-At a high level, the system follows a pipeline-oriented flow that begins with repository discovery and ends with persisted artifacts plus multiple presentation surfaces.
+> **Sources:** `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6) · `go/cmd/rekipedia/cmd/root.go` · L44–L48 · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44)
 
-1. **CLI invocation** starts at [`main`](go/cmd/rekipedia/main.go#L6-L8) and dispatches into command handlers such as the scan, ask, refactor, export, and serve commands defined under `go/cmd/rekipedia/cmd/`.
-2. **Scan** uses [`Snapshotter.Snapshot`](go/internal/orchestrator/snapshotter.go#L89-L147) to identify files, detect languages, compute SHA-256 hashes, and produce manifests. The helper [`detectLanguage`](go/internal/orchestrator/snapshotter.go#L162-L172) is the observable language classifier in this stage.
-3. **Sharding** uses [`ShardPlanner.Plan`](go/internal/orchestrator/sharding.go#L31-L54) and related helpers like [`fileTokenEstimate`](go/internal/orchestrator/sharding.go#L100-L106) to batch files into work units.
-4. **Digest/extraction** processes each shard via [`extractShard`](go/internal/orchestrator/run_digest.go#L313-L331), which pulls symbols and relationships through extractors, then merges results with [`combineResults`](go/internal/orchestrator/run_digest.go#L346-L361).
-5. **Storage** persists the run, symbols, relationships, manifests, wiki pages, and QA history through [`Store`](go/internal/storage/store.go#L18-L21) and its methods such as [`SaveSymbols`](go/internal/storage/store.go#L149-L171), [`SaveRelationships`](go/internal/storage/store.go#L200-L220), and [`UpsertWikiPage`](go/internal/storage/store.go#L247-L258).
-6. **Search / ask** uses a hybrid approach: repository data from storage plus embeddings from [`EmbedPipeline.Build`](go/internal/rag/embedder.go#L30-L84) and retrieval from [`EmbedPipeline.Search`](go/internal/rag/embedder.go#L87-L102). The CLI search command also supports lexical ranking through [`scoreBM25`](go/cmd/rekipedia/cmd/search.go#L54-L71).
-7. **Refactor analysis** consumes symbols/relationships and produces issue reports with [`DetectGodNodes`](go/internal/analysis/refactor_detector.go#L30-L100), [`DetectCircularDeps`](go/internal/analysis/refactor_detector.go#L103-L201), [`DetectDeadCode`](go/internal/analysis/refactor_detector.go#L204-L231), [`DetectHighFanIn`](go/internal/analysis/refactor_detector.go#L234-L276), [`DetectHighFanOut`](go/internal/analysis/refactor_detector.go#L279-L320), and [`DetectDeepInheritance`](go/internal/analysis/refactor_detector.go#L323-L401). Optional enrichment is done in [`DetectIssues`](go/internal/analysis/refactor_enricher.go#L99-L246) and rendered by [`BuildMarkdown`](go/internal/analysis/refactor_writer.go#L177-L263).
-8. **Presentation/export** is handled by the web server in [`Server.Start`](go/internal/server/server.go#L71-L96), the markdown exporter in [`MarkdownExporter.Export`](go/internal/exporter/markdown_exporter.go#L22-L63), and the JSON exporter in [`JSONExporter.Export`](go/internal/exporter/json_exporter.go#L49-L140).
+## Component Responsibilities
 
-A useful way to think about the system is that scanning builds the knowledge base, RAG/search consumes it, refactor analysis interprets it, and export/serve expose it.
+### Go CLI as the runtime front door
+
+The application begins in [`main`](go/cmd/rekipedia/main.go#L6-L8), which delegates directly to [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48). That root command is responsible for wiring the Cobra command tree and exposing the top-level user-facing interface. The root package also owns banner/version behavior via [`printRootBanner`](go/cmd/rekipedia/cmd/root.go#L36-L41), while subcommands such as scan, refactor, export, serve, diff, hook, update, and ask are registered in [`init`](go/cmd/rekipedia/cmd/root.go#L50-L77).
+
+Within the CLI package, [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161) is one of the most important shape-defining helpers because it determines how scan-time LLM settings are resolved from environment and config inputs. It is paired with [`splitLanguages`](go/cmd/rekipedia/cmd/scan.go#L165-L180), which influences what file types the scanner processes.
+
+### Orchestrator as workflow coordinator
+
+The orchestrator package is the core runtime coordinator. It handles the end-to-end pipeline that scans repositories, chunks files, embeds content, runs analysis, and persists results. Key entrypoints include [`RunAsk`](go/internal/orchestrator/run_ask.go#L59-L109), [`RunDigest`](go/internal/orchestrator/run_digest.go#L48-L309), and [`RunUpdate`](go/internal/orchestrator/run_update.go#L30-L179). The orchestrator also encapsulates repository shaping logic through [`ShardPlanner`](go/internal/orchestrator/sharding.go#L17-L19) and [`NewShardPlanner`](go/internal/orchestrator/sharding.go#L23-L28), plus filesystem-based repository snapshots through [`Snapshotter`](go/internal/orchestrator/snapshotter.go#L57-L62).
+
+A particularly important helper is [`finishDigest`](go/internal/orchestrator/helpers.go#L18-L91), which shows the orchestrator’s role as the place where analysis, synthesis, storage, and LLM-backed refinement are brought together.
+
+### Analysis and refactor detection
+
+The low-level static analysis package is responsible for turning model data into higher-level refactor signals. [`DetectAll`](go/internal/analysis/refactor_detector.go#L404-L413) aggregates the major detectors: [`DetectGodNodes`](go/internal/analysis/refactor_detector.go#L30-L100), [`DetectCircularDeps`](go/internal/analysis/refactor_detector.go#L103-L201), [`DetectDeadCode`](go/internal/analysis/refactor_detector.go#L204-L231), [`DetectHighFanIn`](go/internal/analysis/refactor_detector.go#L234-L276), [`DetectHighFanOut`](go/internal/analysis/refactor_detector.go#L279-L320), and [`DetectDeepInheritance`](go/internal/analysis/refactor_detector.go#L323-L401).
+
+Those results are then enriched by [`DetectIssues`](go/internal/analysis/refactor_enricher.go#L99-L246), [`AttachCallers`](go/internal/analysis/refactor_enricher.go#L249-L264), and [`AttachNotes`](go/internal/analysis/refactor_enricher.go#L268-L290), then formatted into reports with [`BuildMarkdown`](go/internal/analysis/refactor_writer.go#L177-L263) and [`WriteRefactorOutputs`](go/internal/analysis/refactor_writer.go#L269-L326). The CLI-facing static report helper [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148-L175) is the bridge from detector output to human-readable summaries.
+
+### Storage, export, and presentation
+
+The persistence layer is a SQLite store exposed by [`Store`](go/internal/storage/store.go#L18-L21), with lifecycle methods such as [`Open`](go/internal/storage/store.go#L24-L35), [`CreateRun`](go/internal/storage/store.go#L116-L122), [`SaveSymbols`](go/internal/storage/store.go#L149-L171), [`SaveRelationships`](go/internal/storage/store.go#L200-L220), [`UpsertWikiPage`](go/internal/storage/store.go#L247-L258), and [`SaveQA`](go/internal/storage/store.go#L303-L309). The export layer produces JSON and Markdown artifacts through [`JSONExporter`](go/internal/exporter/json_exporter.go#L16-L18) and [`MarkdownExporter`](go/internal/exporter/markdown_exporter.go#L11-L13).
+
+The web server uses that same store to render pages and expose APIs. The server’s main shape is in [`Server`](go/internal/server/server.go#L35-L43), with HTTP handlers such as [`handleAPIPages`](go/internal/server/server.go#L329-L332), [`handleAPIWikiSearch`](go/internal/server/server.go#L802-L926), and [`handleAPIGraph`](go/internal/server/server.go#L649-L799). This means the presentation layer is fundamentally read-oriented over persisted analysis artifacts.
+
+> **Sources:** `go/cmd/rekipedia/cmd/root.go` · L36–L77 · [`printRootBanner`](go/cmd/rekipedia/cmd/root.go#L36), [`Execute`](go/cmd/rekipedia/cmd/root.go#L44) · `go/internal/orchestrator/run_digest.go` · L48–L309 · [`RunDigest`](go/internal/orchestrator/run_digest.go#L48) · `go/internal/analysis/refactor_detector.go` · L30–L413 · [`DetectAll`](go/internal/analysis/refactor_detector.go#L404) · `go/internal/storage/store.go` · L18–L335 · [`Store`](go/internal/storage/store.go#L18)
+
+## Design Boundaries
+
+### Boundary: CLI vs. orchestration
+
+The CLI is intentionally thin at the top level. Its job is to parse user intent, assemble config, and dispatch to orchestration methods. This boundary is visible in the fact that `main` only calls [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48), while the actual work is carried out deeper in packages like orchestrator, storage, analysis, and synthesis.
+
+The [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161) helper is a good example of what stays at the edge: it resolves configuration, but does not itself perform repository analysis. Similarly, the CLI-specific [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148-L175) formats analysis data already produced by lower layers.
+
+### Boundary: analysis vs. synthesis
+
+A clear separation exists between detecting issues and turning them into navigable documentation. The detector functions like [`DetectGodNodes`](go/internal/analysis/refactor_detector.go#L30-L100) and [`DetectCircularDeps`](go/internal/analysis/refactor_detector.go#L103-L201) produce structured [`RefactorIssue`](go/internal/analysis/refactor_types.go#L24-L38) values. The synthesis layer then converts structured results into pages and diagrams using [`PlannerAgent`](go/internal/synthesis/planner.go#L77-L79), [`PageBuilder`](go/internal/synthesis/page_builder.go#L60-L62), and [`DiagramBuilder`](go/internal/synthesis/diagram_builder.go#L16-L16).
+
+That boundary matters because it keeps heuristic analysis separate from narrative generation. The codebase can therefore re-use the same analysis results in multiple output channels: markdown pages, diagrams, search, and server endpoints.
+
+### Boundary: storage vs. derived views
+
+The store is the source of truth for persisted runs and content. Functions like [`LatestRunID`](go/internal/storage/store.go#L134-L144), [`ListSymbols`](go/internal/storage/store.go#L174-L195), and [`ListWikiPages`](go/internal/storage/store.go#L270-L289) expose raw persisted records. Derived views such as graph pages, exported markdown, or search results are assembled on top of those records rather than stored as the primary source.
+
+This is also reflected in the aliases layer under [`go/internal/storage/aliases.go`](go/internal/storage/aliases.go), which provides compatibility wrappers like [`GetAllSymbols`](go/internal/storage/aliases.go#L59-L61) and [`GetAllRelationships`](go/internal/storage/aliases.go#L64-L84) rather than introducing a separate data model.
+
+### Boundary: Go runtime vs. Python analysis helpers
+
+The repository contains a Python package with its own analysis utilities, but those are not the runtime backbone of the Go application. Python modules such as [`rekipedia.analysis.cross_repo_search`](src/rekipedia/analysis/cross_repo_search.py) and [`rekipedia.analysis.refactor_detector`](src/rekipedia/analysis/refactor_detector.py) operate in a complementary ecosystem. The observable boundary is that the Go command line, server, and persistence stack are self-contained, while Python code provides analysis functions and fixtures for separate workflows and tests.
+
+> **Sources:** `go/cmd/rekipedia/cmd/scan.go` · L143–L180 · [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143) · `go/cmd/rekipedia/cmd/refactor.go` · L148–L175 · [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148) · `go/internal/analysis/refactor_detector.go` · L30–L413 · [`DetectAll`](go/internal/analysis/refactor_detector.go#L404) · `go/internal/synthesis/page_builder.go` · L60–L266 · [`PageBuilder`](go/internal/synthesis/page_builder.go#L60)
+
+## Main Data Inputs and Outputs
+
+### Inputs
+
+The runtime consumes several distinct kinds of inputs:
+
+| Input type | Examples | Used by |
+|---|---|---|
+| Repository source files | Go, Python, TypeScript files | [`Snapshotter`](go/internal/orchestrator/snapshotter.go#L89-L147), extractors, detectors |
+| CLI arguments | Subcommand options and flags | [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48) and subcommands |
+| Config files / env | LLM configuration, language filters, scan settings | [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161), config loaders |
+| Existing store state | Prior runs, pages, QA history, manifests | [`Store`](go/internal/storage/store.go#L18-L335), server handlers |
+| LLM responses | Planning, enrichment, question answering | [`Client`](go/internal/llm/client.go#L110-L145), synthesis and enrichment layers |
+
+Entry-point fixtures such as `tests/fixtures/mini-py-repo/main.py` and `tests/fixtures/mini-ts-repo/src/index.ts` indicate that multi-language repository content is a first-class input for the analysis and extraction pipeline.
+
+### Outputs
+
+The system produces both machine-readable and human-readable outputs:
+
+| Output type | Produced by | Notes |
+|---|---|---|
+| SQLite records | [`Store`](go/internal/storage/store.go#L18-L335) | authoritative persisted analysis state |
+| JSON exports | [`JSONExporter`](go/internal/exporter/json_exporter.go#L49-L140) | symbols, relationships, manifest |
+| Markdown exports | [`MarkdownExporter`](go/internal/exporter/markdown_exporter.go#L22-L63) | wiki pages and rendered docs |
+| Refactor reports | [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148-L175), [`BuildMarkdown`](go/internal/analysis/refactor_writer.go#L177-L263) | concise issue summaries |
+| HTTP responses | [`Server`](go/internal/server/server.go#L35-L43) | HTML pages and JSON APIs |
+| Embedding/vector data | [`EmbedPipeline`](go/internal/rag/embedder.go#L15-L18), [`VectorStore`](go/internal/rag/vector_store.go#L15-L18) | search and retrieval support |
+
+The important architectural pattern is that nearly every output is materialized from a persisted or structured intermediate rather than generated ad hoc. That makes the system reproducible: runs can be exported, rendered, searched, and queried long after the original scan.
+
+> **Sources:** `go/internal/storage/store.go` · L18–L335 · [`Store`](go/internal/storage/store.go#L18) · `go/internal/exporter/json_exporter.go` · L49–L140 · [`JSONExporter`](go/internal/exporter/json_exporter.go#L16) · `go/internal/exporter/markdown_exporter.go` · L22–L63 · [`MarkdownExporter`](go/internal/exporter/markdown_exporter.go#L11) · `go/internal/server/server.go` · L35–L926 · [`Server`](go/internal/server/server.go#L35)
+
+## Key Application-Shaping Symbols
+
+### [`main`](go/cmd/rekipedia/main.go#L6-L8) and [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48)
+
+These two symbols define the outermost application lifecycle. [`main`](go/cmd/rekipedia/main.go#L6-L8) is minimal and defers to [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48), which in turn activates the Cobra command tree assembled in [`init`](go/cmd/rekipedia/cmd/root.go#L50-L77). This is the canonical CLI entry path.
+
+### [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161) and [`splitLanguages`](go/cmd/rekipedia/cmd/scan.go#L165-L180)
+
+These functions shape scan-time behavior. Configuration determines what model/provider settings are available to the rest of the pipeline, while language splitting determines the scope of the repository traversal. In practical terms, they decide what the orchestrator will inspect and how it will talk to the LLM layer.
+
+### [`DetectAll`](go/internal/analysis/refactor_detector.go#L404-L413)
+
+This is the top-level static-analysis aggregation point. It combines multiple detectors into a single pass and establishes the analysis vocabulary used downstream by refactor reporting and synthesis. If you want to understand what kinds of “problems” the system can name, this is the symbol to start with.
+
+### [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148-L175)
+
+This function is the CLI-facing assembly point for static refactor output. It turns detected issues into a summarized report without requiring the full synthesis pipeline. That makes it a useful fast path for local inspection and a clear example of a boundary-preserving helper: it formats, but does not perform analysis itself.
+
+### Supporting structural types
+
+Several types define the shape of the data model and, by extension, the application:
+
+- [`LLMConfig`](go/internal/models/contracts.go#L6-L15)
+- [`Symbol`](go/internal/models/contracts.go#L53-L61)
+- [`Relationship`](go/internal/models/contracts.go#L64-L71)
+- [`AnalysisResult`](go/internal/models/contracts.go#L82-L94)
+- [`WikiPageSpec`](go/internal/models/contracts.go#L119-L129)
+- [`WikiPlan`](go/internal/models/contracts.go#L139-L144)
+- [`RefactorIssue`](go/internal/analysis/refactor_types.go#L24-L38)
+- [`RefactorReport`](go/internal/analysis/refactor_types.go#L60-L65)
+
+These contracts are what let the CLI, storage layer, server, exporters, and synthesis pipeline communicate without tightly coupling to one another’s internal representation.
+
+> **Sources:** `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6) · `go/cmd/rekipedia/cmd/root.go` · L44–L77 · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44) · `go/cmd/rekipedia/cmd/scan.go` · L143–L180 · [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143) · [`splitLanguages`](go/cmd/rekipedia/cmd/scan.go#L165) · `go/internal/analysis/refactor_detector.go` · L404–L413 · [`DetectAll`](go/internal/analysis/refactor_detector.go#L404) · `go/cmd/rekipedia/cmd/refactor.go` · L148–L175 · [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148)
+
+## Runtime Data Flow at a Glance
+
+The most important high-level flow is:
+
+1. The user launches the Go CLI via [`main`](go/cmd/rekipedia/main.go#L6-L8).
+2. [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48) resolves the command and dispatches to a subcommand.
+3. Orchestrator code such as [`RunDigest`](go/internal/orchestrator/run_digest.go#L48-L309) or [`RunUpdate`](go/internal/orchestrator/run_update.go#L30-L179) scans, chunks, analyzes, and persists data.
+4. Analysis results are written to [`Store`](go/internal/storage/store.go#L18-L335).
+5. Exporters and server handlers re-read the persisted state for markdown, JSON, or HTML views.
+6. RAG components and query paths reuse the stored content for semantic retrieval.
 
 ```mermaid
-flowchart LR
-  MAIN[main]
-  ROOT[root.Execute]
-  SCAN[RunUpdate / Snapshot]
-  DIGEST[RunDigest]
-  EXTRACT[Extractor pipeline]
-  STORE[Store]
-  RAG[EmbedPipeline]
-  ASK[RunAsk]
-  REF[Refactor detectors]
-  ENRICH[RefactorEnricher]
-  WRITE[WriteRefactorOutputs]
-  SERVER[Server]
-  MAIN --> ROOT
-  ROOT --> SCAN
-  SCAN --> DIGEST
-  DIGEST --> EXTRACT
-  EXTRACT --> STORE
-  STORE --> RAG
-  ROOT --> ASK
-  ASK --> RAG
-  ASK --> STORE
-  ROOT --> REF
-  REF --> ENRICH
-  ENRICH --> WRITE
-  WRITE --> STORE
-  ROOT --> SERVER
-  SERVER --> STORE
-  SERVER --> RAG
+sequenceDiagram
+  participant U as User
+  participant M as main
+  participant E as Execute
+  participant O as Orchestrator
+  participant A as Analysis
+  participant S as Store
+  participant X as Export/Server
+
+  U->>M: start CLI
+  M->>E: delegate
+  E->>O: run command workflow
+  O->>A: detect / enrich / synthesize
+  A->>S: persist symbols, relations, pages
+  X->>S: read persisted data
+  X-->>U: docs, API responses, exports
 ```
 
-> **Sources:** `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6)  
-> **Sources:** `go/internal/orchestrator/snapshotter.go` · L89–L172 · [`Snapshotter.Snapshot`](go/internal/orchestrator/snapshotter.go#L89)  
-> **Sources:** `go/internal/orchestrator/sharding.go` · L31–L106 · [`ShardPlanner.Plan`](go/internal/orchestrator/sharding.go#L31)  
-> **Sources:** `go/internal/orchestrator/run_digest.go` · L313–L361 · [`extractShard`](go/internal/orchestrator/run_digest.go#L313)  
-> **Sources:** `go/internal/storage/store.go` · L149–L335 · [`SaveSymbols`](go/internal/storage/store.go#L149)  
-> **Sources:** `go/internal/rag/embedder.go` · L30–L102 · [`EmbedPipeline.Build`](go/internal/rag/embedder.go#L30)  
-> **Sources:** `go/internal/analysis/refactor_detector.go` · L30–L413 · [`DetectAll`](go/internal/analysis/refactor_detector.go#L404)  
-> **Sources:** `go/internal/analysis/refactor_enricher.go` · L99–L347 · [`DetectIssues`](go/internal/analysis/refactor_enricher.go#L99)  
-> **Sources:** `go/internal/analysis/refactor_writer.go` · L177–L326 · [`BuildMarkdown`](go/internal/analysis/refactor_writer.go#L177)
-
-## Design Decisions
-
-Several design choices are visible from the code structure and the relationships between modules.
-
-### 1. Cobra-based command boundary
-
-The CLI is modeled as a command tree rather than a monolithic `main`. [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48) and the command `init` blocks in the individual command files centralize subcommand registration. This makes operational flows explicit: `scan`, `ask`, `refactor`, `embed`, `export`, `serve`, `update`, `diff`, `hook`, `context`, and `impact` are separate user actions with distinct implementations.
-
-### 2. Storage as the source of truth
-
-Most downstream features depend on [`Store`](go/internal/storage/store.go#L18-L21) rather than recomputing data in memory. This choice is reinforced by the alias methods in [`go/internal/storage/aliases.go`](go/internal/storage/aliases.go), which show that callers intentionally use a shared persistence API for runs, snapshots, symbols, relationships, pages, and QA history. That makes the scan output durable and queryable by search, export, server, and refactor commands.
-
-### 3. Pipeline decomposition over shared mutable state
-
-Scan, digest, and synthesis are separated into independent steps: [`Snapshotter`](go/internal/orchestrator/snapshotter.go#L57-L62), [`ShardPlanner`](go/internal/orchestrator/sharding.go#L17-L19), [`RunDigest`](go/internal/orchestrator/run_digest.go#L48-L309), [`PageBuilder`](go/internal/synthesis/page_builder.go#L60-L62), and [`DiagramBuilder`](go/internal/synthesis/diagram_builder.go#L16-L16). This suggests a deliberate preference for stage boundaries, which is especially helpful for parallelization and testing.
-
-### 4. Dual search strategy
-
-The system supports both lexical search and embedding-based retrieval. [`scoreBM25`](go/cmd/rekipedia/cmd/search.go#L54-L71) indicates a BM25-like scoring path, while [`VectorStore.Search`](go/internal/rag/vector_store.go#L71-L93) and [`EmbedPipeline.Search`](go/internal/rag/embedder.go#L87-L102) implement semantic retrieval. This is a pragmatic design: lexical search is fast and transparent, while embeddings improve question answering and page recall.
-
-### 5. Refactor analysis is deterministic first, LLM-assisted second
-
-The static detectors in [`go/internal/analysis/refactor_detector.go`](go/internal/analysis/refactor_detector.go) are deterministic and testable. LLM enrichment is layered on top in [`RefactorEnricher.Enrich`](go/internal/analysis/refactor_enricher.go#L324-L347) and [`buildPrompt`](go/internal/analysis/refactor_enricher.go#L361-L405). This separation limits the LLM’s role to explanation and augmentation rather than core detection logic.
-
-### 6. Presentation is built from persisted artifacts
-
-The server and exporters read from storage rather than directly from the analysis pipeline. [`Server.handleAPIWikiSearch`](go/internal/server/server.go#L802-L926), [`MarkdownExporter.Export`](go/internal/exporter/markdown_exporter.go#L22-L63), and [`JSONExporter.Export`](go/internal/exporter/json_exporter.go#L49-L140) all consume stored pages/symbols/relationships. That keeps rendering repeatable and decouples analysis from display.
-
-> **Sources:** `go/cmd/rekipedia/cmd/root.go` · L44–L77 · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44)  
-> **Sources:** `go/internal/storage/store.go` · L18–L335 · [`Store`](go/internal/storage/store.go#L18)  
-> **Sources:** `go/internal/storage/aliases.go` · L1–L122 · [`(s *Store).UpsertRun`](go/internal/storage/aliases.go#L9)  
-> **Sources:** `go/internal/orchestrator/snapshotter.go` · L57–L172 · [`Snapshotter`](go/internal/orchestrator/snapshotter.go#L57)  
-> **Sources:** `go/internal/orchestrator/sharding.go` · L17–L106 · [`ShardPlanner`](go/internal/orchestrator/sharding.go#L17)  
-> **Sources:** `go/internal/rag/embedder.go` · L15–L102 · [`EmbedPipeline`](go/internal/rag/embedder.go#L15)  
-> **Sources:** `go/internal/analysis/refactor_detector.go` · L30–L413 · [`DetectAll`](go/internal/analysis/refactor_detector.go#L404)  
-> **Sources:** `go/internal/analysis/refactor_enricher.go` · L296–L405 · [`RefactorEnricher`](go/internal/analysis/refactor_enricher.go#L296)  
-> **Sources:** `go/internal/server/server.go` · L71–L926 · [`Server`](go/internal/server/server.go#L35)
+> **Sources:** `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6) · `go/cmd/rekipedia/cmd/root.go` · L44–L48 · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44) · `go/internal/orchestrator/run_digest.go` · L48–L309 · [`RunDigest`](go/internal/orchestrator/run_digest.go#L48) · `go/internal/storage/store.go` · L18–L335 · [`Store`](go/internal/storage/store.go#L18)

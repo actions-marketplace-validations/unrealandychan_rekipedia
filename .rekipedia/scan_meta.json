@@ -1,11 +1,11 @@
 {
   "rekipedia_version": "0.1.0",
-  "scanned_at": "2026-05-05T04:26:10.780934+00:00",
+  "scanned_at": "2026-05-05T04:59:13.719814+00:00",
   "repo_path": "/Users/eddiechan/close-wiki",
-  "run_id": "8347ebcb-1ed4-45d9-b8d6-4e9577dd76f5",
+  "run_id": "a2f8b2d0-82c7-4ed1-b639-7055376853d8",
   "model": "gpt-5.4-mini",
   "file_count": 285,
-  "page_count": 24,
+  "page_count": 18,
   "embed_model": "text-embedding-3-small",
   "embedded": true
 }

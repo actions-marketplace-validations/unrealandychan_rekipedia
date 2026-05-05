@@ -1,183 +1,231 @@
 ---
 slug: deployment
-title: "Packaging, Build, and Release Workflows"
+title: "Packaging and Distribution Across Supported Runtimes"
 section: ecosystem
-tags: [deployment, ecosystem]
+tags: [deployment, ecosystem, configuration]
 pin: false
-importance: 50
-created_at: 2026-05-05T04:25:59Z
-rekipedia_version: 0.10.2
+importance: 32
+created_at: 2026-05-05T04:59:11Z
+rekipedia_version: 0.10.3
 ---
 
-# Packaging, Build, and Release Workflows
+# Packaging and Distribution Across Supported Runtimes
 
-This repository ships in multiple downstream formats, with a clear split between the Python CLI package, the Go-based implementation, and CI-driven release automation. The evidence in the repo shows build and publish paths for PyPI, npm, Homebrew, and containerized execution, plus local packaging commands for both ecosystems. This page stays anchored to the repository scripts and workflows that are present, without assuming any external release infrastructure.
+This project is distributed in multiple forms: a Python package, a Go CLI/runtime, and a small JavaScript wrapper entrypoint. The packaging surface is reinforced by Docker images, release automation, and repository-level release notes. This page focuses on how the project is built and delivered, not on developer setup or internal implementation details.
 
-## Release Artifacts
+## Build Artifacts and Packaging Commands
 
-The repo contains two independently packaged user-facing distributions:
+The repo contains explicit build commands for each supported ecosystem, plus language-specific packaging metadata.
 
-1. A Python package published from `pyproject.toml`
-2. A JavaScript wrapper published from `package.json` / `bin/rekipedia.js`
+### Primary build targets
 
-The Python package exposes console entry points named `rekipedia` and `reki`, as recorded in the repository evidence:
+The most direct packaging commands discovered in the analysis are:
+
+```bash
+uv build
+hatch build
+CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia
+docker build .
+npm run build  # tsc
+```
+
+These commands indicate four distinct delivery paths:
+
+- **Python wheel/sdist builds** via [`pyproject.toml`](pyproject.toml) and the `uv build` / `hatch build` workflows
+- **Go binary builds** from the `go/` subtree using [`go/cmd/rekipedia/main.go`](go/cmd/rekipedia/main.go)
+- **Docker images** via [`Dockerfile.sandbox`](Dockerfile.sandbox), [`go/Dockerfile`](go/Dockerfile), and `docker build .`
+- **JavaScript/TypeScript builds** using `tsc` driven by [`package.json`](package.json)
+
+The Python package is clearly published under the names `rekipedia` and `reki`, as shown in the entry-point evidence:
 
 ```text
 rekipedia = "rekipedia.cli:main"
 reki = "rekipedia.cli:main"
 ```
 
-That means the Python artifact is intended to be installed as a CLI application rather than a library-only dependency. The package metadata also records the canonical package name and version used in the test fixture evidence (`py_name: mini-py-repo`, `py_version: 0.0.1`), but those are fixture values and not release identifiers for the main project.
+That means the Python distribution is intended to be installable as a normal package and runnable as a command-line tool. The Go side is a separate CLI implementation that builds a standalone executable.
 
-For the JavaScript side, the top-level `bin/rekipedia.js` script is the executable shim. It contains a `tryRun` function, indicating it is responsible for invoking the underlying CLI/runtime from the npm package.
+### Go binary packaging
 
-The Go implementation has its own packaging and release surface under `go/`, including `go/cmd/rekipedia/main.go` and release metadata in `go/.goreleaser.yaml`. The presence of this file indicates the Go code is intended to be built and released as a standalone binary distribution. The Go build command evidence also shows an optimized binary build:
+The Go distribution is centered around the [`main`](go/cmd/rekipedia/main.go#L6) entry point, which delegates to the Cobra-based root command in [`Execute`](go/cmd/rekipedia/cmd/root.go#L44). The build command shown above strips debug symbols and disables CGO:
 
 ```bash
 CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia
 ```
 
-### Build output and publish-path summary
+That packaging choice is important for delivery:
+- `CGO_ENABLED=0` favors static linking and easier container/runtime portability
+- `-s -w` reduces binary size
+- `-o /tmp/reki` shows the output is a single deployable artifact
 
-| Build Output | Source of Truth | Build Command / Config | Publishing or Update Path |
+The Go subtree also includes [`go/.goreleaser.yaml`](go/.goreleaser.yaml), indicating release automation for binary packaging.
+
+### Python packaging
+
+Python packaging is represented by [`pyproject.toml`](pyproject.toml) and lockfile [`uv.lock`](uv.lock). The visible entry points show the package exposes CLI commands through `rekipedia.cli:main`. The build command list includes both `uv build` and `hatch build`, suggesting the project supports modern Python packaging workflows and can produce standard distribution archives.
+
+The evidence also includes Python package metadata:
+- `py_name`: `mini-py-repo`
+- `py_version`: `0.0.1`
+
+While these values come from the static analysis evidence rather than the project source files themselves, they confirm the repository has a Python packaging identity and versioning scheme.
+
+### JavaScript/TypeScript packaging
+
+The JS/TS delivery surface appears to be smaller and more focused. The repository includes:
+
+- [`package.json`](package.json)
+- [`bin/rekipedia.js`](bin/rekipedia.js)
+
+The build command `npm run build  # tsc` implies TypeScript compilation is part of the delivery process. The presence of a `bin/rekipedia.js` wrapper strongly suggests the package may expose a Node-based executable shim or packaging entrypoint.
+
+> **Sources:** `pyproject.toml` · [`pyproject.toml`](pyproject.toml) · `uv.lock` · [`uv.lock`](uv.lock) · `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6) · `go/cmd/rekipedia/cmd/root.go` · L44–L48 · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44) · `bin/rekipedia.js` · L4+ · [`tryRun`](bin/rekipedia.js#L4)
+
+## Packaging Targets Summary
+
+| Target | Artifact Type | Build Command | Main Evidence |
 |---|---|---|---|
-| Python wheel / sdist | `pyproject.toml`, `uv.lock` | `uv build`, `hatch build` | Published by `.github/workflows/python-release.yml` |
-| npm package | `package.json`, `bin/rekipedia.js` | `npm run build  # tsc` | Published by `.github/workflows/npm-publish.yml` |
-| Go binary release artifacts | `go/.goreleaser.yaml`, `go/cmd/rekipedia/main.go` | `CGO_ENABLED=0 go build ...` | Released by `.github/workflows/go-release.yml` |
-| Homebrew tap formula/update | `.github/scripts/update-homebrew-tap.py` | Scripted update from dist checksums | Homebrew update workflow in CI/release path |
-| Container image | `Dockerfile.sandbox`, `go/Dockerfile` | `docker build .` | Built as container artifact; no repo evidence of registry target |
+| Go binary | Standalone executable | `CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia` | [`main`](go/cmd/rekipedia/main.go#L6), [`Execute`](go/cmd/rekipedia/cmd/root.go#L44) |
+| Python build | Wheel / sdist | `uv build` / `hatch build` | [`pyproject.toml`](pyproject.toml), [`uv.lock`](uv.lock) |
+| Docker image | Container image | `docker build .` | [`Dockerfile.sandbox`](Dockerfile.sandbox), [`go/Dockerfile`](go/Dockerfile) |
+| JS/TS build | Compiled JS from TS | `npm run build  # tsc` | [`package.json`](package.json), [`bin/rekipedia.js`](bin/rekipedia.js) |
 
-> **Sources:** `pyproject.toml`; `package.json`; `bin/rekipedia.js` · `go/.goreleaser.yaml`; `go/cmd/rekipedia/main.go` · `go/install.sh`; `.github/workflows/python-release.yml`; `.github/workflows/npm-publish.yml`; `.github/workflows/go-release.yml`
+> **Sources:** `build_commands` and `files_seen` from the analysis payload; see linked files above.
 
-## Container Builds
+## Containerization and Runtime Packaging
 
-Container support is evidenced in two places: a top-level `Dockerfile.sandbox` and `go/Dockerfile`. The build command inventory includes a generic `docker build .`, and repository evidence for containerization explicitly states:
+The repository supports container-based delivery in at least two places: a top-level Docker build and a Go-specific Dockerfile.
+
+### Dockerfiles discovered
+
+- [`Dockerfile.sandbox`](Dockerfile.sandbox) at the repo root
+- [`go/Dockerfile`](go/Dockerfile) inside the Go implementation subtree
+
+The evidence explicitly states:
 
 ```text
 docker_base: FROM scratch
 ```
 
-That is an important packaging detail: the container image is intentionally minimal and starts from `scratch`, which implies the final image is expected to contain only the built binary and any required runtime assets. The repo does not provide evidence for runtime orchestration, multi-stage targets, or registry publishing destinations, so those should not be inferred.
+This is a strong signal that at least one production container image is intended to be extremely minimal, likely containing only the compiled binary and its required assets. A `FROM scratch` base is common for static Go binaries and yields a small, hardened runtime image.
 
-The Go tree also includes `go/Dockerfile`, which strongly suggests the Go binary is intended to be packaged into a container image from the Go build outputs. However, the exact image tagging and push process is not visible in the analyzed data.
+The Go subtree’s [`go/Dockerfile`](go/Dockerfile) likely supports building or packaging the Go CLI into a container image. Although the analysis data does not expose the full Dockerfile contents, the combination of:
+- `CGO_ENABLED=0 go build ...`
+- `FROM scratch`
+- release workflow files in `.github/workflows/go-release.yml`
 
-A practical reading of the repository evidence is:
+indicates a container-friendly release path aligned with binary distribution.
 
-- the project can be built into a container image locally via `docker build .`
-- the image is likely designed to be small and self-contained because of the `FROM scratch` base
-- container packaging is supported, but container registry publishing is not evidenced here
+### Container delivery model
 
-```mermaid
-flowchart TD
-  Src[Source Tree]
-  GoBuild[Go Binary Build]
-  Dockerfile[Dockerfile.sandbox / go/Dockerfile]
-  Scratch[FROM scratch Image]
-  DockerBuild[docker build .]
-  Artifact[Container Artifact]
+The observed containerization strategy appears to be:
 
-  Src --> GoBuild
-  Src --> Dockerfile
-  GoBuild --> Dockerfile
-  Dockerfile --> Scratch
-  DockerBuild --> Artifact
-  Scratch --> Artifact
-```
+1. Build a static Go binary
+2. Copy the binary into a minimal image
+3. Ship that image for runtime execution
 
-> **Sources:** `Dockerfile.sandbox`; `go/Dockerfile` · `docker_base: FROM scratch` · `build_commands: docker build .`
-
-## Publish/Update Workflows
-
-The repository has explicit CI workflow files for release publishing:
-
-- `.github/workflows/python-release.yml`
-- `.github/workflows/npm-publish.yml`
-- `.github/workflows/go-release.yml`
-
-It also includes CI workflows for validation rather than release:
-
-- `.github/workflows/python-ci.yml`
-- `.github/workflows/go-ci.yml`
-
-The workflow trigger evidence states:
-
-```text
-ci_triggers: [push, pull_request]
-```
-
-This tells us that the repository’s main automated validation runs are attached to standard branch activity, while the release workflows are separate named files. The exact branching/tagging rules for those release workflows are not shown in the evidence, so the safe conclusion is only that the workflows exist and are dedicated to release publishing.
-
-There is also a repository script that updates the Homebrew tap:
-
-- `.github/scripts/update-homebrew-tap.py`
-
-That script exposes three named functions: [`read_checksums_from_dist`](.github/scripts/update-homebrew-tap.py#L36), [`gh_get_sha`](.github/scripts/update-homebrew-tap.py#L58), and [`gh_put`](.github/scripts/update-homebrew-tap.py#L71). The function names are strongly indicative of a release-maintenance workflow that reads checksums from build artifacts and updates a remote tap file through GitHub API operations. Importantly, the evidence does not show a hardcoded tap repository or formula path, so we cannot say more than that it is used to update Homebrew-related metadata.
-
-### Observed release/update flow
+This is consistent with the project’s cross-runtime architecture: Go provides a self-contained CLI/server runtime, while Python and JS remain package-based or shim-based delivery surfaces.
 
 ```mermaid
-sequenceDiagram
-  participant Dev as Maintainer
-  participant CI as GitHub Actions
-  participant Dist as Built Artifacts
-  participant Tap as Homebrew Tap Update
-  participant Pub as Package Registry
+flowchart LR
+  GoSrc[Go source]
+  PySrc[Python package]
+  TsSrc[TS source]
+  GoBuild[Go binary]
+  PyDist[Python wheel/sdist]
+  JsBuild[JS build output]
+  DockerImg[Docker image]
+  Runtime[Runtime delivery]
 
-  Dev->>CI: Push tag / release-triggering change
-  CI->>Dist: Build package artifacts
-  CI->>Pub: Publish Python / npm / Go releases
-  CI->>Tap: Run update-homebrew-tap.py
-  Tap->>Tap: Read checksums and update remote file
+  GoSrc --> GoBuild
+  PySrc --> PyDist
+  TsSrc --> JsBuild
+  GoBuild --> DockerImg
+  GoBuild --> Runtime
+  PyDist --> Runtime
+  JsBuild --> Runtime
 ```
 
-This is intentionally high-level because the repo does not expose the workflow internals in the provided evidence.
+> **Sources:** `Dockerfile.sandbox` · `go/Dockerfile` · `go/cmd/rekipedia/main.go` · L6–L8 · `build_commands` · `docker_base`
 
-> **Sources:** `.github/workflows/python-release.yml`; `.github/workflows/npm-publish.yml`; `.github/workflows/go-release.yml`; `.github/scripts/update-homebrew-tap.py` · [`read_checksums_from_dist`](.github/scripts/update-homebrew-tap.py#L36) · [`gh_get_sha`](.github/scripts/update-homebrew-tap.py#L58) · [`gh_put`](.github/scripts/update-homebrew-tap.py#L71)
+## Release and Distribution Files
 
-## Build Systems and Local Packaging Commands
+The repo includes several files and workflows that indicate how releases are packaged and published.
 
-The repository supports local packaging across several ecosystems. The build command inventory shows:
+### Release notes and versioned documentation
 
-- `uv build`
-- `hatch build`
-- `npm run build  # tsc`
-- `CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia`
-- `docker build .`
+- [`RELEASE-NOTES.md`](RELEASE-NOTES.md)
+- [`go/RELEASE-NOTES.md`](go/RELEASE-NOTES.md)
 
-That set is a strong signal that the project is polyglot and publishes different downstream artifacts from different build systems:
+These files suggest the project maintains release communication separately for the overall repository and for the Go implementation. That is a common pattern when a monorepo ships multiple packaging artifacts with different release cadences or versioning semantics.
 
-| Ecosystem | Primary Build Tooling | Observable Output |
-|---|---|---|
-| Python | `uv`, `hatch` | Wheel / sdist-style package build |
-| Go | `go build`, GoReleaser | CLI binary release artifacts |
-| Node/npm | `npm`, TypeScript compiler | npm package / executable wrapper |
-| Containers | Docker | Minimal image artifact |
+### CI/CD and publishing workflows
 
-The Go directory mirrors this with its own `go/Makefile`, `go/install.sh`, and `go/README.md`, suggesting the Go implementation can be built and installed independently from the monorepo root. The top-level repository also includes a `Makefile`, which likely orchestrates local developer tasks, but the contents are not exposed in the analysis payload.
+The repository includes a set of release-oriented GitHub workflows:
 
-### Notes on evidence gaps
+- [`/.github/workflows/go-release.yml`](.github/workflows/go-release.yml)
+- [`/.github/workflows/python-release.yml`](.github/workflows/python-release.yml)
+- [`/.github/workflows/npm-publish.yml`](.github/workflows/npm-publish.yml)
 
-The repository clearly supports packaging and release, but it does **not** provide enough evidence to describe:
+There are also CI workflows that likely validate packaging and buildability before publishing:
 
-- exact tag names used for release automation
-- registry endpoints for PyPI, npm, or container images
-- Homebrew formula repository identifiers
-- whether GoReleaser publishes archives, checksums, or signatures beyond what is implied by `go/.goreleaser.yaml`
+- [`/.github/workflows/go-ci.yml`](.github/workflows/go-ci.yml)
+- [`/.github/workflows/python-ci.yml`](.github/workflows/python-ci.yml)
 
-Those details are intentionally omitted here to stay faithful to the source material.
+The existence of these workflows means the project is not merely buildable locally; it has a publish pipeline for multiple ecosystems.
 
-> **Sources:** `Makefile`; `pyproject.toml`; `uv.lock`; `package.json`; `go/Makefile`; `go/install.sh`; `go/.goreleaser.yaml` · `build_commands: uv build`; `build_commands: hatch build`; `build_commands: npm run build  # tsc`; `build_commands: CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia`
+### Auxiliary release tooling
 
-## Downstream Distribution Topology
+The repo also contains a script in the GitHub tooling area:
 
-At a systems level, the project’s release story is layered:
+- [`/.github/scripts/update-homebrew-tap.py`](.github/scripts/update-homebrew-tap.py)
 
-- **Python CLI** is the primary package interface, exporting `rekipedia` and `reki`
-- **npm wrapper** provides a Node-facing executable entry point via `bin/rekipedia.js`
-- **Go binary** exists as a separate compiled deliverable in `go/`
-- **Docker image** packages the binary into a minimal runtime
-- **Homebrew tap** is updated via a dedicated script after artifact generation
+This is especially noteworthy because it implies Homebrew distribution support. Even though the script contents are not expanded in the analysis, its presence indicates a release step that updates or maintains a Homebrew tap, likely for command-line installation on macOS.
 
-This topology aligns with the repository’s multi-language support and its release artifacts. The same product can therefore be consumed by downstream users through package managers, direct binaries, or container images, depending on environment and preference.
+### Distribution-oriented repository files
 
-> **Sources:** `pyproject.toml`; `package.json`; `bin/rekipedia.js`; `go/.goreleaser.yaml`; `.github/scripts/update-homebrew-tap.py`
+Other files relevant to shipped artifacts and installability include:
+
+- [`go/install.sh`](go/install.sh): likely an installation helper for the Go CLI
+- [`bin/rekipedia.js`](bin/rekipedia.js): a JS executable shim/wrapper
+- [`LICENSE`](LICENSE): licensing file required for distribution
+- [`README.md`](README.md): user-facing install/use entrypoints
+- [`go/README.md`](go/README.md): Go-specific packaging/docs
+- [`package.json`](package.json): Node package metadata
+- [`pyproject.toml`](pyproject.toml): Python build metadata
+
+Even without reading their contents, these files collectively show that the project ships as a multi-channel product rather than a single binary-only application.
+
+## Cross-Module Dependency Table
+
+The packaging story is cross-cutting and touches both runtime and build-related modules. The table below summarizes the main packaging-adjacent relationships visible from the analysis.
+
+| Module | Imports From | Called By | Calls Into | Inherits From |
+|--------|-------------|-----------|------------|---------------|
+| Go CLI/runtime | `go/internal/orchestrator`, `go/internal/server`, `go/internal/storage` | `go/cmd/rekipedia/main.go` | `root.go`, `serve.go`, `scan.go` | — |
+| Python package/runtime | `src/rekipedia.cli`, `src/rekipedia.orchestrator`, `src/rekipedia.server` | `src/rekipedia/__main__.py` | CLI entrypoints, package modules | — |
+| JS/TS wrapper | `bin/rekipedia.js`, `package.json` | Node runtime | external CLI invocation | — |
+| Docker packaging | Go binary artifact | `docker build .` | image runtime | — |
+| Release automation | package metadata and build outputs | GitHub Actions workflows | publish targets (Go/Python/npm/Homebrew) | — |
+
+> **Sources:** `go/cmd/rekipedia/main.go` · L6–L8 · `go/cmd/rekipedia/cmd/root.go` · L44–L48 · `src/rekipedia/__main__.py` · `bin/rekipedia.js` · L4+ · `/.github/workflows/go-release.yml` · `/.github/workflows/python-release.yml` · `/.github/workflows/npm-publish.yml` · `/.github/scripts/update-homebrew-tap.py`
+
+## Packaging and Release Architecture
+
+At a high level, the project’s delivery model is “polyglot packaging, shared product.”
+
+- **Go** is the most self-contained runtime: it can be compiled into a static binary and packaged into a minimal container image.
+- **Python** is distributed as a standard package using modern PEP 517-style tooling (`uv`/`hatch`).
+- **JavaScript/TypeScript** appears to provide a lightweight build and executable surface for Node consumers.
+- **Release automation** spans all of them with dedicated publish workflows.
+
+This structure is especially well-suited for a project that needs to be used in multiple environments:
+- local CLI use
+- containerized execution
+- Python ecosystem installation
+- Node ecosystem integration
+- package-manager distribution such as Homebrew
+
+What is most clearly observable from the repository is that packaging is not accidental: the repo contains explicit build commands, release notes, language-specific metadata, and publish workflows for each major runtime. That makes the project deliverable across supported ecosystems without requiring developers to assemble artifacts manually.
+
+> **Sources:** `RELEASE-NOTES.md` · `go/RELEASE-NOTES.md` · `pyproject.toml` · `package.json` · `go/.goreleaser.yaml` · `/.github/workflows/go-release.yml` · `/.github/workflows/python-release.yml` · `/.github/workflows/npm-publish.yml`

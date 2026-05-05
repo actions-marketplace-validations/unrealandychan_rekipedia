@@ -1,108 +1,146 @@
 ---
 slug: technical-debt
-title: "Debt Analysis: TODOs, Code Smells, Test Gaps, and Dependency Risks"
+title: "Risk, TODO/FIXME, and Test Coverage Review"
 section: development
-tags: [development, internals, contributing]
+tags: [development, contributing, internals]
 pin: false
-importance: 50
-created_at: 2026-05-05T04:25:57Z
-rekipedia_version: 0.10.2
+importance: 70
+created_at: 2026-05-05T04:58:57Z
+rekipedia_version: 0.10.3
 ---
 
-# Debt Analysis: TODOs, Code Smells, Test Gaps, and Dependency Risks
+# Risk, TODO/FIXME, and Test Coverage Review
 
-## Executive Summary
+## Issue Summary
 
-The repository contains a purpose-built static analysis path for debt discovery, and the strongest evidence shows that debt is concentrated in the Go command/analysis layer rather than the Python CLI wrappers. The key debt-reporting pipeline is implemented in [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75), [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130), [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148), and sorted by [`severityIndex`](go/cmd/rekipedia/cmd/refactor.go#L65). Those functions are directly exercised by tests such as [`TestStaticWalkFindsTODO`](go/cmd/rekipedia/cmd/refactor_test.go#L65), [`TestStaticWalkFindsFIXME`](go/cmd/rekipedia/cmd/refactor_test.go#L87), and the filter/report tests in [`go/cmd/rekipedia/cmd/refactor_test.go`](go/cmd/rekipedia/cmd/refactor_test.go#L156).
+This page focuses on maintenance risks, code smells, TODO/FIXME-like debt indicators, and test gaps observed in the repository. It is intentionally conservative: where the analysis data does **not** pre-flag a high-risk issue, that is called out explicitly rather than inferred.
 
-What is observable from the codebase is that debt reporting is intentionally centralized around TODO/FIXME scanning and a few structural smells (god nodes, circular deps, dead code, high fan-in/out, deep inheritance) via [`DetectAll`](go/internal/analysis/refactor_detector.go#L404). The debt surface is therefore not random: it is concentrated in the refactor command and the analysis package beneath it, with the CLI plumbing mostly acting as a thin frontend. The largest maintenance risk is that the same modules responsible for finding debt also contain broad import surfaces and operational complexity, especially the orchestration path in [`RunDigest`](go/internal/orchestrator/run_digest.go#L48), [`RunUpdate`](go/internal/orchestrator/run_update.go#L30), and the storage-backed command handlers in [`go/cmd/rekipedia/cmd/*.go`](go/cmd/rekipedia/cmd/refactor.go).
+| Category | Observed Risk Level | Evidence Themes | Primary Subsystems |
+|---|---:|---|---|
+| Debt detectors and remediation plumbing | Low–Moderate | Static refactor detectors exist, but no high-risk issues are pre-flagged in the provided evidence | [`go/cmd/rekipedia/cmd/refactor.go`](go/cmd/rekipedia/cmd/refactor.go), [`go/internal/analysis/refactor_detector.go`](go/internal/analysis/refactor_detector.go) |
+| TODO/FIXME / explicit debt comments | Low visibility | Static data does not include comment extraction, so only indirect debt logic is observable | Refactor, analysis, orchestration |
+| Test gaps in command-line flows | Moderate | Strong command registration tests, but limited evidence of end-to-end failure-path coverage across every command | [`go/cmd/rekipedia/cmd/*.go`](go/cmd/rekipedia/cmd/root.go), [`go/cmd/rekipedia/cmd/refactor_test.go`](go/cmd/rekipedia/cmd/refactor_test.go) |
+| Test gaps in server edge cases | Moderate | Many route tests exist, but sparse evidence of adversarial inputs, concurrency, and storage failure simulations | [`go/internal/server/server.go`](go/internal/server/server.go), [`go/internal/server/server_test.go`](go/internal/server/server_test.go) |
+| Risky implementation patterns | Moderate | Several modules rely on heuristics, string parsing, and filesystem walking; these are manageable but maintenance-sensitive | analysis, extractor, orchestrator, server |
+| Cross-module maintenance coupling | Moderate | Orchestrator, storage, synthesis, and server are tightly connected via shared contracts | [`go/internal/models/contracts.go`](go/internal/models/contracts.go), [`go/internal/orchestrator/run_digest.go`](go/internal/orchestrator/run_digest.go) |
 
-The table below summarizes the main findings and points to concrete next steps grounded in the repository evidence.
+> **Sources:** `go/cmd/rekipedia/cmd/refactor.go` · L57–L175 · [`Finding`](go/cmd/rekipedia/cmd/refactor.go#L57) · [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75) · [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130) · [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148); `go/internal/analysis/refactor_detector.go` · L19–L413 · [`DetectDeadCode`](go/internal/analysis/refactor_detector.go#L204)
 
-## Findings Summary
+## Debt Signals and Refactor Detection
 
-| Area | Evidence | Risk | Suggested Follow-up |
-|------|----------|------|---------------------|
-| Code Smells | TODO/FIXME scanning in [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75) and debt classification in [`severityIndex`](go/cmd/rekipedia/cmd/refactor.go#L65); structural smell detectors in [`DetectGodNodes`](go/internal/analysis/refactor_detector.go#L30), [`DetectCircularDeps`](go/internal/analysis/refactor_detector.go#L103), [`DetectDeadCode`](go/internal/analysis/refactor_detector.go#L204), [`DetectHighFanIn`](go/internal/analysis/refactor_detector.go#L234), [`DetectHighFanOut`](go/internal/analysis/refactor_detector.go#L279), and [`DetectDeepInheritance`](go/internal/analysis/refactor_detector.go#L323) | Smells are already present and codified; they can accumulate unless surfaced consistently in reports | Prioritize the exact files returned by `staticWalk`, then review the highest-severity issues from `buildStaticReport` and `DetectAll` |
-| Test Gaps | Tests exist for scanner behavior in [`refactor_test.go`](go/cmd/rekipedia/cmd/refactor_test.go#L65), but there is no evidence of tests covering false positives/negatives for TODO/FIXME detection across all supported file types; several operational paths in `RunDigest`/`RunUpdate` are only indirectly covered | Debt detector can miss or over-report issues, especially outside currently exercised fixture patterns | Add targeted tests for mixed-comment formats, edge cases in `applyFilter`, and report ordering stability in `buildStaticReport` |
-| Dependency Risks | `go/internal/llm/client.go` imports `github.com/sashabaranov/go-openai`, `go/internal/rag/vector_store.go` imports `github.com/philippgille/chromem-go`, `go/internal/storage/store.go` imports `modernc.org/sqlite`, and `go/internal/server/server.go` imports `github.com/go-chi/chi/v5` and `github.com/yuin/goldmark` | External package changes or runtime incompatibilities could affect core workflows, especially LLM, storage, and server features | Track the runtime-critical packages first; verify lockfile and CI coverage around LLM, vector store, and SQLite-backed storage |
-| Maintenance Hotspots | Broad, multi-import command modules such as [`go/cmd/rekipedia/cmd/refactor.go`](go/cmd/rekipedia/cmd/refactor.go), [`go/internal/orchestrator/run_digest.go`](go/internal/orchestrator/run_digest.go#L48), and [`go/internal/server/server.go`](go/internal/server/server.go#L71) | High change surface increases the chance of regressions and debt drift | Focus review effort on these modules whenever debt reports mention them; they sit on top of many call chains |
+The repository does contain explicit debt-oriented logic, but it is framed as tooling rather than as a pre-existing “red alert” result set. In particular, [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75) scans the repository for TODO/FIXME-style findings, while [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130) narrows the report by severity before [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148) formats the output. That pipeline is complemented by programmatic detectors in [`DetectDeadCode`](go/internal/analysis/refactor_detector.go#L204), [`DetectCircularDeps`](go/internal/analysis/refactor_detector.go#L103), [`DetectHighFanIn`](go/internal/analysis/refactor_detector.go#L234), [`DetectHighFanOut`](go/internal/analysis/refactor_detector.go#L279), and [`DetectDeepInheritance`](go/internal/analysis/refactor_detector.go#L323).
 
-> **Sources:** `go/cmd/rekipedia/cmd/refactor.go` · L65–L175 · [`severityIndex`](go/cmd/rekipedia/cmd/refactor.go#L65), [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75), [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130), [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148) · `go/internal/analysis/refactor_detector.go` · L30–L413 · [`DetectAll`](go/internal/analysis/refactor_detector.go#L404)
+The important maintenance takeaway is that the repository has already invested in “debt visibility” primitives. However, the static evidence supplied here does **not** include a precomputed list of high-risk findings from these detectors. So, from an audit perspective, the safest statement is:
 
-## Code Smells
+- the codebase has **debt detection capabilities**,
+- tests exist for those detectors,
+- but **no high-risk issues were pre-flagged in the supplied analysis data**.
 
-The repository’s static-analysis model is explicit about the kinds of smells it can detect. In [`go/internal/analysis/refactor_detector.go`](go/internal/analysis/refactor_detector.go), smell detection is split into focused functions: [`DetectGodNodes`](go/internal/analysis/refactor_detector.go#L30), [`DetectCircularDeps`](go/internal/analysis/refactor_detector.go#L103), [`DetectDeadCode`](go/internal/analysis/refactor_detector.go#L204), [`DetectHighFanIn`](go/internal/analysis/refactor_detector.go#L234), [`DetectHighFanOut`](go/internal/analysis/refactor_detector.go#L279), and [`DetectDeepInheritance`](go/internal/analysis/refactor_detector.go#L323). This is important because it tells us where the repository itself believes debt lives: large hub-like nodes, dependency cycles, unused code, and highly connected modules.
+That matters because it prevents overinterpreting the presence of detectors as proof that the repository currently contains severe structural debt.
 
-The command-layer scanner is a separate but complementary source of code-debt evidence. [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75) traverses the repository and emits findings for TODO and FIXME-style comments; the tests prove the scanner explicitly recognizes TODOs, FIXMEs, and skips `.git` and `node_modules` trees via [`TestStaticWalkFindsTODO`](go/cmd/rekipedia/cmd/refactor_test.go#L65), [`TestStaticWalkFindsFIXME`](go/cmd/rekipedia/cmd/refactor_test.go#L87), [`TestStaticWalkSkipsGitDir`](go/cmd/rekipedia/cmd/refactor_test.go#L106), and [`TestStaticWalkSkipsNodeModules`](go/cmd/rekipedia/cmd/refactor_test.go#L125). That implies the code-smell surface is not just architectural; it also includes comment-based debt and possibly any adjacent “manual follow-up” markers that the regexes in `refactor.go` are configured to detect.
+### What the detectors cover
 
-A notable maintenance pattern is that the modules used for analysis are themselves fairly broad. For example, [`go/internal/analysis/refactor_enricher.go`](go/internal/analysis/refactor_enricher.go) imports concurrency primitives and an LLM client, while [`go/internal/analysis/refactor_writer.go`](go/internal/analysis/refactor_writer.go) is responsible both for issue detection and markdown output. That’s not automatically a bug, but it means changes to formatting, ranking, or prompt generation can affect reporting quality in ways that are hard to isolate.
+The detector suite in [`go/internal/analysis/refactor_detector.go`](go/internal/analysis/refactor_detector.go) focuses on structural smells rather than business logic bugs:
 
-### Where smells are most concentrated
+- [`DetectDeadCode`](go/internal/analysis/refactor_detector.go#L204) flags likely unused private symbols.
+- [`DetectCircularDeps`](go/internal/analysis/refactor_detector.go#L103) looks for module cycles.
+- [`DetectHighFanIn`](go/internal/analysis/refactor_detector.go#L234) and [`DetectHighFanOut`](go/internal/analysis/refactor_detector.go#L279) measure coupling pressure.
+- [`DetectDeepInheritance`](go/internal/analysis/refactor_detector.go#L323) surfaces inheritance chains.
 
-The strongest concentration is in the Go analysis/command surface:
+These are good maintenance sentinels, but they also reveal a potential risk pattern: the codebase depends on heuristics and convention-based filtering. That is acceptable for a static analysis tool, but it means the output should be treated as advisory unless backed by tests or manual review.
 
-- [`go/cmd/rekipedia/cmd/refactor.go`](go/cmd/rekipedia/cmd/refactor.go) — scanner, filter, report builder, and CLI registration.
-- [`go/internal/analysis/refactor_detector.go`](go/internal/analysis/refactor_detector.go) — structural smell detectors.
-- [`go/internal/analysis/refactor_enricher.go`](go/internal/analysis/refactor_enricher.go) — enrichment logic and cycle/caller attachment.
-- [`go/internal/analysis/refactor_writer.go`](go/internal/analysis/refactor_writer.go) — issue classification and markdown/JSON writing.
+> **Sources:** `go/cmd/rekipedia/cmd/refactor.go` · L75–L175 · [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75) · [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130); `go/internal/analysis/refactor_detector.go` · L103–L413 · [`DetectCircularDeps`](go/internal/analysis/refactor_detector.go#L103) · [`DetectDeadCode`](go/internal/analysis/refactor_detector.go#L204) · [`DetectHighFanIn`](go/internal/analysis/refactor_detector.go#L234) · [`DetectHighFanOut`](go/internal/analysis/refactor_detector.go#L279) · [`DetectDeepInheritance`](go/internal/analysis/refactor_detector.go#L323)
 
-These are the most likely places where debt is both detected and materialized into outputs.
+## Subsystem Risk Review
 
-> **Sources:** `go/cmd/rekipedia/cmd/refactor.go` · L57–L305 · [`severityIndex`](go/cmd/rekipedia/cmd/refactor.go#L65), [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75), [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130), [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148) · `go/internal/analysis/refactor_detector.go` · L30–L413 · [`DetectGodNodes`](go/internal/analysis/refactor_detector.go#L30), [`DetectCircularDeps`](go/internal/analysis/refactor_detector.go#L103), [`DetectDeadCode`](go/internal/analysis/refactor_detector.go#L204), [`DetectHighFanIn`](go/internal/analysis/refactor_detector.go#L234), [`DetectHighFanOut`](go/internal/analysis/refactor_detector.go#L279), [`DetectDeepInheritance`](go/internal/analysis/refactor_detector.go#L323)
+### CLI and command wiring
 
-## Test Gaps
+The CLI layer is relatively well covered by registration and flag tests, especially around command presence and option plumbing such as [`TestRefactorCmdRegistered`](go/cmd/rekipedia/cmd/refactor_test.go#L15), [`TestRefactorCmdFlags`](go/cmd/rekipedia/cmd/refactor_test.go#L28), and [`TestRootCommandHasSubcommands`](go/cmd/rekipedia/cmd/root_test.go#L19). That is a good baseline.
 
-The repository does contain direct tests for the refactor scanner and reporter, but the evidence suggests the coverage is narrower than the debt surface. In [`go/cmd/rekipedia/cmd/refactor_test.go`](go/cmd/rekipedia/cmd/refactor_test.go), the tests verify the happy path and a few key behaviors: TODO detection, FIXME detection, directory skipping, filter levels, and empty report handling. The report builder is also exercised through [`TestBuildStaticReportEmpty`](go/cmd/rekipedia/cmd/refactor_test.go#L207) and [`TestBuildStaticReportWithFindings`](go/cmd/rekipedia/cmd/refactor_test.go#L217).
+The maintenance risk is not “missing tests entirely,” but rather that most tests validate command shape rather than robust behavioral failure modes. For example, the refactor command has targeted tests for [`staticWalk`](go/cmd/rekipedia/cmd/refactor_test.go#L65) and [`applyFilter`](go/cmd/rekipedia/cmd/refactor_test.go#L156), but the evidence does not show broad coverage for malformed repository layouts, partial filesystem failures, or large-repo performance boundaries. Similarly, commands like [`ask_cmd`](src/rekipedia/cli/ask.py) and [`export_cmd`](src/rekipedia/cli/export.py) are heavily interactive and file-system oriented, which typically increases the need for negative-path tests.
 
-What is not evidenced is broader negative testing around the debt scanner itself. For example, there is no direct evidence of tests covering:
+**Maintenance concern:** command orchestration logic is doing a lot of filesystem and UX work inline. That raises the cost of change, because output formatting, I/O, and control flow are coupled in the same command definitions.
 
-- false positives in comment parsing across different file syntaxes,
-- multiple TODO/FIXME markers in a single file,
-- ordering stability across mixed-severity findings,
-- empty/whitespace-only files,
-- interaction between `applyFilter` and report rendering when findings are filtered down to zero,
-- or multi-file debt concentration behavior, where one file contains several TODOs and another contains one critical issue.
+> **Sources:** `go/cmd/rekipedia/cmd/refactor_test.go` · L15–L312 · [`TestStaticWalkFindsTODO`](go/cmd/rekipedia/cmd/refactor_test.go#L65) · [`TestApplyFilterAll`](go/cmd/rekipedia/cmd/refactor_test.go#L156); `go/cmd/rekipedia/cmd/root_test.go` · L9–L110 · [`TestRootCommandHasSubcommands`](go/cmd/rekipedia/cmd/root_test.go#L19)
 
-The static-analysis side is also only partially tested by proxy. [`DetectAll`](go/internal/analysis/refactor_detector.go#L404) aggregates the detector suite, but the tests shown are primarily unit-level, not end-to-end against a real repository snapshot. The same is true of the enrichment and writer layers: there are tests for individual functions, but no evidence of a full scan pipeline assertion that starts from `staticWalk` and ends with a persisted report through [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148).
+### Analysis and refactor subsystem
 
-A practical takeaway is that the repository is strongest when the debt format is predictable and the inputs are synthetic. The biggest test gap is confidence in the scanner/reporting pipeline on real, mixed repository content — which matters because the page you asked for is specifically about TODO/FIXME and smell discovery.
+This is the subsystem with the clearest evidence of deliberate debt-handling. The detector code is exercised by a broad test matrix, including [`TestDetectDeadCode_GoUnexportedFlagged`](go/internal/analysis/refactor_detector_test.go#L164), [`TestDetectCircularDeps_SimpleCycle`](go/internal/analysis/refactor_detector_test.go#L88), [`TestDetectHighFanOut_Detected`](go/internal/analysis/refactor_detector_test.go#L241), and [`TestDetectDeepInheritance_Detected`](go/internal/analysis/refactor_detector_test.go#L281).
 
-> **Sources:** `go/cmd/rekipedia/cmd/refactor_test.go` · L65–L312 · [`TestStaticWalkFindsTODO`](go/cmd/rekipedia/cmd/refactor_test.go#L65), [`TestStaticWalkFindsFIXME`](go/cmd/rekipedia/cmd/refactor_test.go#L87), [`TestApplyFilterAll`](go/cmd/rekipedia/cmd/refactor_test.go#L156), [`TestBuildStaticReportWithFindings`](go/cmd/rekipedia/cmd/refactor_test.go#L217)
+The main risk here is not missing correctness tests, but the fact that these detectors rely on conventions:
 
-## Dependency Risks
+- exported-vs-unexported naming via [`isExported`](go/internal/analysis/refactor_detector.go#L19),
+- caller/callee relationships derived from symbol metadata,
+- and repository-specific filtering behavior in [`DetectDeadCode`](go/internal/analysis/refactor_detector.go#L204).
 
-The dependency risk profile is concentrated in a few core runtime packages that sit beneath important user-facing flows.
+This makes the subsystem sensitive to unusual language idioms or incomplete metadata. The test suite mitigates that risk well, but users should still treat detector output as a triage aid, not as a final authority.
 
-The LLM client in [`go/internal/llm/client.go`](go/internal/llm/client.go) depends on [`github.com/sashabaranov/go-openai`](go/internal/llm/client.go). That dependency is central because it is used by the ask/digest/update paths via [`RunAsk`](go/internal/orchestrator/run_ask.go#L59), [`RunDigest`](go/internal/orchestrator/run_digest.go#L48), and synthesis/prompting code such as [`NewPlannerAgent`](go/internal/synthesis/planner.go#L82). If this package changes behavior, it affects several user-visible commands at once.
+> **Sources:** `go/internal/analysis/refactor_detector.go` · L19–L413 · [`isExported`](go/internal/analysis/refactor_detector.go#L19) · [`DetectDeadCode`](go/internal/analysis/refactor_detector.go#L204); `go/internal/analysis/refactor_detector_test.go` · L16–L394
 
-The storage layer depends on [`modernc.org/sqlite`](go/internal/storage/store.go#L24) through [`go/internal/storage/store.go`](go/internal/storage/store.go), and the repository also uses [`github.com/philippgille/chromem-go`](go/internal/rag/vector_store.go#L27) in the vector store. Those are not interchangeable dependencies because they back persistent state and search data. Any incompatibility or regression there would cascade into reporting, history, and RAG search behavior.
+### Orchestrator and synthesis pipeline
 
-On the server side, [`go/internal/server/server.go`](go/internal/server/server.go) imports [`github.com/go-chi/chi/v5`](go/internal/server/server.go#L50) and [`github.com/yuin/goldmark`](go/internal/server/server.go#L50). The server also bridges to storage and orchestrator code, so operational risk is not limited to the web layer; it spans the full wiki presentation stack.
+The orchestrator layer combines snapshotting, sharding, LLM usage, and storage access across [`RunDigest`](go/internal/orchestrator/run_digest.go#L48), [`RunUpdate`](go/internal/orchestrator/run_update.go#L30), and [`RunAsk`](go/internal/orchestrator/run_ask.go#L59). That breadth is the main maintenance risk: multiple responsibilities converge here, and failure modes can be cross-cutting.
 
-The Go command modules are also imported by the main CLI entry points. That means dependency failure in one lower layer can surface in several commands without much insulation. The strongest observable risk is not an abstract “vendor lock-in” issue; it is that the repository’s core workflows are coupled to a small set of external packages that sit on hot paths.
+The tests are reasonably extensive for happy paths and deterministic helper behavior, especially around sharding and snapshotting in [`TestShardPlannerSplitsOnBudget`](go/internal/orchestrator/orchestrator_test.go#L157), [`TestSnapshotterSHA256Stable`](go/internal/orchestrator/orchestrator_test.go#L97), and [`TestSnapshotterLanguageDetection`](go/internal/orchestrator/orchestrator_test.go#L68). But the static evidence does not show much around:
 
-> **Sources:** `go/internal/llm/client.go` · L110–L385 · [`Client`](go/internal/llm/client.go#L110), [`CallWithRetry`](go/internal/llm/client.go#L166), [`Embed`](go/internal/llm/client.go#L234) · `go/internal/storage/store.go` · L18–L335 · [`Store`](go/internal/storage/store.go#L18), [`Open`](go/internal/storage/store.go#L24), [`migrate`](go/internal/storage/store.go#L48) · `go/internal/rag/vector_store.go` · L15–L118 · [`VectorStore`](go/internal/rag/vector_store.go#L15), [`Search`](go/internal/rag/vector_store.go#L71)
+- LLM partial failures,
+- storage outages during orchestration,
+- or concurrent race-style conditions when coordinating multiple shards.
 
-## Maintenance Hotspots
+**Pattern risk:** orchestration code often becomes “glue code that never leaves the critical path.” That can age poorly unless error handling and retries remain tightly tested.
 
-The highest-maintenance areas are the ones that both orchestrate behavior and aggregate many imports. In practice, that means the refactor command, the digest/update orchestration, and the server.
+> **Sources:** `go/internal/orchestrator/run_ask.go` · L59–L261 · [`RunAsk`](go/internal/orchestrator/run_ask.go#L59) · [`buildContext`](go/internal/orchestrator/run_ask.go#L211); `go/internal/orchestrator/run_digest.go` · L48–L396 · [`RunDigest`](go/internal/orchestrator/run_digest.go#L48); `go/internal/orchestrator/run_update.go` · L30–L179 · [`RunUpdate`](go/internal/orchestrator/run_update.go#L30); `go/internal/orchestrator/orchestrator_test.go` · L13–L302
 
-`go/cmd/rekipedia/cmd/refactor.go` is a clear hotspot because it combines filesystem walking, comment scanning, severity ranking, filtering, and report assembly through [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75), [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130), and [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148). Whenever debt output changes, this file is likely involved.
+### Server and storage
 
-`go/internal/orchestrator/run_digest.go` is another hotspot. It imports the analysis, extractor, LLM, storage, and synthesis layers, and [`RunDigest`](go/internal/orchestrator/run_digest.go#L48) coordinates them. This is a classic fan-out point: changes there can influence sharding, progress reporting, enrichment, and persistence simultaneously.
+The server surface is well exercised at the route level: [`TestHealth`](go/internal/server/server_test.go#L27), [`TestAPIPages`](go/internal/server/server_test.go#L42), [`TestAPIPageFound`](go/internal/server/server_test.go#L72), [`TestAPIGraph`](go/internal/server/server_test.go#L203), and [`TestAPIAskBadJSON`](go/internal/server/server_test.go#L187) show that common endpoints and basic error responses are covered.
 
-The web server in [`go/internal/server/server.go`](go/internal/server/server.go) is also a maintenance focal point because it composes routing, rendering, API handlers, wiki page lookup, graph generation, and QA persistence. It has many sub-handlers, including [`handleAPIAsk`](go/internal/server/server.go#L274), [`handleAPIHistory`](go/internal/server/server.go#L300), [`handleAPIGraph`](go/internal/server/server.go#L649), and [`handleAPIWikiSearch`](go/internal/server/server.go#L802). That makes it a likely location for regression-prone changes whenever the storage schema or wiki format shifts.
+The risk is more subtle: the server code is large and deeply integrated with storage, templating, graph generation, and ask-streaming in [`go/internal/server/server.go`](go/internal/server/server.go). That makes regressions likely when data contracts evolve. The storage layer itself is also a maintenance hotspot because it owns schema migrations in [`migrate`](go/internal/storage/store.go#L48), run lifecycle management in [`CreateRun`](go/internal/storage/store.go#L116) / [`FinishRun`](go/internal/storage/store.go#L125), and query APIs such as [`ListWikiPages`](go/internal/storage/store.go#L270) and [`ListRelationships`](go/internal/storage/store.go#L223).
 
-### Concentration signal from the analyzer
+The tests are good, but the evidence does not clearly show fault injection around database corruption, transaction rollback failures, or concurrent write contention. Those are the types of issues that tend to surface in long-lived storage-backed services.
 
-Because the repository’s own analyzer surfaces issues through [`DetectAll`](go/internal/analysis/refactor_detector.go#L404) and the command layer ranks them with [`severityIndex`](go/cmd/rekipedia/cmd/refactor.go#L65), the most debt-concentrated zones are the same modules that already have the broadest responsibilities. The codebase is, in effect, telling us where to look:
+> **Sources:** `go/internal/server/server.go` · L35–L955 · [`handleAPIAsk`](go/internal/server/server.go#L274) · [`handleAPIGraph`](go/internal/server/server.go#L649) · [`gatherStats`](go/internal/server/server.go#L414); `go/internal/server/server_test.go` · L27–L396; `go/internal/storage/store.go` · L24–L335 · [`migrate`](go/internal/storage/store.go#L48) · [`ListRelationships`](go/internal/storage/store.go#L223)
 
-1. the refactor command/reporting path,
-2. the orchestration pipeline,
-3. the server/storage boundary,
-4. and the LLM/vector-store integrations.
+## Test Coverage Gaps by Subsystem
 
-Those are the places where TODO/FIXME comments and structural smells are most likely to remain visible and operationally relevant.
+| Subsystem | What is well covered | What appears sparse or absent |
+|---|---|---|
+| Refactor analysis | Detector correctness and edge cases, including cycles and dead code | Performance/scale scenarios, mixed-language metadata ambiguity |
+| CLI commands | Command registration, flags, and some output generation | Comprehensive failure-path coverage and malformed input handling |
+| Orchestrator | Planning, sharding, snapshot utilities, fallback paths | Storage/LLM outage injection, race/concurrency scenarios |
+| Server | Route presence, rendering, JSON errors, and basic store-backed queries | Adversarial inputs, load/concurrency, persistence failure cases |
+| Storage | Lifecycle, CRUD, alias methods, and missing-row behavior | Migration rollback/failure semantics, concurrent access pressure |
+| RAG/extractors | Language-specific extraction and chunking behavior | Very large repositories, malformed source files beyond the basic fixtures |
 
-> **Sources:** `go/internal/orchestrator/run_digest.go` · L48–L396 · [`RunDigest`](go/internal/orchestrator/run_digest.go#L48), [`extractShard`](go/internal/orchestrator/run_digest.go#L313), [`combineResults`](go/internal/orchestrator/run_digest.go#L346) · `go/internal/server/server.go` · L71–L926 · [`Start`](go/internal/server/server.go#L71), [`handleAPIAsk`](go/internal/server/server.go#L274), [`handleAPIGraph`](go/internal/server/server.go#L649), [`handleAPIWikiSearch`](go/internal/server/server.go#L802)
+The strongest pattern in the test suite is that most core happy paths are covered. The weaker area is *resilience testing*: simulating broken dependencies, malformed inputs at scale, and transient infrastructure failures.
+
+This does not imply the repository is unsafe; it means the highest maintenance value likely lies in increasing failure-path and integration coverage, especially around the orchestration and persistence edges.
+
+> **Sources:** `go/internal/analysis/refactor_detector_test.go` · L16–L394; `go/internal/orchestrator/orchestrator_test.go` · L13–L302; `go/internal/server/server_test.go` · L27–L396; `go/internal/storage/store_test.go` · L22–L389; `go/internal/rag/rag_test.go` · L12–L297; `go/internal/extractor/extractor_test.go` · L49–L516
+
+## Maintenance Concerns Worth Watching
+
+### Heuristic-heavy logic
+
+Several modules use heuristic parsing or text-driven classification rather than structured semantic models. Examples include [`tokenizeSymbol`](go/cmd/rekipedia/cmd/search.go#L20), [`scoreBM25`](go/cmd/rekipedia/cmd/search.go#L54), [`detectLanguage`](go/internal/orchestrator/snapshotter.go#L162), [`peekDocstring`](go/internal/extractor/python.go#L153), and [`lineOf`](go/internal/extractor/typescript.go#L144). These are all reasonable implementation choices, but they deserve regression tests whenever supported languages or repository shapes expand.
+
+### Tightly coupled shared contracts
+
+Core types in [`go/internal/models/contracts.go`](go/internal/models/contracts.go) — such as [`LLMConfig`](go/internal/models/contracts.go#L6), [`AnalysisResult`](go/internal/models/contracts.go#L82), [`WikiPlan`](go/internal/models/contracts.go#L139), and [`ScanMeta`](go/internal/models/contracts.go#L147) — are used across orchestrator, storage, server, and synthesis. Shared contracts lower duplication but increase blast radius when changed.
+
+### Output-format sensitivity
+
+Markdown and JSON exporters, the server’s template rendering, and CLI output all depend on consistent field shapes and stable ordering. That is usually where “small” changes turn into broad regressions. The existing tests around [`BuildMarkdown`](go/internal/analysis/refactor_writer.go#L177), [`WriteRefactorOutputs`](go/internal/analysis/refactor_writer.go#L269), [`JSONExporter.Export`](go/internal/exporter/json_exporter.go#L49), and server template rendering are valuable because they pin this behavior down.
+
+## Bottom Line
+
+The supplied static evidence does **not** show pre-flagged high-risk debt. Instead, it shows a mature codebase with explicit debt-detection tooling, a good baseline of unit and route tests, and a few predictable maintenance hotspots:
+
+- heuristic-heavy analysis and parsing,
+- cross-module contract coupling,
+- orchestration glue that spans multiple concerns,
+- and weaker evidence of failure-injection tests than of happy-path tests.
+
+That is a manageable risk profile, but one that benefits from continued investment in resilience testing and clear contract boundaries.
+
+> **Sources:** `go/cmd/rekipedia/cmd/refactor.go` · L57–L175 · [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75) · [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130); `go/internal/analysis/refactor_detector.go` · L204–L413 · [`DetectDeadCode`](go/internal/analysis/refactor_detector.go#L204); `go/internal/models/contracts.go` · L6–L156

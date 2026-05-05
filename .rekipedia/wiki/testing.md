@@ -1,185 +1,195 @@
 ---
 slug: testing
-title: "Testing Across Languages and Subsystems"
+title: "Testing the Repository End to End"
 section: development
-tags: [testing, contributing]
+tags: [testing, development, reference]
 pin: false
-importance: 50
-created_at: 2026-05-05T04:25:54Z
-rekipedia_version: 0.10.2
+importance: 74
+created_at: 2026-05-05T04:59:05Z
+rekipedia_version: 0.10.3
 ---
 
-# Testing Across Languages and Subsystems
+# Testing the Repository End to End
 
-This repository uses a deliberately broad test strategy spanning Python, Go, and a small amount of JavaScript-adjacent tooling. The test suite is not organized around a single “unit test layer”; instead, it validates behavior at the boundaries that matter most for contributors: CLI wiring, cross-language extraction, storage and export, orchestration flows, web/API responses, and refactor-analysis helpers. The result is a mixed suite that checks both low-level invariants and end-to-end workflow shape.
+This page documents how the repository is tested end to end, based on the observed test layout, representative suites, and canonical commands in the analysis data. It focuses on what is validated, how fixtures are structured, and which suites correspond to major subsystems. It intentionally does **not** repeat installation steps or CI workflow details.
+
+## Test Strategy Overview
+
+The repository uses a layered testing strategy spanning both the Go implementation under `go/` and the Python test suite under `tests/`. The Go side is organized around package-level `*_test.go` files that validate command wiring, analysis algorithms, storage, orchestration, synthesis, server handlers, and utility packages. The Python side exercises the higher-level behavior of the overall toolchain, including CLI-facing flows, extractors, storage integration, graph output, and fixture-driven repository scanning.
+
+A particularly important pattern in the Go tests is that many suites focus on **end-to-end behavior within a subsystem**, rather than only isolated unit logic. For example, [`TestStaticWalkFindsTODO`](go/cmd/rekipedia/cmd/refactor_test.go#L65) validates the static refactor scan against an actual temporary repository shape, while [`TestDetectGodNodes_DetectsHub`](go/internal/analysis/refactor_detector_test.go#L23) checks graph-analysis heuristics against a constructed dependency graph. Similar integration-oriented tests appear in the command layer, storage layer, and server layer.
+
+The current test corpus also shows explicit coverage of failure paths and guardrails: skipping `.git` and `node_modules`, handling missing files, preserving default config values, and ensuring hooks only uninstall what the tool installed. That makes the suite useful not just for correctness but for regression resistance across file-system, CLI, and data-pipeline behavior.
+
+> **Sources:** `go/cmd/rekipedia/cmd/refactor_test.go` · `go/internal/analysis/refactor_detector_test.go` · `tests/` · `go/cmd/rekipedia/cmd/root_test.go` · `go/cmd/rekipedia/cmd/hook_test.go`
 
 ## Test Layout
 
-The test inventory is split across the language implementations and their subsystems:
+### Go test layout
 
-- **Python tests** live under `tests/` and primarily exercise the Python CLI and analysis stack. These include command behavior, repository fixtures, RAG/embedding logic, server behavior, and extractor coverage.
-- **Go tests** live beside implementation code in `go/**` and cover the rewritten Go implementation of the same product surface: command registration, refactor analysis, extraction, orchestration, storage, server routes, and synthesis.
-- **Fixture repositories** under `tests/fixtures/` provide small realistic projects for multi-language scanning and extractor validation.
+The Go tests are colocated with the implementation:
 
-A useful way to read the layout is by subsystem:
+| Area | Test file(s) | Representative validations |
+|---|---|---|
+| Command surface | `go/cmd/rekipedia/cmd/root_test.go`, `go/cmd/rekipedia/cmd/hook_test.go`, `go/cmd/rekipedia/cmd/refactor_test.go`, `go/cmd/rekipedia/cmd/embed_export_update_test.go` | command registration, flags, hooks, scan output, file writes |
+| Analysis engine | `go/internal/analysis/refactor_detector_test.go`, `go/internal/analysis/refactor_enricher_test.go`, `go/internal/analysis/refactor_writer_test.go` | god-node detection, circular dependencies, enrichment, markdown/JSON output |
+| Graph / heuristics | `go/internal/graph/graph_analysis_test.go`, `go/internal/graph/hub_gap_test.go` | god nodes, hubs, knowledge gaps |
+| Config / contract types | `go/internal/config/loader_test.go`, `go/internal/models/contracts_test.go` | defaults and data model invariants |
+| LLM client | `go/internal/llm/client_test.go` | request shaping, retries, embeddings, transient error classification |
+| Orchestration | `go/internal/orchestrator/orchestrator_test.go` | snapshotting, sharding, language detection, token estimates |
+| RAG / scan metadata | `go/internal/rag/rag_test.go` | chunking, vector store lifecycle, scan metadata round-trips |
+| Server | `go/internal/server/server_test.go` | API endpoints, HTML rendering, frontmatter stripping |
+| Storage | `go/internal/storage/store_test.go` | SQLite lifecycle, migrations, read/write, isolation |
+| Synthesis | `go/internal/synthesis/synthesis_test.go` | planning, page building, diagram generation |
+| Extractors | `go/internal/extractor/extractor_test.go` | Go, Python, TypeScript, and config file extraction |
+| Filesystem helpers | `go/pkg/fsutil/walk_test.go` | repository walking behavior |
 
-| Area | Representative test files | What they verify |
-|------|---------------------------|------------------|
-| CLI and command wiring | `go/cmd/rekipedia/cmd/root_test.go`, `go/cmd/rekipedia/cmd/refactor_test.go`, `go/cmd/rekipedia/cmd/hook_test.go`, `go/cmd/rekipedia/cmd/embed_export_update_test.go` | Subcommand registration, flags, defaults, and command-specific behavior |
-| Refactor analysis | `go/internal/analysis/refactor_detector_test.go`, `go/internal/analysis/refactor_enricher_test.go`, `go/internal/analysis/refactor_writer_test.go` | Detection, enrichment, report generation, and output writing |
-| Extractors | `go/internal/extractor/extractor_test.go`, `tests/test_python_extractor.py`, `tests/test_typescript_extractor.py`, `tests/test_multilang_extractors.py` | Language-specific symbol and relationship extraction |
-| RAG / embedding | `go/internal/rag/rag_test.go`, `tests/test_rag.py`, `tests/test_embedder.py` | Chunking, vector storage, scan metadata, embedding/search behavior |
-| Server/API | `go/internal/server/server_test.go`, `tests/test_server.py`, `tests/test_graph_api.py`, `tests/test_graph_api_edges.py` | HTTP endpoints, rendering, API responses, and graph data |
-| Storage | `go/internal/storage/store_test.go`, `tests/test_sqlite_store.py`, `tests/test_qa_history.py` | Persistence lifecycle, manifests, wiki pages, QA history |
-| Orchestration / scanning | `go/internal/orchestrator/orchestrator_test.go`, `tests/test_scan.py`, `tests/test_snapshotter.py`, `tests/test_sharding.py` | Snapshotting, sharding, language detection, and scanning progress |
+### Python test layout
 
-The fixture strategy is especially important for the Python side: `tests/fixtures/mini-py-repo/` and `tests/fixtures/mini-ts-repo/` provide compact example repositories with language-specific files and agent instructions so tests can validate scanning and extraction against realistic structures rather than handcrafted isolated strings.
+The Python suite lives under `tests/` and is broader and more scenario-oriented. It includes tests such as `tests/test_scan.py`, `tests/test_refactor_cmd.py`, `tests/test_server.py`, `tests/test_sqlite_store.py`, `tests/test_multilang_extractors.py`, and fixture-based coverage for the end-to-end pipeline. The directory also includes targeted checks for coverage boosts, snapshot diffs, wiki frontmatter, and the MCP/server interfaces.
 
-> **Sources:** `tests/` · `tests/fixtures/mini-py-repo/` · `tests/fixtures/mini-ts-repo/` · `go/cmd/rekipedia/cmd/root_test.go` · `go/cmd/rekipedia/cmd/refactor_test.go` · `go/internal/extractor/extractor_test.go` · `go/internal/server/server_test.go`
+### Fixture layout
 
-## Test Commands
+The fixture repositories under `tests/fixtures/mini-py-repo/` and `tests/fixtures/mini-ts-repo/` provide small but realistic source trees for multi-language scanning and extraction. These fixtures include:
 
-There are two primary test entry points, one for each implementation track, with a few supporting recipes around them.
+- language-specific source files like `core.py`, `main.py`, `utils.py`, `src/index.ts`, and `src/greet.ts`
+- project metadata such as `pyproject.toml`, `package.json`, and `tsconfig.json`
+- repo policy/config files like `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, and `.github/workflows/ci.yml`
 
-### Command recipes
+Those fixture repositories are especially important for validating that traversal, extraction, and repository-shaping logic work on realistic directory layouts, not just synthetic snippets.
 
-| Recipe | Purpose | Notes |
-|--------|---------|-------|
-| `pytest` | Run the Python test suite | The main Python verification entry point |
-| `pytest tests/ -v --timeout=60 \` | Verbose Python run with per-test timeout | The analysis data shows this as a command fragment, suggesting a longer shell recipe in CI or local docs |
-| `pip install pytest` | Install the Python test runner | Useful for bootstrapping a fresh environment |
-| `go test ./... -v -count=1 -timeout 120s` | Run the full Go test suite | Covers all Go packages, disables caching, and enforces a global timeout |
-| `go test ./... -v -count=1 -timeout 120s` | Recommended for cross-subsystem Go verification | Especially relevant after touching CLI, storage, server, or refactor code |
+> **Sources:** `go/cmd/rekipedia/cmd/root_test.go` · `go/cmd/rekipedia/cmd/hook_test.go` · `go/cmd/rekipedia/cmd/refactor_test.go` · `go/internal/analysis/refactor_detector_test.go` · `tests/fixtures/mini-py-repo/` · `tests/fixtures/mini-ts-repo/`
 
-The presence of both `pytest` and `go test ./...` indicates the repository is currently validated in two distinct ecosystems rather than by a single test harness. That matters for contributors: changing the Python CLI or extractor flow should be tested with `pytest`, while the Go rewrite and its internal packages should be exercised with `go test ./...`.
+## Canonical Test Commands
 
-### Typical contributor workflow
+The analysis data exposes the following canonical commands used for testing. These are the most defensible “known good” commands from the evidence.
 
-A common sanity-check sequence is:
+| Command | Purpose / context |
+|---|---|
+| `go test ./... -v -count=1 -timeout 120s` | Full Go test run across all packages |
+| `pytest` | Default Python test entrypoint |
+| `pytest tests/ -v --timeout=60 \` | Python test invocation observed with explicit verbosity/timeout flags; the trailing backslash indicates the command was captured mid-line |
+| `pip install pytest` | Dependency installation command captured in the evidence, not a test command itself |
+
+For day-to-day verification, the most canonical end-to-end checks are the broad Go suite and the Python suite:
 
 ```bash
-pip install pytest
-pytest
 go test ./... -v -count=1 -timeout 120s
+pytest
 ```
 
-That sequence is not a formal script from the analysis data, but it reflects the observable split between the Python and Go test surfaces.
-
-> **Sources:** `tests/` · `go/` · `package.json` · `pyproject.toml` · `go/go.mod` · `Makefile`
+> **Sources:** `test_commands` from analysis data · `go/cmd/rekipedia/cmd/refactor_test.go` · `tests/`
 
 ## Fixture Strategy
 
-The repository’s fixture strategy is intentionally lightweight but high-signal. Instead of relying only on mocks, tests use small on-disk repositories that resemble real projects:
+The repository relies on a mix of temporary, synthetic, and on-disk fixtures.
 
-- `tests/fixtures/mini-py-repo/` contains Python source plus repository metadata such as `pyproject.toml`, `.gitignore`, `.github/workflows/ci.yml`, and agent instruction files.
-- `tests/fixtures/mini-ts-repo/` contains a TypeScript project with `package.json`, `tsconfig.json`, `src/index.ts`, and `src/greet.ts`.
+### Temporary filesystem fixtures in Go
 
-This setup supports two important testing goals:
+Many Go tests build temporary repositories or files using helper functions, then exercise the real implementation against those directories. Representative examples include:
 
-1. **Multi-language traversal** — the repository can verify that discovery and extraction work across different ecosystems.
-2. **Metadata-aware behavior** — files such as `.github/copilot-instructions.md`, `AGENTS.md`, and `CLAUDE.md` are present in fixtures so tests can confirm how the tool treats real repository guidance files.
+- [`makeTestRepo`](go/cmd/rekipedia/cmd/refactor_test.go#L50) for static scanning tests
+- [`makeGitDir`](go/cmd/rekipedia/cmd/hook_test.go#L10) for hook installation/uninstallation tests
+- [`openTestStore`](go/internal/storage/store_test.go#L11) for isolated SQLite-backed storage tests
+- [`mockLLMServer`](go/internal/llm/client_test.go#L17) and [`mockEmbeddingServer`](go/internal/llm/client_test.go#L45) for HTTP-based LLM behavior
+- [`sampleAnalysisResult`](go/internal/synthesis/synthesis_test.go#L41) and [`mockLLMServer`](go/internal/synthesis/synthesis_test.go#L19) for synthesis planning
 
-Go tests also use temporary directories and small repo scaffolds. For example, command tests create isolated Git directories or fake test repos to validate command behavior without mutating the working tree. Similarly, storage, RAG, and orchestration tests use small temp stores and synthetic manifests to keep assertions deterministic.
+This strategy keeps tests close to runtime reality while avoiding dependence on the actual user environment.
 
-A practical pattern across the suite is “build the smallest realistic environment that still exercises the subsystem.” That keeps tests readable while still validating the tool’s behavior on repository-shaped inputs.
+### Mock servers and protocol fixtures
 
-> **Sources:** `tests/fixtures/mini-py-repo/AGENTS.md` · `tests/fixtures/mini-py-repo/pyproject.toml` · `tests/fixtures/mini-ts-repo/package.json` · `tests/fixtures/mini-ts-repo/tsconfig.json` · `go/cmd/rekipedia/cmd/refactor_test.go` · `go/cmd/rekipedia/cmd/hook_test.go` · `go/internal/orchestrator/orchestrator_test.go`
+Protocol-heavy code is tested with local HTTP servers rather than live external services. The LLM client tests use a mock OpenAI-compatible server to validate request construction, streaming, embeddings, and cancellation behavior. Synthesis tests also use a mock server to validate planner behavior both when valid JSON is returned and when the model returns fenced or invalid output.
 
-## Coverage of CLI Behaviors
+### On-disk repository fixtures in Python
 
-CLI behavior is one of the most explicitly tested areas, and the tests focus on user-visible contracts rather than internal algorithms.
+The Python tests lean heavily on the fixture repositories in `tests/fixtures/`. This is the clearest evidence of an end-to-end strategy: the scanner and extractor tests can run against realistic repo layouts that contain actual language files, build metadata, and governance files.
 
-### Root command coverage
+> **Sources:** `go/cmd/rekipedia/cmd/refactor_test.go` · `go/cmd/rekipedia/cmd/hook_test.go` · `go/internal/storage/store_test.go` · `go/internal/llm/client_test.go` · `go/internal/synthesis/synthesis_test.go` · `tests/fixtures/mini-py-repo/` · `tests/fixtures/mini-ts-repo/`
 
-The root command tests in [`go/cmd/rekipedia/cmd/root_test.go`](go/cmd/rekipedia/cmd/root_test.go) check the top-level user entry point. Notable coverage includes:
+## What the Major Test Areas Validate
 
-- [`TestRootVersionFlag`](go/cmd/rekipedia/cmd/root_test.go#L9) for version flag behavior
-- [`TestRootCommandHasSubcommands`](go/cmd/rekipedia/cmd/root_test.go#L19) for subcommand registration
-- [`TestSplitLanguages`](go/cmd/rekipedia/cmd/root_test.go#L66) for language parsing behavior
-- [`TestLoadLLMConfig`](go/cmd/rekipedia/cmd/root_test.go#L91) and [`TestLoadLLMConfigDefaults`](go/cmd/rekipedia/cmd/root_test.go#L104) for configuration loading defaults
+### CLI commands and flag wiring
 
-These tests treat the CLI as a contract: the command tree should exist, flags should resolve correctly, and configuration defaults should be stable.
-
-### Refactor command coverage
-
-The refactor command is tested in [`go/cmd/rekipedia/cmd/refactor_test.go`](go/cmd/rekipedia/cmd/refactor_test.go). Representative cases include:
+The CLI tests validate that commands are registered, flags are exposed, and command-specific behaviors work as expected. Representative examples include:
 
 - [`TestRefactorCmdRegistered`](go/cmd/rekipedia/cmd/refactor_test.go#L15)
 - [`TestRefactorCmdFlags`](go/cmd/rekipedia/cmd/refactor_test.go#L28)
 - [`TestRefactorCmdUseLine`](go/cmd/rekipedia/cmd/refactor_test.go#L40)
-- [`TestStaticWalkFindsTODO`](go/cmd/rekipedia/cmd/refactor_test.go#L65)
-- [`TestStaticWalkFindsFIXME`](go/cmd/rekipedia/cmd/refactor_test.go#L87)
-- [`TestStaticWalkSkipsGitDir`](go/cmd/rekipedia/cmd/refactor_test.go#L106)
-- [`TestStaticWalkSkipsNodeModules`](go/cmd/rekipedia/cmd/refactor_test.go#L125)
-- [`TestApplyFilterHigh`](go/cmd/rekipedia/cmd/refactor_test.go#L173)
-- [`TestBuildStaticReportWithFindings`](go/cmd/rekipedia/cmd/refactor_test.go#L217)
-- [`TestRefactorNoLLMWritesFile`](go/cmd/rekipedia/cmd/refactor_test.go#L238)
-- [`TestRefactorJSONWritesFile`](go/cmd/rekipedia/cmd/refactor_test.go#L269)
+- [`TestLoadLLMConfigDefaults`](go/cmd/rekipedia/cmd/root_test.go#L104)
 
-This suite is especially useful for contributors because it shows the intended shape of the user workflow: scan, filter, report, and write outputs.
-
-### Hook behavior coverage
-
-Hook commands have their own focused suite in [`go/cmd/rekipedia/cmd/hook_test.go`](go/cmd/rekipedia/cmd/hook_test.go). The tests cover install/uninstall/status flows:
+The hook command is tested for install/uninstall status transitions, including negative cases:
 
 - [`TestHookInstall`](go/cmd/rekipedia/cmd/hook_test.go#L20)
 - [`TestHookUninstall`](go/cmd/rekipedia/cmd/hook_test.go#L52)
 - [`TestHookUninstallNotOurs`](go/cmd/rekipedia/cmd/hook_test.go#L71)
 - [`TestHookStatusInstalled`](go/cmd/rekipedia/cmd/hook_test.go#L91)
-- [`TestHookStatusNotInstalled`](go/cmd/rekipedia/cmd/hook_test.go#L106)
 
-The tests validate the user-facing lifecycle of the hook command rather than its file-writing internals.
+The refactor command tests are the most end-to-end of the command suite: they validate static scanning, filtering, markdown report generation, file output, and a flag that disables LLM use.
 
-### Embed/export/update behavior coverage
+### Analysis engine behavior
 
-A concentrated suite in [`go/cmd/rekipedia/cmd/embed_export_update_test.go`](go/cmd/rekipedia/cmd/embed_export_update_test.go) covers command registration and output behavior for related workflows:
+The analysis tests validate both detection logic and enrichment logic. In [`go/internal/analysis/refactor_detector_test.go`](go/internal/analysis/refactor_detector_test.go), the suite covers:
 
-- [`TestEmbedCmdRegistered`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L17)
-- [`TestEmbedCmdFlags`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L30)
-- [`TestExportCmdRegistered`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L49)
-- [`TestExportCmdDefaultFormat`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L71)
-- [`TestUpdateCmdRegistered`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L85)
-- [`TestExportJSONMarshal`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L117)
-- [`TestUpdateManifestFileWrite`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L141)
+- [`TestDetectGodNodes_DetectsHub`](go/internal/analysis/refactor_detector_test.go#L23) for hub detection
+- circular dependency detection and deduplication
+- dead-code detection across Python and Go semantics
+- high fan-in / fan-out thresholds
+- deep inheritance detection
+- aggregate multi-rule detection via [`TestDetectAll_ReturnsMultipleKinds`](go/internal/analysis/refactor_detector_test.go#L350)
 
-This suite is particularly representative of how the repo tests CLI behavior across subsystems: commands are checked both as registered subcommands and as behavior-bearing flows that produce outputs users depend on.
+The enrichment tests in [`go/internal/analysis/refactor_enricher_test.go`](go/internal/analysis/refactor_enricher_test.go) check prompt construction, parsing of model output, caller attachment, and fallback behavior when the LLM is unavailable or returns bad output.
 
-### Command-path summary
+The writer tests in [`go/internal/analysis/refactor_writer_test.go`](go/internal/analysis/refactor_writer_test.go) verify prioritization, section rendering, and output file structure.
 
-| CLI area | Representative tests | Intent |
-|----------|----------------------|--------|
-| Root | [`TestRootCommandHasSubcommands`](go/cmd/rekipedia/cmd/root_test.go#L19), [`TestRootVersionFlag`](go/cmd/rekipedia/cmd/root_test.go#L9) | Ensure the top-level interface is stable |
-| Refactor | [`TestStaticWalkFindsTODO`](go/cmd/rekipedia/cmd/refactor_test.go#L65), [`TestRefactorJSONWritesFile`](go/cmd/rekipedia/cmd/refactor_test.go#L269) | Validate scan/filter/report/update flows |
-| Hook | [`TestHookInstall`](go/cmd/rekipedia/cmd/hook_test.go#L20), [`TestHookStatusNotInstalled`](go/cmd/rekipedia/cmd/hook_test.go#L106) | Validate hook lifecycle commands |
-| Embed/export/update | [`TestEmbedCmdRegistered`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L17), [`TestExportCmdDefaultFormat`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L71), [`TestUpdateManifestFileWrite`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L141) | Validate output-oriented CLI behaviors |
+### Storage and persistence
 
-> **Sources:** `go/cmd/rekipedia/cmd/root_test.go` · `go/cmd/rekipedia/cmd/refactor_test.go` · `go/cmd/rekipedia/cmd/hook_test.go` · `go/cmd/rekipedia/cmd/embed_export_update_test.go` · `go/cmd/rekipedia/cmd/root.go` · `go/cmd/rekipedia/cmd/refactor.go` · `go/cmd/rekipedia/cmd/hook.go` · `go/cmd/rekipedia/cmd/embed.go` · `go/cmd/rekipedia/cmd/export.go` · `go/cmd/rekipedia/cmd/update.go`
+The storage suite validates SQLite lifecycle operations, migrations, and CRUD-style persistence for runs, symbols, relationships, wiki pages, QA history, manifests, and snapshot data. [`go/internal/storage/store_test.go`](go/internal/storage/store_test.go) is especially important because it proves that the repository can persist and retrieve the analysis artifacts that later stages consume.
 
-## Notable Test Files and Suites by Area
+### Extraction and scanning
 
-The table below highlights representative suites that contributors are most likely to care about when changing a subsystem.
+The extractor tests confirm that the repository can read and classify source files from multiple languages and config formats. The tests cover Go, Python, and TypeScript extraction paths, plus config extraction for `package.json`, `pyproject.toml`, `Dockerfile`, `go.mod`, and `Makefile`. This matters for end-to-end coverage because later graph, synthesis, and server layers depend on those extracted symbols and relationships.
 
-| Area | Notable test file/suite | Why it matters |
-|------|--------------------------|----------------|
-| Root CLI | [`go/cmd/rekipedia/cmd/root_test.go`](go/cmd/rekipedia/cmd/root_test.go) | Validates the top-level command surface, versioning, and configuration parsing |
-| Refactor CLI | [`go/cmd/rekipedia/cmd/refactor_test.go`](go/cmd/rekipedia/cmd/refactor_test.go) | Exercises static walk, filtering, and report generation |
-| Hook CLI | [`go/cmd/rekipedia/cmd/hook_test.go`](go/cmd/rekipedia/cmd/hook_test.go) | Covers install/uninstall/status workflows |
-| Embed/export/update CLI | [`go/cmd/rekipedia/cmd/embed_export_update_test.go`](go/cmd/rekipedia/cmd/embed_export_update_test.go) | Verifies command registration and output behavior |
-| Refactor analysis | [`go/internal/analysis/refactor_detector_test.go`](go/internal/analysis/refactor_detector_test.go) | Checks detection rules and edge cases |
-| Refactor enrichment | [`go/internal/analysis/refactor_enricher_test.go`](go/internal/analysis/refactor_enricher_test.go) | Checks enrichment, prompt building, and LLM-failure handling |
-| Refactor writing | [`go/internal/analysis/refactor_writer_test.go`](go/internal/analysis/refactor_writer_test.go) | Checks report shaping and output file generation |
-| Multi-language extraction | [`go/internal/extractor/extractor_test.go`](go/internal/extractor/extractor_test.go) | Confirms Python, TypeScript, and config extraction |
-| Python/TypeScript repo fixtures | [`tests/fixtures/mini-py-repo`](tests/fixtures/mini-py-repo) and [`tests/fixtures/mini-ts-repo`](tests/fixtures/mini-ts-repo) | Provide realistic inputs for cross-language tests |
-| Server/API | [`go/internal/server/server_test.go`](go/internal/server/server_test.go) | Ensures routes and API responses are stable |
-| Storage | [`go/internal/storage/store_test.go`](go/internal/storage/store_test.go) | Verifies persistence and run isolation |
-| RAG/embedding | [`go/internal/rag/rag_test.go`](go/internal/rag/rag_test.go) | Covers chunking, embeddings, search, and scan metadata |
+### Orchestration and synthesis
 
-In the Python test tree, representative areas include CLI behavior, graph analysis, refactor flows, and coverage-related tests such as `tests/test_ask.py`, `tests/test_graph_analysis.py`, `tests/test_update.py`, and `tests/test_hook.py`. The analysis data shows a broad suite, but it does not expose line-level symbols for those Python tests, so this page cites them at the file level only.
+Orchestration tests validate snapshotting, sharding, token-estimation heuristics, and language detection. Synthesis tests verify that planning and page generation can handle valid JSON, fenced JSON, invalid JSON fallback, and diagram generation. These tests are key to the “analysis → plan → pages” pipeline.
 
-> **Sources:** `go/cmd/rekipedia/cmd/root_test.go` · `go/cmd/rekipedia/cmd/refactor_test.go` · `go/cmd/rekipedia/cmd/hook_test.go` · `go/cmd/rekipedia/cmd/embed_export_update_test.go` · `go/internal/analysis/refactor_detector_test.go` · `go/internal/analysis/refactor_enricher_test.go` · `go/internal/analysis/refactor_writer_test.go` · `go/internal/extractor/extractor_test.go` · `go/internal/server/server_test.go` · `go/internal/storage/store_test.go` · `go/internal/rag/rag_test.go` · `tests/`
+### Server and UI
 
-## Contributing Notes
+Server tests validate the HTTP routes and UI rendering behavior: health endpoint, page listing, wiki page rendering, frontmatter stripping, graph endpoints, ask endpoints, and missing-resource handling. This is where the repository’s generated knowledge becomes a browsable UI and API.
 
-For contributors, the main takeaway is that tests are intentionally subsystem-oriented. If you change command wiring, update the CLI suites first. If you touch extraction or scanning, run the language- and fixture-based tests. If you modify persistence or server behavior, use the storage and API suites to confirm user-visible behavior still matches expectations.
+> **Sources:** `go/cmd/rekipedia/cmd/refactor_test.go` · `go/cmd/rekipedia/cmd/root_test.go` · `go/cmd/rekipedia/cmd/hook_test.go` · `go/internal/analysis/refactor_detector_test.go` · `go/internal/analysis/refactor_enricher_test.go` · `go/internal/analysis/refactor_writer_test.go` · `go/internal/storage/store_test.go` · `go/internal/extractor/extractor_test.go` · `go/internal/orchestrator/orchestrator_test.go` · `go/internal/synthesis/synthesis_test.go` · `go/internal/server/server_test.go`
 
-Because the suite spans languages, it is often best to run both ecosystems after substantial changes, even if your edit was local to one implementation.
+## Subsystem-to-Test Matrix
+
+| Subsystem | Primary test files / suites | Notes |
+|---|---|---|
+| CLI root and config | `go/cmd/rekipedia/cmd/root_test.go` | version flag, subcommands, LLM config defaults |
+| Hook management | `go/cmd/rekipedia/cmd/hook_test.go` | install/uninstall/status, idempotency, safety checks |
+| Refactor scanning | `go/cmd/rekipedia/cmd/refactor_test.go` | static walk, filtering, output generation, command registration |
+| Refactor detection | `go/internal/analysis/refactor_detector_test.go` | god nodes, circular deps, fan-in/out, inheritance |
+| Refactor enrichment | `go/internal/analysis/refactor_enricher_test.go` | LLM prompt/parse/fallback, caller and note attachment |
+| Refactor writing | `go/internal/analysis/refactor_writer_test.go` | markdown/JSON outputs, counts, ordering |
+| Extraction | `go/internal/extractor/extractor_test.go` | multi-language parsing and registry routing |
+| Graph analysis | `go/internal/graph/graph_analysis_test.go`, `go/internal/graph/hub_gap_test.go` | hubs, god nodes, knowledge gaps |
+| LLM client | `go/internal/llm/client_test.go` | HTTP contract, retries, embeddings, transient errors |
+| Orchestration | `go/internal/orchestrator/orchestrator_test.go` | snapshots, sharding, language filtering |
+| RAG | `go/internal/rag/rag_test.go` | chunking, vector search, metadata persistence |
+| Storage | `go/internal/storage/store_test.go` | SQLite persistence and isolation |
+| Server | `go/internal/server/server_test.go` | route handling, HTML rendering, JSON APIs |
+| Synthesis | `go/internal/synthesis/synthesis_test.go` | planning, payload slicing, diagram building |
+| Python integration suite | `tests/test_*.py` | end-to-end flows across CLI, scanning, server, storage, and export |
+
+> **Sources:** `go/cmd/rekipedia/cmd/root_test.go` · `go/cmd/rekipedia/cmd/hook_test.go` · `go/cmd/rekipedia/cmd/refactor_test.go` · `go/internal/analysis/refactor_detector_test.go` · `go/internal/analysis/refactor_enricher_test.go` · `go/internal/analysis/refactor_writer_test.go` · `go/internal/extractor/extractor_test.go` · `go/internal/graph/graph_analysis_test.go` · `go/internal/graph/hub_gap_test.go` · `go/internal/llm/client_test.go` · `go/internal/orchestrator/orchestrator_test.go` · `go/internal/rag/rag_test.go` · `go/internal/storage/store_test.go` · `go/internal/server/server_test.go` · `go/internal/synthesis/synthesis_test.go` · `tests/`
+
+## Practical Reading Guide
+
+If you want to understand whether a change is safe end to end, the fastest path is:
+
+1. Start with the command tests in `go/cmd/rekipedia/cmd/`.
+2. Follow into analysis and extraction tests for data correctness.
+3. Check storage, synthesis, and server suites for persistence and presentation.
+4. Run the canonical Go and Python commands to confirm the full toolchain still works.
+
+That progression mirrors the repository’s execution flow: command entrypoint → scanning/extraction → analysis/enrichment → persistence/synthesis → server/UI.
+
+> **Sources:** `go/cmd/rekipedia/main.go` · `go/cmd/rekipedia/cmd/` · `go/internal/analysis/` · `go/internal/extractor/` · `go/internal/storage/` · `go/internal/synthesis/` · `go/internal/server/`

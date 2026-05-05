@@ -1,92 +1,182 @@
 ---
 slug: repository-structure
-title: "Repository Structure Overview"
+title: "Repository Map"
 section: architecture
-tags: [repository-structure, overview]
+tags: [architecture, repository-structure]
 pin: false
-importance: 50
-created_at: 2026-05-05T04:24:54Z
-rekipedia_version: 0.10.2
+importance: 92
+created_at: 2026-05-05T04:58:11Z
+rekipedia_version: 0.10.3
 ---
 
-# Repository Structure Overview
+# Repository Map
 
-## Annotated Repository Tree
+## Overview
+
+This repository is organized as a multi-language workspace with a clear separation between the Python package under [`src/rekipedia`](src/rekipedia/__init__.py), the Go implementation under [`go/`](go/README.md), test coverage under [`tests/`](tests/test_server.py), and support assets such as docs, skills, pipelines, schemas, scripts, and GitHub automation. The top-level layout reflects two overlapping goals:
+
+1. A Python-distributed CLI/library surface built from [`pyproject.toml`](pyproject.toml).
+2. A Go-based implementation and tooling stack under [`go/`](go/go.mod), including CLI commands, orchestration, storage, server, RAG, synthesis, and analysis packages.
+
+The repository also carries operational metadata for CI, release, linting, and agent guidance: [`Makefile`](Makefile), [`.github/workflows/go-ci.yml`](.github/workflows/go-ci.yml), [`pipelines/harness-ci.yaml`](pipelines/harness-ci.yaml), and prompt/rules files in [`skills/`](skills/shared/rules.md) and [`.github/`](.github/copilot-instructions.md).
+
+## Annotated Top-Level Tree
 
 ```text
 .
-├── .github/                         # Automation, CI rules, workflow definitions, and release helpers
-│   ├── scripts/                     # Maintenance scripts used by release/automation jobs
-│   └── workflows/                   # GitHub Actions pipelines for Go, Python, and npm publishing
-├── docs/                            # User-facing documentation and planning notes
-│   └── plans/                       # Time-boxed implementation plans and roadmap notes
-├── go/                              # Go implementation of the CLI and supporting packages
-│   ├── cmd/rekipedia/               # Cobra-style command entrypoint and subcommands
-│   ├── internal/                   # Core Go packages: analysis, extractor, server, storage, etc.
-│   └── pkg/fsutil/                  # Shared Go utility package(s)
-├── pipelines/                       # Harness/pipeline YAML definitions for CI and feature gating
-├── schemas/                        # JSON schema definitions for structured outputs
-├── scripts/                       # Shell automation and local reporting helpers
-├── skills/                        # Agent-facing guidance and shared operational instructions
-├── src/rekipedia/                  # Python package: CLI, sandbox, analysis, server, storage, synthesis
-│   ├── analysis/                   # Python analysis helpers
-│   ├── cli/                        # Python CLI modules
-│   ├── exporters/                  # Output formatters
-│   ├── extractors/                 # Language/file extractors
-│   ├── llm/                        # LLM client layer
-│   ├── orchestrator/               # Scan/update/ask orchestration
-│   ├── prompts/                    # Prompt templates
-│   ├── rag/                        # Retrieval-augmented generation helpers
-│   ├── sandbox/                    # Sandbox runtime and tasks
-│   ├── server/                     # Web server and templates
-│   ├── storage/                    # SQLite storage and migrations
-│   ├── synthesis/                  # Page/diagram generation
-│   └── watcher/                    # File watching support
-├── tests/                           # Python test suite and repository fixtures
-│   └── fixtures/                    # Miniature sample repositories for integration tests
-├── bin/                             # Small runtime shim(s)
-└── top-level config and metadata    # Repository-wide tooling, policy, and packaging files
+├── src/                      # Primary Python package: CLI, analysis, storage, server, synthesis, RAG, watcher
+│   └── rekipedia/            # Core application modules and runtime package
+├── go/                       # Go implementation of the toolchain and service surface
+│   ├── cmd/rekipedia/        # Cobra-style CLI entrypoint and subcommands
+│   ├── internal/             # Analysis, extraction, storage, server, orchestrator, synthesis, RAG
+│   └── pkg/                  # Shared Go utilities (currently fs walking helpers)
+├── tests/                    # Python test suite plus fixture repositories
+├── docs/                     # Product docs, plans, and rewrite strategy notes
+├── skills/                   # Agent skill/rule documents used by automation and review flows
+├── pipelines/                # Harness pipeline definitions for CI and gated workflows
+├── schemas/                  # JSON schema definitions for structured artifacts
+├── scripts/                  # Utility scripts for lint/report workflows
+├── bin/                      # Node/JS wrapper entrypoints and CLI shims
+└── .github/                  # GitHub Actions workflows, instructions, and maintenance scripts
 ```
 
-The tree above is intentionally “map-like”: it highlights the main directories and the most visible subdirectories without diving into implementation internals. For example, the Go code lives under [`go/`](go/README.md) and the Python package under [`src/rekipedia/`](src/rekipedia/__init__.py), while docs, tests, and automation live in separate top-level areas.
+A few root files are also worth noting because they define repository behavior rather than application code:
 
-> **Sources:** `README.md` · `go/README.md` · `src/rekipedia/__init__.py` · `docs/PLAN.md` · `tests/test_server.py`
+- [`package.json`](package.json), [`bin/rekipedia.js`](bin/rekipedia.js): Node packaging and CLI shim.
+- [`pyproject.toml`](pyproject.toml), [`uv.lock`](uv.lock): Python packaging and lockfile.
+- [`go/go.mod`](go/go.mod), [`go/go.sum`](go/go.sum): Go module metadata.
+- [`Dockerfile.sandbox`](Dockerfile.sandbox): Sandbox runtime image.
+- [`Makefile`](Makefile): Top-level task entrypoints.
+- [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`RELEASE-NOTES.md`](RELEASE-NOTES.md): user-facing documentation and release notes.
 
-## Path Summary Table
+> **Sources:** `files_seen` inventory; notable repository root files including `pyproject.toml`, `package.json`, `go/go.mod`, `README.md`, `Makefile`, `Dockerfile.sandbox`
 
-| Path | Purpose | Notable Files |
-|------|---------|---------------|
-| `.github/` | Repository automation, contribution rules, and release workflows | `.github/workflows/go-ci.yml`, `.github/workflows/python-ci.yml`, `.github/workflows/go-release.yml`, `.github/scripts/update-homebrew-tap.py`, `.github/copilot-instructions.md` |
-| `docs/` | Human-readable documentation, planning, and customization guidance | `docs/PLAN.md`, `docs/customizing.md`, `docs/plans/golang-rewrite.md`, `docs/plans/2026-04-29-phase5-serve.md` |
-| `go/` | Standalone Go CLI implementation and related packages | `go/cmd/rekipedia/main.go`, `go/internal/orchestrator/run_update.go`, `go/internal/server/server.go`, `go/internal/storage/store.go`, `go/install.sh` |
-| `pipelines/` | Pipeline definitions for harness/CI style execution | `pipelines/harness-ci.yaml`, `pipelines/harness-canary.yaml`, `pipelines/harness-feature-flag-gate.yaml` |
-| `schemas/` | JSON schema for structured analysis outputs | `schemas/analysis_result.schema.json` |
-| `scripts/` | Shell scripts for local automation and reporting | `scripts/lint-and-report.sh` |
-| `skills/` | Agent instructions and shared operational guidance | `skills/shared/rules.md`, `skills/shared/husky-rules.md`, `skills/harness/observability.md`, `skills/harness/testability.md` |
-| `src/rekipedia/` | Python package containing the main application logic | `src/rekipedia/__main__.py`, `src/rekipedia/cli/scan.py`, `src/rekipedia/sandbox/runner.py`, `src/rekipedia/server/app.py`, `src/rekipedia/storage/sqlite_store.py`, `src/rekipedia/synthesis/page_builder.py` |
-| `tests/` | Python test suite and fixture repositories used for behavior verification | `tests/test_server.py`, `tests/test_python_extractor.py`, `tests/test_sandbox_coverage.py`, `tests/fixtures/mini-py-repo/main.py`, `tests/fixtures/mini-ts-repo/src/index.ts` |
-| `bin/` | Small executable shim(s) used by the repo’s tooling | `bin/rekipedia.js` |
-| Top-level config and metadata | Root packaging, linting, build, and release configuration | `pyproject.toml`, `package.json`, `go.mod` (in `go/`), `Makefile`, `Dockerfile.sandbox`, `uv.lock`, `CONTRIBUTING.md`, `LICENSE`, `README.md` |
+## Top-Level Areas Table
 
-> **Sources:** `package.json` · `pyproject.toml` · `go/go.mod` · `Makefile` · `Dockerfile.sandbox` · `.github/workflows/python-ci.yml` · `.github/workflows/go-ci.yml`
+| Path | Type | Purpose | Notable Files |
+|---|---|---|---|
+| `src/` | Python package root | Main Python implementation of the tool: CLI, analysis, extractors, LLM client, orchestrator, server, storage, RAG, synthesis, sandbox, and watcher | `src/rekipedia/__main__.py`, `src/rekipedia/cli/ask.py`, `src/rekipedia/server/app.py`, `src/rekipedia/storage/sqlite_store.py` |
+| `go/` | Go module root | Parallel Go implementation of the CLI/service stack and lower-level engine packages | `go/cmd/rekipedia/main.go`, `go/internal/server/server.go`, `go/internal/orchestrator/run_update.go`, `go/internal/synthesis/page_builder.go` |
+| `tests/` | Test suite | Python tests for CLI behavior, graph analysis, RAG, server, storage, synthesis, and extractors; also includes fixture repos for multi-language coverage | `tests/test_server.py`, `tests/test_graph_analysis.py`, `tests/fixtures/mini-py-repo/`, `tests/fixtures/mini-ts-repo/` |
+| `docs/` | Documentation | Product plans, migration notes, customization guidance, and roadmap material | `docs/PLAN.md`, `docs/customizing.md`, `docs/plans/golang-rewrite.md` |
+| `skills/` | Agent guidance | Instructional documents and reusable rule sets for harness, linting, observability, test review, and delivery workflows | `skills/harness/observability.md`, `skills/shared/rules.md` |
+| `pipelines/` | Pipeline configs | Harness pipeline definitions for CI, feature-flag gating, and canary workflows | `pipelines/harness-ci.yaml`, `pipelines/harness-canary.yaml` |
+| `schemas/` | Schemas | JSON schema contracts for structured outputs and validation | `schemas/analysis_result.schema.json` |
+| `bin/` | Runtime shim | Node launcher script for invoking the tool from npm/pnpm environments | `bin/rekipedia.js` |
+| `.github/` | GitHub automation | Copilot instructions, review guidance, and workflow automation for CI/release and tap maintenance | `.github/workflows/go-ci.yml`, `.github/scripts/update-homebrew-tap.py` |
 
-## How the Major Areas Relate
+> **Sources:** repository root inventory; `bin/rekipedia.js`, `docs/PLAN.md`, `skills/shared/rules.md`, `pipelines/harness-ci.yaml`, `schemas/analysis_result.schema.json`, `.github/workflows/go-ci.yml`
 
-The repository is organized around a split implementation strategy. The Go CLI under [`go/cmd/rekipedia/main.go`](go/cmd/rekipedia/main.go) and its internal packages provide one executable path, while the Python package under [`src/rekipedia/`](src/rekipedia/__init__.py) provides the application’s Python-side modules, including the sandbox entrypoint [`src/rekipedia/sandbox/tasks/analyze_shard.py`](src/rekipedia/sandbox/tasks/analyze_shard.py). Documentation in [`docs/`](docs/PLAN.md) explains product direction and usage, tests in [`tests/`](tests/test_server.py) validate the Python package and fixtures, and automation in [`.github/workflows/`](.github/workflows/go-ci.yml) and [`scripts/`](scripts/lint-and-report.sh) keeps builds, linting, and releases consistent.
+## Directory-by-Directory Notes
 
-In practical terms, the directories complement each other rather than overlap: the Go CLI is the command-line implementation, the Python sandbox is the execution environment for analysis tasks, docs explain the workflow, tests verify the behavior of the Python modules and fixtures, and automation wires the repository together for CI/CD and release publishing.
+### `src/`
 
-> **Sources:** `go/cmd/rekipedia/main.go` · `src/rekipedia/sandbox/tasks/analyze_shard.py` · `docs/PLAN.md` · `tests/test_server.py` · `.github/workflows/go-ci.yml` · `.github/workflows/python-ci.yml` · `scripts/lint-and-report.sh`
+The Python package root is the most important application-facing tree for Python consumers. It contains the package namespace [`rekipedia`](src/rekipedia/__init__.py) and subdivides functionality by responsibility: CLI entrypoints under [`src/rekipedia/cli`](src/rekipedia/cli/ask.py), analysis under [`src/rekipedia/analysis`](src/rekipedia/analysis/graph_analysis.py), extractors under [`src/rekipedia/extractors`](src/rekipedia/extractors/base.py), orchestration under [`src/rekipedia/orchestrator`](src/rekipedia/orchestrator/run_update.py), server rendering under [`src/rekipedia/server`](src/rekipedia/server/app.py), and persistence under [`src/rekipedia/storage`](src/rekipedia/storage/sqlite_store.py).
 
-## Notes on Repository Layout
+The package also includes prompts, sandbox helpers, and RAG support, which suggests the Python distribution is meant to be fully usable on its own rather than only as a thin wrapper.
 
-A few top-level files are worth calling out because they shape the whole repository:
+> **Sources:** `src/rekipedia/__init__.py` · `src/rekipedia/cli/ask.py` · `src/rekipedia/server/app.py` · `src/rekipedia/storage/sqlite_store.py`
 
-- [`pyproject.toml`](pyproject.toml), [`uv.lock`](uv.lock), and [`package.json`](package.json) indicate that the repo supports both Python and Node-based tooling.
-- [`Makefile`](Makefile) provides a conventional entry point for local development tasks.
-- [`Dockerfile.sandbox`](Dockerfile.sandbox) defines the sandbox runtime used by the Python-side execution flow.
-- [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), and [`RELEASE-NOTES.md`](RELEASE-NOTES.md) provide the primary user and contributor entry points.
+### `go/`
 
-This layout suggests a repository that is intentionally multi-language, with clear separation between implementation, docs, test fixtures, and automation.
+The Go tree mirrors much of the Python functionality but is structured as an internalized application module. The main entrypoint is [`go/cmd/rekipedia/main.go`](go/cmd/rekipedia/main.go), while subcommands live in [`go/cmd/rekipedia/cmd`](go/cmd/rekipedia/cmd/root.go). Major subsystems include analysis (`go/internal/analysis`), extraction (`go/internal/extractor`), orchestrator flows (`go/internal/orchestrator`), storage (`go/internal/storage`), search/RAG (`go/internal/rag`), synthesis (`go/internal/synthesis`), and HTTP server logic (`go/internal/server`).
 
-> **Sources:** `pyproject.toml` · `uv.lock` · `package.json` · `Makefile` · `Dockerfile.sandbox` · `README.md` · `CONTRIBUTING.md` · `RELEASE-NOTES.md`
+Because these packages are under `internal/`, they are intentionally scoped to the module and support a cohesive application binary rather than a library-style API surface.
+
+> **Sources:** `go/cmd/rekipedia/main.go` · `go/cmd/rekipedia/cmd/root.go` · `go/internal/server/server.go` · `go/internal/orchestrator/run_update.go`
+
+### `tests/`
+
+The test tree is broad and behavior-driven. It includes end-to-end and unit tests such as [`tests/test_server.py`](tests/test_server.py), [`tests/test_storage.py`](tests/test_sqlite_store.py), [`tests/test_synthesis.py`](tests/test_page_builder.py), and extractor coverage in [`tests/test_multilang_extractors.py`](tests/test_multilang_extractors.py). The fixture repositories under `tests/fixtures/` are especially important because they model a small Python project and a small TypeScript project, allowing the extractor and scanner logic to be exercised against realistic source trees.
+
+> **Sources:** `tests/test_server.py` · `tests/test_sqlite_store.py` · `tests/test_page_builder.py` · `tests/fixtures/mini-py-repo/main.py`
+
+### `docs/`
+
+Documentation is split between user-facing customization guidance and longer-term planning files. The presence of [`docs/plans/golang-rewrite.md`](docs/plans/golang-rewrite.md) and [`go/README.md`](go/README.md) indicates the repository has been through, or is actively in, a rewrite/migration phase where both implementations and transition notes need to be preserved.
+
+> **Sources:** `docs/customizing.md` · `docs/plans/golang-rewrite.md` · `docs/PLAN.md`
+
+### `skills/`
+
+The `skills/` directory packages reusable policy and prompting content for harness-oriented workflows. Files like [`skills/harness/observability.md`](skills/harness/observability.md) and [`skills/shared/lint-report-prompt.md`](skills/shared/lint-report-prompt.md) suggest this repo is designed to be operated in a guided, semi-agentic environment where rules can be injected consistently across tasks.
+
+> **Sources:** `skills/harness/observability.md` · `skills/shared/rules.md` · `skills/shared/lint-report-prompt.md`
+
+### `pipelines/`
+
+The pipeline definitions appear to support Harness-based delivery workflows. The filenames imply distinct pipeline concerns: canary rollout, CI, and feature flag gating. This complements the GitHub Actions workflows and suggests the project uses more than one automation plane: GitHub for repo-native checks and Harness for deployment or release orchestration.
+
+> **Sources:** `pipelines/harness-ci.yaml` · `pipelines/harness-canary.yaml` · `pipelines/harness-feature-flag-gate.yaml`
+
+### `schemas/`
+
+Schemas provide machine-readable contracts. The most visible artifact is [`schemas/analysis_result.schema.json`](schemas/analysis_result.schema.json), which likely defines the shape of analysis output used by tooling, exporters, or validation steps.
+
+> **Sources:** `schemas/analysis_result.schema.json`
+
+### `bin/`
+
+The `bin/` directory contains the Node shim [`bin/rekipedia.js`](bin/rekipedia.js). This is typically used to launch the tool from npm packaging or to bridge into another runtime, and it confirms that the repository’s distribution strategy spans beyond just Python and Go.
+
+> **Sources:** `bin/rekipedia.js`
+
+### `.github/`
+
+GitHub automation is clearly first-class here. The workflows include Go, Python, and npm publishing pipelines, while the instruction files describe how automated reviewers or copilots should behave. The maintenance script [` .github/scripts/update-homebrew-tap.py`](.github/scripts/update-homebrew-tap.py) indicates release artifacts are also synced to external package distribution.
+
+> **Sources:** `.github/workflows/go-ci.yml` · `.github/workflows/python-ci.yml` · `.github/workflows/npm-publish.yml` · `.github/scripts/update-homebrew-tap.py`
+
+## Dependency Sketch
+
+At a high level, the top-level areas relate as follows:
+
+```mermaid
+flowchart LR
+    Root[Repository Root]
+    Src[src]
+    Go[go]
+    Tests[tests]
+    Docs[docs]
+    Skills[skills]
+    Pipelines[pipelines]
+    Schemas[schemas]
+    Bin[bin]
+    GH[.github]
+
+    Root --> Src
+    Root --> Go
+    Root --> Tests
+    Root --> Docs
+    Root --> Skills
+    Root --> Pipelines
+    Root --> Schemas
+    Root --> Bin
+    Root --> GH
+
+    Tests --> Src
+    Tests --> Go
+    GH --> Pipelines
+    GH --> Bin
+    Docs --> Src
+    Docs --> Go
+    Skills --> GH
+```
+
+This sketch intentionally stays at the repository-structure level: `tests/` exercises `src/` and `go/`, `docs/` explains them, `skills/` and `.github/` shape developer and automation behavior, and `pipelines/`/`schemas/` provide delivery and validation scaffolding.
+
+> **Sources:** `tests/` fixtures and test files; `docs/` plan files; `.github/workflows/*.yml`; `skills/*.md`; `pipelines/*.yaml`
+
+## Practical Reading Order
+
+If you are new to the repo, a useful reading order is:
+
+1. Start with [`README.md`](README.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+2. Inspect [`src/rekipedia/__main__.py`](src/rekipedia/__main__.py) for the Python entrypoint.
+3. Review [`go/cmd/rekipedia/main.go`](go/cmd/rekipedia/main.go) and [`go/cmd/rekipedia/cmd/root.go`](go/cmd/rekipedia/cmd/root.go) for the Go CLI surface.
+4. Use [`tests/test_*.py`](tests/test_server.py) to understand expected behavior.
+5. Consult [`docs/plans/golang-rewrite.md`](docs/plans/golang-rewrite.md) for the broader migration context.
+
+This page intentionally avoids deep API or architecture internals and instead serves as a repository map for orientation.
+
+> **Sources:** `README.md` · `CONTRIBUTING.md` · `src/rekipedia/__main__.py` · `go/cmd/rekipedia/main.go`

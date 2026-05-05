@@ -1,174 +1,240 @@
 ---
 slug: installation-and-setup
-title: "Getting Started: Install and Build"
+title: "Getting Started: Build and Run"
 section: getting-started
 tags: [getting-started, configuration]
 pin: false
-importance: 50
-created_at: 2026-05-05T04:24:46Z
-rekipedia_version: 0.10.2
+importance: 68
+created_at: 2026-05-05T04:57:55Z
+rekipedia_version: 0.10.3
 ---
 
-# Getting Started: Install and Build
+# Getting Started: Build and Run
 
-This page documents the repository-provided installation and build paths for the supported environments: Python, Go, JavaScript/Node, and container-based builds. It is intentionally limited to commands and configuration files that exist in the repository, and it focuses on build-time setup and validation only.
+This page focuses on the shortest path to a successful local setup and a production-like run of the project. It deliberately avoids project overview and architecture details, and concentrates on prerequisites, installation, build commands, and a minimal verification step.
 
 ## Prerequisites
 
-The repository contains evidence of four build ecosystems:
+The repository contains explicit signals about the toolchain it expects in different distribution modes:
 
-- Python packaging via [`pyproject.toml`](pyproject.toml) and lockfile [`uv.lock`](uv.lock)
-- Go module builds via [`go/go.mod`](go/go.mod) and [`go/Makefile`](go/Makefile)
-- JavaScript/Node tooling via [`package.json`](package.json)
-- Container builds via [`Dockerfile.sandbox`](Dockerfile.sandbox) and [`go/Dockerfile`](go/Dockerfile)
+- **Python packaging/tooling** is present via `pyproject.toml`, `uv.lock`, and the package entry points declared in the evidence:
+  - `rekipedia = "rekipedia.cli:main"`
+  - `reki = "rekipedia.cli:main"`
+- **Go toolchain** is also required for the Go implementation under `go/`, with build commands and a Go module file in `go/go.mod`.
+- **Node/TypeScript tooling** is used for the TypeScript build path, indicated by `package.json` and the explicit build command `npm run build  # tsc`.
+- **Docker** is supported for a containerized production-like build, with `docker build .` and a scratch-based Docker image in the evidence (`FROM scratch`).
+- The repo also contains standard developer tooling and configuration files such as `.env.sample`, `.pre-commit-config.yaml`, `.eslintrc.json`, `.golangci.yml`, and `.prettierrc.json`, indicating linting and environment configuration are part of the expected workflow.
 
-There is also repository configuration that commonly affects installation and build reproducibility:
+### Environment variables and configuration
 
-| File | Purpose |
-|------|---------|
-| [`pyproject.toml`](pyproject.toml) | Python project metadata and build configuration |
-| [`uv.lock`](uv.lock) | Locked Python dependency resolution |
-| [`package.json`](package.json) | Node package scripts and dependencies |
-| [`go/go.mod`](go/go.mod) | Go module definition |
-| [`go/Makefile`](go/Makefile) | Go build entry points and convenience targets |
-| [`Makefile`](Makefile) | Top-level repository automation |
-| [`.env.sample`](.env.sample) | Example environment configuration |
-| [`.golangci.yml`](.golangci.yml) | Go lint configuration |
-| [`.eslintrc.json`](.eslintrc.json) | JavaScript lint configuration |
-| [`.prettierrc.json`](.prettierrc.json) | JavaScript formatting configuration |
-| [`.pre-commit-config.yaml`](.pre-commit-config.yaml) | Git hook automation and local checks |
-| [`Dockerfile.sandbox`](Dockerfile.sandbox) | Container image for sandboxed execution |
-| [`go/Dockerfile`](go/Dockerfile) | Go-focused container build |
+The only explicitly evidenced environment/configuration artifact in the payload is [` .env.sample`](.env.sample), which strongly suggests copying or adapting it for local runs. The analysis payload does not expose the actual variable names, so the safest guidance is:
 
-A good first validation step is to inspect the project’s top-level build files and choose the environment you want to use. The repository’s build commands are summarized in later sections.
+1. Start from `.env.sample`.
+2. Populate values required by your chosen runtime path.
+3. Keep any secrets or API keys local and uncommitted.
 
-> **Sources:** `pyproject.toml` · `uv.lock` · `package.json` · `go/go.mod` · `go/Makefile` · `Makefile` · `.env.sample` · `.golangci.yml` · `.eslintrc.json` · `.prettierrc.json` · `.pre-commit-config.yaml` · `Dockerfile.sandbox` · `go/Dockerfile`
+If you are following the Go runtime path, the codebase also includes LLM-related configuration types such as [`LLMConfig`](go/internal/models/contracts.go#L6) and a default configuration helper [`DefaultLLMConfig`](go/internal/models/contracts.go#L18), which indicates runtime behavior may depend on model/provider settings even if the exact env var names are not surfaced in the analysis.
 
-## Python Environment
+> **Sources:** `.env.sample` · `pyproject.toml` · `uv.lock` · `go/go.mod` · `package.json` · `Dockerfile.sandbox` · [`LLMConfig`](go/internal/models/contracts.go#L6-L15) · [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23)
 
-The Python build path is defined by [`pyproject.toml`](pyproject.toml) and the pinned lockfile [`uv.lock`](uv.lock). The analysis data also shows a Python package layout under [`src/rekipedia`](src/rekipedia/__init__.py), which is consistent with a standard source-layout project. The repository-provided build command for Python is:
+## Installation
+
+There are at least two practical installation tracks visible in the repository: Python packaging for the `rekipedia` CLI, and a Go build path for the newer implementation under `go/`.
+
+### Python path
+
+The Python package is configured with console entry points in the repository evidence:
+
+```text
+rekipedia = "rekipedia.cli:main"
+reki = "rekipedia.cli:main"
+```
+
+That means a successful installation should expose either `rekipedia` or `reki` on your PATH. The packaging toolchain is centered around **uv** and **hatch** based on the build commands found in the repo.
+
+Typical local workflow:
 
 ```bash
+uv sync
 uv build
 ```
 
-This is the most direct Python packaging command in the repository data. It is appropriate when you want to validate that the Python project can be packaged successfully using the locked dependency set.
-
-A second Python-oriented build command appears in the repository build command list:
+If you prefer the hatch workflow:
 
 ```bash
 hatch build
 ```
 
-Because `hatch build` appears in the repository-provided commands, it should be treated as an alternate packaging route, likely used by maintainers who prefer Hatch-based workflows. The repository data does not show a separate Hatch configuration file in the file list, so the safest assumption is that this is a supported command only if your local environment already has Hatch available and the project metadata is compatible.
+### Go path
 
-### Validation Expectations
-
-A successful Python build should produce distributable artifacts, typically in a local build directory. The exact filenames are not enumerated in the analysis data, so the build should be treated as successful when it completes without error and emits package artifacts consistent with the tool in use.
-
-### Caveats
-
-- Prefer `uv build` if you are following the pinned Python dependency path from [`uv.lock`](uv.lock).
-- `hatch build` is present in the command inventory, but no dedicated Hatch config file is visible in the repository snapshot.
-- This page does not describe runtime or application startup behavior; use build completion as the validation point.
-
-> **Sources:** `pyproject.toml` · `uv.lock` · `src/rekipedia/__init__.py` · `src/rekipedia/__main__.py`
-
-## Go Build
-
-The Go project is rooted in [`go/go.mod`](go/go.mod) and uses the command package under [`go/cmd/rekipedia`](go/cmd/rekipedia). The repository-provided build command is:
+The Go project lives under `go/` and has its own module and build tooling. A minimal build from that subdirectory is:
 
 ```bash
+cd go
 CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia
 ```
 
-This command is the clearest build invocation in the analysis data. It disables CGO, strips symbol/debug information, and writes the resulting binary to `/tmp/reki`. That makes it suitable for producing a compact standalone executable during local verification or release-style builds.
+This produces a statically linked binary-like artifact suitable for local testing or containerization.
 
-The Go tree also includes a dedicated [`go/Makefile`](go/Makefile), which suggests additional wrapper targets exist for maintainers working inside the Go subdirectory. However, because the actual target names are not included in the analysis data, the only command we can document with certainty is the direct `go build` invocation above.
+> **Sources:** `pyproject.toml` · `uv.lock` · `go/go.mod` · `go/cmd/rekipedia/main.go` · `go/cmd/rekipedia/cmd/root.go` · `go/cmd/rekipedia/cmd/serve.go` · `go/Makefile`
 
-### Validation Expectations
+## Supported build commands
 
-When this build succeeds, the expected output is a compiled Go binary at `/tmp/reki`. A successful build validates that the module resolves, compiles, and links correctly under the repository’s Go toolchain expectations.
+The repository evidence explicitly names the following build commands:
 
-### Caveats
+| Command | Use case | Notes |
+|--------|----------|-------|
+| `uv build` | Python package build | Matches the Python packaging workflow |
+| `hatch build` | Python package build | Appears twice in evidence, likely an alternate or repeated CI target |
+| `CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia` | Go binary build | Produces a stripped, statically linked binary |
+| `docker build .` | Container image build | Production-like image build path |
+| `npm run build  # tsc` | TypeScript compilation | Uses the project’s npm/TypeScript toolchain |
 
-- `CGO_ENABLED=0` means the build is intentionally static-CGO-free.
-- The binary output path is temporary and may not be appropriate for long-term use.
-- The repository data does not include a versioned release script in this page’s scope, so use the direct build command for validation.
+A few practical observations from the evidence:
 
-> **Sources:** `go/go.mod` · `go/Makefile` · `go/cmd/rekipedia/main.go` · `go/cmd/rekipedia/cmd/root.go`
+- `CGO_ENABLED=0` is an explicit requirement for the Go binary build command.
+- `-ldflags "-s -w"` indicates the Go binary is intended to be minimized for distribution.
+- `docker build .` pairs naturally with the `FROM scratch` evidence, implying a very small runtime image.
+- The TypeScript path is explicitly compile-only (`tsc`), which is consistent with build-time verification rather than a runtime server.
 
-## JavaScript/Node Build
+> **Sources:** `Makefile` · `go/Makefile` · `package.json` · `go/Dockerfile` · `Dockerfile.sandbox`
 
-The Node/JavaScript build path is supported by [`package.json`](package.json), with formatting and linting governed by [`.eslintrc.json`](.eslintrc.json) and [`.prettierrc.json`](.prettierrc.json). The repository-provided build command is:
+## Local development workflow
+
+For day-to-day development, the fastest path is usually to build from the language/runtime you are actively changing.
+
+### Python development loop
+
+If you are working on the Python CLI or library code under `src/rekipedia/`, use the Python packaging toolchain:
 
 ```bash
-npm run build  # tsc
+uv sync
+uv build
 ```
 
-The inline comment in the build command inventory indicates that this script invokes TypeScript compilation (`tsc`). That means the main build validation for the Node environment is a compile step rather than a runtime test.
+If your environment is already configured with hatch:
 
-The repository also contains `bin/rekipedia.js`, which is a JavaScript entry point file, but the task here is limited to installation/build validation rather than CLI behavior. So the build command should be treated as a compile-time check for the JavaScript/TypeScript toolchain.
+```bash
+hatch build
+```
 
-### Validation Expectations
+The repository also exposes a CLI entry point from Python, so after installation you should be able to run:
 
-A successful Node build should complete the TypeScript compilation step without errors. The precise output files are not listed in the analysis data, so build success is defined by a clean exit from the script.
+```bash
+rekipedia --help
+# or
+reki --help
+```
 
-### Caveats
+### Go development loop
 
-- The build command is tied to the package scripts in [`package.json`](package.json).
-- Lint and formatting are configured separately through `.eslintrc.json` and `.prettierrc.json`, but they are not build commands.
-- The analysis data only confirms `npm run build` as the documented build entry point; it does not enumerate additional scripts.
+For the Go implementation, the primary build target is the command under `go/cmd/rekipedia`:
 
-> **Sources:** `package.json` · `.eslintrc.json` · `.prettierrc.json` · `bin/rekipedia.js`
+```bash
+cd go
+go build ./cmd/rekipedia
+```
 
-## Container Build
+For a production-like artifact, prefer the explicit stripped build used in the evidence:
 
-The repository includes two Dockerfiles: [`Dockerfile.sandbox`](Dockerfile.sandbox) and [`go/Dockerfile`](go/Dockerfile). The analysis data also lists a container build command:
+```bash
+cd go
+CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia
+```
+
+The command tree under `go/cmd/rekipedia/` includes subcommands like `serve`, `scan`, `update`, `export`, and `watch`, with the CLI rooted in [`main`](go/cmd/rekipedia/main.go#L6-L8) and dispatched through [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48).
+
+> **Sources:** `src/rekipedia/__main__.py` · `src/rekipedia/cli/__init__.py` · `go/cmd/rekipedia/main.go` · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48) · `go/cmd/rekipedia/cmd/root.go` · `go/cmd/rekipedia/cmd/serve.go` · `go/cmd/rekipedia/cmd/watch.go`
+
+## Production-like modes
+
+The repository supports more than one “production-like” execution pattern.
+
+### Containerized run
+
+The clearest production-style path is Docker-based:
 
 ```bash
 docker build .
 ```
 
-This is the documented top-level container build invocation. It is the right choice when you want to validate that the repository can be built in a containerized environment without relying on a preinstalled local language toolchain.
+This is reinforced by the scratch-based base image evidence (`FROM scratch`), which suggests the final image is designed for a minimal runtime footprint.
 
-Because the analysis data includes both a general Dockerfile at the repository root and a Go-specific Dockerfile inside `go/`, there are at least two container build contexts in the repository. However, only `docker build .` is listed in the build-command inventory, so that is the only container build command we should recommend here without guessing about tags, targets, or alternate build arguments.
+### Compiled binary run
 
-### Validation Expectations
+For a non-containerized production-like artifact, build the Go CLI with CGO disabled:
 
-A successful container build should produce a local Docker image. The image name and tag are not specified in the analysis data, so validation is simply that the Docker build completes successfully.
+```bash
+cd go
+CGO_ENABLED=0 go build -ldflags "-s -w" -o reki ./cmd/rekipedia
+./reki --help
+```
 
-### Caveats
+This is likely the closest local approximation to how the CLI would be shipped or embedded in release artifacts.
 
-- The command as listed uses the repository root as the build context.
-- If you are targeting the Go subproject specifically, the presence of [`go/Dockerfile`](go/Dockerfile) suggests a separate containerization path may exist, but it is not captured as a documented command here.
-- Container builds can depend on your local Docker daemon, network access, and base-image availability.
+### TypeScript validation build
 
-> **Sources:** `Dockerfile.sandbox` · `go/Dockerfile`
+If you are working on the TS frontend or helper package, the production-like step is the TypeScript compile:
 
-## Build Commands Reference
+```bash
+npm run build  # tsc
+```
 
-The following table summarizes the repository-provided build commands, when to use them, expected outputs, and important caveats.
+That command is a build-time verification, not a runtime start command, but it is still an important “first success” milestone for the JS/TS path.
 
-| Command | When to use | Expected output | Caveats |
-|--------|-------------|-----------------|----------|
-| `uv build` | Python packaging validation using the locked Python dependency set | Local Python build artifacts/package distribution | Requires the Python toolchain used by `uv`; exact artifact names are not specified in the repository data |
-| `hatch build` | Alternate Python packaging path for Hatch-based workflows | Local Python build artifacts/package distribution | No dedicated Hatch config file is visible in the provided file list |
-| `CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia` | Build the Go binary directly and validate module compilation | Executable binary at `/tmp/reki` | Output path is temporary; CGO is disabled; build is scoped to `go/cmd/rekipedia` |
-| `npm run build  # tsc` | Validate the JavaScript/TypeScript build | Successful TypeScript compilation | The command inventory only confirms the script name and `tsc` comment, not additional package scripts |
-| `docker build .` | Validate the repository in a containerized build environment | Local Docker image | Uses the repository root as the build context; image tag/name not specified |
+> **Sources:** `go/Dockerfile` · `Dockerfile.sandbox` · `go/cmd/rekipedia/main.go` · `package.json`
 
-> **Sources:** `uv.lock` · `pyproject.toml` · `go/go.mod` · `go/cmd/rekipedia/main.go` · `package.json` · `Dockerfile.sandbox` · `go/Dockerfile`
+## Minimal verification step
 
-## Recommended Local Workflow
+The minimal verification step should prove that the toolchain is installed, the project builds, and the CLI can start or at least report its usage.
 
-A practical, repository-aligned workflow is to pick the build path that matches the environment you are maintaining:
+### Recommended smoke tests
 
-1. Use `uv build` for the Python distribution path.
-2. Use `CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia` for the Go binary.
-3. Use `npm run build  # tsc` for the JavaScript/TypeScript toolchain.
-4. Use `docker build .` when you want a containerized verification.
+Pick one based on the code path you are using:
 
-If you are unsure which path is canonical for your use case, inspect the matching project files first: [`pyproject.toml`](pyproject.toml), [`go/go.mod`](go/go.mod), and [`package.json`](package.json).
+#### Go CLI smoke test
 
-> **Sources:** `pyproject.toml` · `go/go.mod` · `package.json` · `Dockerfile.sandbox` · `go/Dockerfile`
+```bash
+cd go
+CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia
+/tmp/reki --help
+```
+
+Success criteria:
+- the binary builds without errors
+- the binary prints CLI usage/help
+- no missing dependency or runtime configuration errors appear immediately
+
+#### Python CLI smoke test
+
+```bash
+uv build
+rekipedia --help
+```
+
+or, if the installed binary is named differently:
+
+```bash
+reki --help
+```
+
+Success criteria:
+- the package builds
+- the console script launches
+- help text renders without stack traces
+
+#### Docker smoke test
+
+```bash
+docker build .
+```
+
+Success criteria:
+- the image builds successfully
+- no missing build context or dependency issues are reported
+
+### What not to over-validate here
+
+This page is intentionally not the place to verify graph generation, wiki export, or orchestration features. The goal is only to confirm that setup is correct and the project can be built/run in at least one supported mode.
+
+> **Sources:** `go/cmd/rekipedia/main.go` · `go/cmd/rekipedia/cmd/root.go` · `pyproject.toml` · `package.json` · `go/Dockerfile`

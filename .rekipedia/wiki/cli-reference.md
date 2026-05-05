@@ -1,227 +1,351 @@
 ---
 slug: cli-reference
-title: "CLI Reference"
+title: "Rekipedia CLI Reference"
 section: api-reference
 tags: [api, cli, reference]
 pin: false
-importance: 50
-created_at: 2026-05-05T04:25:26Z
-rekipedia_version: 0.10.2
+importance: 78
+created_at: 2026-05-05T04:58:48Z
+rekipedia_version: 0.10.3
 ---
 
-# CLI Reference
+# Rekipedia CLI Reference
 
-This page is a practical command-by-command reference for the user-facing `rekipedia` CLI. It is organized by the root command and its subcommands, with usage, flags, examples, and exit behavior. It focuses on the command package in `go/cmd/rekipedia/cmd` and the entrypoint in [`main`](go/cmd/rekipedia/main.go#L6) / [`Execute`](go/cmd/rekipedia/cmd/root.go#L44). It intentionally avoids broader architecture discussion.
+## Command Tree
 
-## Root Command: `rekipedia`
+The public command-line interface is rooted at [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48), which wires the Cobra command tree together and is invoked from [`main`](go/cmd/rekipedia/main.go#L6-L8). The root command is defined in [`init`](go/cmd/rekipedia/cmd/root.go#L50-L77), and the implementation exposes a set of user-facing subcommands for analysis, serving, search, and maintenance.
 
-The root command is defined in [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48) and initialized in [`init`](go/cmd/rekipedia/cmd/root.go#L50-L77). The root also prints the banner via [`printRootBanner`](go/cmd/rekipedia/cmd/root.go#L36-L41). The CLI entrypoint simply calls [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48) from [`main`](go/cmd/rekipedia/main.go#L6-L8).
+```mermaid
+flowchart TD
+  Root[rekipedia]
+  Ask[ask]
+  Context[context]
+  Diff[diff]
+  Embed[embed]
+  Export[export]
+  Hook[hook]
+  Impact[impact]
+  Init[init]
+  Refactor[refactor]
+  Scan[scan]
+  Search[search]
+  Serve[serve]
+  Update[update]
+  Watch[watch]
 
-### Usage
-
-The exact root usage string is defined by the Cobra command in [`root.go`](go/cmd/rekipedia/cmd/root.go#L50-L77). At the top level, the CLI serves as a dispatcher for subcommands such as `ask`, `scan`, `serve`, `update`, `hook`, `embed`, `export`, `refactor`, `search`, `diff`, `impact`, and `context`.
-
-### Flags
-
-The root command includes the version flag, which is covered by [`TestRootVersionFlag`](go/cmd/rekipedia/cmd/root_test.go#L9-L17). The test confirms the root command exposes version output and that the root command has registered subcommands via [`TestRootCommandHasSubcommands`](go/cmd/rekipedia/cmd/root_test.go#L19-L29).
-
-### Examples
-
-```bash
-rekipedia --version
-rekipedia <subcommand> [flags]
+  Root --> Ask
+  Root --> Context
+  Root --> Diff
+  Root --> Embed
+  Root --> Export
+  Root --> Hook
+  Root --> Impact
+  Root --> Init
+  Root --> Refactor
+  Root --> Scan
+  Root --> Search
+  Root --> Serve
+  Root --> Update
+  Root --> Watch
 ```
 
-### Exit Behavior
+From the symbol index, the CLI also includes a root-level version flag tested by [`TestRootVersionFlag`](go/cmd/rekipedia/cmd/root_test.go#L9-L17), and the command tree is verified to include subcommands in [`TestRootCommandHasSubcommands`](go/cmd/rekipedia/cmd/root_test.go#L19-L29). This page documents only the public CLI surface; CI helpers and internal-only utilities are intentionally excluded.
 
-- Success: the command exits `0`.
-- Version/help requests: exit `0`.
-- Root-level initialization errors propagate from [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48) and result in a non-zero exit code.
+> **Sources:** `go/cmd/rekipedia/cmd/root.go` · L44–L77 · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48) · [`printRootBanner`](go/cmd/rekipedia/cmd/root.go#L36-L41) · `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6-L8)
 
-> **Sources:** `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6)  
-> **Sources:** `go/cmd/rekipedia/cmd/root.go` · L36–L77 · [`printRootBanner`](go/cmd/rekipedia/cmd/root.go#L36) · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44)
+## Global Flags and Defaults
 
-## Command Table
+The symbol index exposes a small set of root-level behavior and command flags through tests and implementation symbols. Some defaults are only indirectly observable from the indexed code; where the exact value is not exposed, this page states that explicitly rather than guessing.
 
-| Command | Purpose | Key flags observed in analysis | Defined in |
-|---|---|---|---|
-| `rekipedia` | Root dispatcher | version flag | [`root.go`](go/cmd/rekipedia/cmd/root.go#L50-L77) |
-| `ask` | Interactive / question answering | not fully enumerated in symbols; interactive runner exists | [`ask.go`](go/cmd/rekipedia/cmd/ask.go#L77-L174) |
-| `context` | Context normalization / title formatting utilities | not fully enumerated in symbols | [`context.go`](go/cmd/rekipedia/cmd/context.go#L109-L123) |
-| `diff` | Diff generation from symbol JSON | not fully enumerated in symbols | [`diff.go`](go/cmd/rekipedia/cmd/diff.go#L119-L260) |
-| `embed` | Generate embeddings | tests confirm flags and registration | [`embed.go`](go/cmd/rekipedia/cmd/embed.go#L56-L63) |
-| `export` | Export generated artifacts | tests confirm flags and registration | [`export.go`](go/cmd/rekipedia/cmd/export.go#L101-L105) |
-| `hook` | Git hook installation/status | tests confirm install/uninstall/status behavior | [`hook.go`](go/cmd/rekipedia/cmd/hook.go#L79-L82) |
-| `impact` | Impact/priority analysis | symbol `qitem` indicates internal queueing | [`impact.go`](go/cmd/rekipedia/cmd/impact.go#L62-L65) |
-| `init` | Initialize config/workspace files | command init function exists | [`init.go`](go/cmd/rekipedia/cmd/init.go#L62-L64) |
-| `refactor` | Static refactor issue detection/reporting | flags and use line verified by tests | [`refactor.go`](go/cmd/rekipedia/cmd/refactor.go#L57-L305) |
-| `scan` | Scan repository and prepare LLM config | config-loading helpers and language splitting | [`scan.go`](go/cmd/rekipedia/cmd/scan.go#L128-L180) |
-| `search` | Search indexed symbols | BM25 tokenizer and result type | [`search.go`](go/cmd/rekipedia/cmd/search.go#L20-L102) |
-| `serve` | Serve web/API UI | banner + server startup setup | [`serve.go`](go/cmd/rekipedia/cmd/serve.go#L29-L84) |
-| `update` | Refresh generated data | update command init exists | [`update.go`](go/cmd/rekipedia/cmd/update.go#L47-L53) |
-| `watch` | Watch files/config for changes | watch config helpers and command init | [`watch.go`](go/cmd/rekipedia/cmd/watch.go#L14-L123) |
+| Flag / Setting | Scope | Default | Behavior defined by | Notes |
+|---|---|---:|---|---|
+| `--version` | root | enabled by root command | [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48) | Verified by [`TestRootVersionFlag`](go/cmd/rekipedia/cmd/root_test.go#L9-L17) |
+| root banner | root output | printed on execution | [`printRootBanner`](go/cmd/rekipedia/cmd/root.go#L36-L41) | Startup/banner text, not a flag |
+| LLM config defaults | multiple commands | from `DefaultLLMConfig` | [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23) | Applied via command config loading; exact CLI flag mapping is not fully exposed in the index |
+| language list parsing | scan-related flows | comma-separated input | [`splitLanguages`](go/cmd/rekipedia/cmd/scan.go#L165-L180) | Root behavior exercised by [`TestSplitLanguages`](go/cmd/rekipedia/cmd/root_test.go#L66-L89) |
 
-> **Sources:** `go/cmd/rekipedia/cmd/root.go` · L50–L77 · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44)  
-> **Sources:** `go/cmd/rekipedia/cmd/refactor.go` · L57–L305 · [`Finding`](go/cmd/rekipedia/cmd/refactor.go#L57) · [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148)
+The indexed symbols do not fully expose every Cobra flag definition at the root level, so this table only includes flags/settings that are clearly traceable from the symbol index. For commands below, defaults are listed when they are visible through implementation or tests.
+
+> **Sources:** `go/cmd/rekipedia/cmd/root.go` · L36–L77 · [`printRootBanner`](go/cmd/rekipedia/cmd/root.go#L36-L41) · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48) · `go/internal/models/contracts.go` · L18–L23 · [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23)
 
 ## `ask`
 
-[`runInteractiveAsk`](go/cmd/rekipedia/cmd/ask.go#L87-L174) implements the interactive ask flow, while [`init`](go/cmd/rekipedia/cmd/ask.go#L77-L84) registers the command. This command is part of the user-facing Q&A path.
+`ask` is the interactive question-and-answer entry point. The public behavior is implemented by [`runInteractiveAsk`](go/cmd/rekipedia/cmd/ask.go#L87-L174), with command registration performed in [`init`](go/cmd/rekipedia/cmd/ask.go#L77-L84). This command is intended for human-driven exploration of the generated knowledge base rather than batch automation.
 
 ### Usage
 
-The command is wired through Cobra in [`ask.go`](go/cmd/rekipedia/cmd/ask.go#L77-L174). The observed implementation indicates an interactive prompt/session model, not a simple batch-only subcommand.
+The exact Cobra usage string is not fully enumerated in the symbol index, but the command is clearly registered as a top-level subcommand and routed into the interactive flow in [`runInteractiveAsk`](go/cmd/rekipedia/cmd/ask.go#L87-L174).
 
-### Flags
+### Key flags and defaults
 
-The analysis shows the command exists and is registered, but the exact flag list is not fully exposed in symbol metadata. The implementation depends on the orchestration layer via [`RunAsk`](go/internal/orchestrator/run_ask.go#L59-L109) and [`StreamAsk`](go/internal/orchestrator/run_ask.go#L112-L140).
+The indexed symbols do not expose a complete flag list for `ask`. What is observable is that the command builds interactive context and may fall back to RAG-style retrieval through [`tryRAGSearch`](go/internal/orchestrator/run_ask.go#L144-L156) and [`buildContext`](go/internal/orchestrator/run_ask.go#L211-L261).
 
-### Examples
+### Output format
 
-```bash
-rekipedia ask
-rekipedia ask --help
-```
+`ask` is interactive and emits conversational output rather than structured JSON by default. The implementation suggests it can gather wiki pages and symbol lines before responding, so output is designed for terminal reading, not machine parsing.
 
-### Exit Behavior
+> **Sources:** `go/cmd/rekipedia/cmd/ask.go` · L77–L174 · [`runInteractiveAsk`](go/cmd/rekipedia/cmd/ask.go#L87-L174) · `go/internal/orchestrator/run_ask.go` · L144–L261 · [`tryRAGSearch`](go/internal/orchestrator/run_ask.go#L144-L156) · [`buildContext`](go/internal/orchestrator/run_ask.go#L211-L261)
 
-- If the interactive session completes normally, exit `0`.
-- Input, context, or downstream orchestration errors propagate from the interactive runner and should produce a non-zero exit.
+## `context`
 
-> **Sources:** `go/cmd/rekipedia/cmd/ask.go` · L77–L174 · [`runInteractiveAsk`](go/cmd/rekipedia/cmd/ask.go#L87)  
-> **Sources:** `go/internal/orchestrator/run_ask.go` · L59–L140 · [`RunAsk`](go/internal/orchestrator/run_ask.go#L59) · [`StreamAsk`](go/internal/orchestrator/run_ask.go#L112)
+`context` appears to be a presentation-oriented command that transforms labels or repository context into a more user-friendly form. The visible implementation symbols are [`toTitle`](go/cmd/rekipedia/cmd/context.go#L109-L117) and the command registration [`init`](go/cmd/rekipedia/cmd/context.go#L119-L123).
+
+### Usage
+
+The indexed data confirms this command is publicly registered, but it does not expose a full usage line or examples. Based on the available symbols, it is a small formatting-oriented command rather than a primary analysis entry point.
+
+### Key flags and defaults
+
+No exposed flag defaults are visible in the symbol index for `context`.
+
+### Output format
+
+The command likely emits formatted text. The only directly observable implementation is [`toTitle`](go/cmd/rekipedia/cmd/context.go#L109-L117), which implies title-casing or normalization of content for display.
+
+> **Sources:** `go/cmd/rekipedia/cmd/context.go` · L109–L123 · [`toTitle`](go/cmd/rekipedia/cmd/context.go#L109-L117)
+
+## `diff`
+
+`diff` compares repository state against generated symbol data and formats the result in either Markdown or plain text. The public execution path is centered on [`runGit`](go/cmd/rekipedia/cmd/diff.go#L119-L124), with supporting helpers [`loadSymbolsJSON`](go/cmd/rekipedia/cmd/diff.go#L126-L147), [`symbolKey`](go/cmd/rekipedia/cmd/diff.go#L149-L157), [`isInChangedFiles`](go/cmd/rekipedia/cmd/diff.go#L159-L173), [`formatDiffMd`](go/cmd/rekipedia/cmd/diff.go#L175-L214), and [`formatDiffText`](go/cmd/rekipedia/cmd/diff.go#L216-L252). Command registration is in [`init`](go/cmd/rekipedia/cmd/diff.go#L254-L260).
+
+### Usage
+
+The command is a public subcommand used for repository-aware diffs. It likely operates against git state, as indicated by the symbol [`runGit`](go/cmd/rekipedia/cmd/diff.go#L119-L124).
+
+### Key flags and defaults
+
+The symbol index exposes formatting helpers that strongly suggest an output-format flag, but the exact flag name is not fully shown. What is clearly observable:
+
+- Markdown output is supported via [`formatDiffMd`](go/cmd/rekipedia/cmd/diff.go#L175-L214)
+- Plain text output is supported via [`formatDiffText`](go/cmd/rekipedia/cmd/diff.go#L216-L252)
+
+### Output format
+
+The command produces either Markdown or text summaries of changed symbols, and filters them using changed-file detection in [`isInChangedFiles`](go/cmd/rekipedia/cmd/diff.go#L159-L173).
+
+> **Sources:** `go/cmd/rekipedia/cmd/diff.go` · L119–L260 · [`runGit`](go/cmd/rekipedia/cmd/diff.go#L119-L124) · [`formatDiffMd`](go/cmd/rekipedia/cmd/diff.go#L175-L214) · [`formatDiffText`](go/cmd/rekipedia/cmd/diff.go#L216-L252)
+
+## `embed`
+
+`embed` is a top-level command registered by [`init`](go/cmd/rekipedia/cmd/embed.go#L56-L63). The symbol index does not show the full execution body, but the accompanying tests confirm the command is user-facing and has explicit flags.
+
+### Usage
+
+The command is registered as a standalone CLI entry point for embedding-related workflows.
+
+### Key flags and defaults
+
+`TestEmbedCmdFlags` and `TestEmbedCmdUseLine` indicate that the command has a stable public usage line and at least one flag, but the exact flag names are not fully exposed by the index payload.
+
+### Output format
+
+The command likely produces generated embedding artifacts or status output. The index does not show the command body itself, so exact output shape should be verified from the implementation if needed.
+
+> **Sources:** `go/cmd/rekipedia/cmd/embed.go` · L56–L63 · [`init`](go/cmd/rekipedia/cmd/embed.go#L56-L63) · `go/cmd/rekipedia/cmd/embed_export_update_test.go` · L17–L43
+
+## `export`
+
+`export` is a public command registered in [`init`](go/cmd/rekipedia/cmd/export.go#L101-L105). The tests show that it has exposed flags and a default format behavior, making it one of the more clearly user-facing subcommands in the indexed set.
+
+### Usage
+
+This command is used to export generated content and supports a default output format.
+
+### Key flags and defaults
+
+The symbol index specifically confirms:
+
+- command registration via [`init`](go/cmd/rekipedia/cmd/export.go#L101-L105)
+- exposed flags via [`TestExportCmdFlags`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L62-L69)
+- default format behavior via [`TestExportCmdDefaultFormat`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L71-L79)
+
+The exact flag names are not visible in the payload, so they are not invented here.
+
+### Output format
+
+The output is format-driven. The test coverage suggests at least one non-default format option is accepted, and the command likely emits structured export artifacts rather than interactive text.
+
+> **Sources:** `go/cmd/rekipedia/cmd/export.go` · L101–L105 · [`init`](go/cmd/rekipedia/cmd/export.go#L101-L105) · `go/cmd/rekipedia/cmd/embed_export_update_test.go` · L49–L79
+
+## `hook`
+
+`hook` manages repository hook installation state. It is publicly registered in [`init`](go/cmd/rekipedia/cmd/hook.go#L79-L82). The tests show install, uninstall, and status behaviors.
+
+### Usage
+
+This command is intended for setup and lifecycle management of hooks inside a repository.
+
+### Key flags and defaults
+
+The indexed symbols expose the command’s public behaviors through tests rather than flag definitions. The observable operations are install, uninstall, and status, as verified by the hook tests.
+
+### Output format
+
+The command appears to emit terminal status text about hook state transitions such as installed, missing, or not ours.
+
+> **Sources:** `go/cmd/rekipedia/cmd/hook.go` · L79–L82 · [`init`](go/cmd/rekipedia/cmd/hook.go#L79-L82) · `go/cmd/rekipedia/cmd/hook_test.go` · L20–L114
+
+## `impact`
+
+`impact` is registered publicly in [`init`](go/cmd/rekipedia/cmd/impact.go#L124-L127), but the symbol index does not expose its command body. The presence of the [`qitem`](go/cmd/rekipedia/cmd/impact.go#L62-L65) type suggests it presents ranked items or queued results.
+
+### Usage
+
+The public command exists, but the index does not provide enough direct evidence to describe the exact usage string.
+
+### Output format
+
+Likely scored or prioritized terminal output; however, exact formatting is not directly visible in the payload.
+
+> **Sources:** `go/cmd/rekipedia/cmd/impact.go` · L62–L127 · [`qitem`](go/cmd/rekipedia/cmd/impact.go#L62-L65)
+
+## `init`
+
+`init` is a public top-level command registered in [`init`](go/cmd/rekipedia/cmd/init.go#L62-L64). The indexed data does not expose its runtime body, so the safest description is that it initializes a repository or workspace state.
+
+### Usage
+
+Public command registration is confirmed, but the implementation details are sparse in the index.
+
+### Output format
+
+Not directly exposed in the symbol data.
+
+> **Sources:** `go/cmd/rekipedia/cmd/init.go` · L62–L64 · [`init`](go/cmd/rekipedia/cmd/init.go#L62-L64)
+
+## `refactor`
+
+`refactor` is the command with the richest indexed implementation. The main analysis flow is implemented by [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75-L127), [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130-L145), and [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148-L175), with registration in [`init`](go/cmd/rekipedia/cmd/refactor.go#L295-L305). This is the public command most clearly associated with repo scanning and report generation.
+
+### Usage
+
+The command performs static analysis to identify refactoring opportunities.
+
+### Key flags and defaults
+
+The indexed tests indicate the following user-facing behaviors:
+
+| Flag / Setting | Default | Evidence |
+|---|---:|---|
+| refactor command registration | on | [`TestRefactorCmdRegistered`](go/cmd/rekipedia/cmd/refactor_test.go#L15-L26) |
+| flag exposure | present | [`TestRefactorCmdFlags`](go/cmd/rekipedia/cmd/refactor_test.go#L28-L38) |
+| usage line | stable | [`TestRefactorCmdUseLine`](go/cmd/rekipedia/cmd/refactor_test.go#L40-L44) |
+| severity filtering | implementation-defined | [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130-L145) |
+| report building | always available | [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148-L175) |
+
+The exact flag names are not fully represented in the symbol index. The important point for users is that `refactor` supports filtering and can write report output in different forms.
+
+### Output format
+
+The command can build a static report via [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148-L175), and the tests show both non-LLM and JSON-writing behavior in [`TestRefactorNoLLMWritesFile`](go/cmd/rekipedia/cmd/refactor_test.go#L238-L267) and [`TestRefactorJSONWritesFile`](go/cmd/rekipedia/cmd/refactor_test.go#L269-L301). Output can therefore be consumed as either a generated report or JSON artifact, depending on flags.
+
+> **Sources:** `go/cmd/rekipedia/cmd/refactor.go` · L57–L305 · [`Finding`](go/cmd/rekipedia/cmd/refactor.go#L57-L63) · [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75-L127) · [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130-L145) · [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148-L175)
 
 ## `scan`
 
-[`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161) and [`splitLanguages`](go/cmd/rekipedia/cmd/scan.go#L165-L180) are the primary observable helpers behind the scan command. The command registration lives in [`init`](go/cmd/rekipedia/cmd/scan.go#L128-L140).
+`scan` is a public command with clear configuration-loading behavior. The indexed symbols show [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161) and [`splitLanguages`](go/cmd/rekipedia/cmd/scan.go#L165-L180), and tests in [`TestLoadLLMConfig`](go/cmd/rekipedia/cmd/root_test.go#L91-L102) and [`TestLoadLLMConfigDefaults`](go/cmd/rekipedia/cmd/root_test.go#L104-L110) show default handling.
 
 ### Usage
 
-`scan` is the repository analysis entrypoint. Based on the helper functions and test coverage in [`TestLoadLLMConfig`](go/cmd/rekipedia/cmd/root_test.go#L91-L102) and [`TestSplitLanguages`](go/cmd/rekipedia/cmd/root_test.go#L66-L89), it accepts configuration-related options and supports language-list parsing.
+`scan` is the repository analysis entry point used to inspect and prepare data for downstream indexing and synthesis.
 
-### Flags
+### Key flags and defaults
 
-The analysis data does not expose the full flag list, but the command clearly relies on:
-- LLM configuration loading via [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161)
-- Language parsing via [`splitLanguages`](go/cmd/rekipedia/cmd/scan.go#L165-L180)
+The public defaults most clearly visible are:
 
-### Examples
+- LLM settings come from [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23)
+- language lists are parsed by [`splitLanguages`](go/cmd/rekipedia/cmd/scan.go#L165-L180)
 
-```bash
-rekipedia scan
-rekipedia scan --help
-```
+The exact CLI flags that feed these settings are not fully enumerated in the payload.
 
-### Exit Behavior
+### Output format
 
-- Successful scan and configuration load: exit `0`.
-- Misconfiguration or invalid language/config input: non-zero exit.
-- The helper [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161) suggests failure modes around invalid or absent LLM configuration.
+`scan` produces structured analysis data for later commands. The implementation and tests strongly indicate it writes or populates repository analysis state rather than only printing to stdout.
 
-> **Sources:** `go/cmd/rekipedia/cmd/scan.go` · L128–L180 · [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143) · [`splitLanguages`](go/cmd/rekipedia/cmd/scan.go#L165)
+> **Sources:** `go/cmd/rekipedia/cmd/scan.go` · L143–L180 · [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161) · [`splitLanguages`](go/cmd/rekipedia/cmd/scan.go#L165-L180) · `go/internal/models/contracts.go` · L18–L23 · [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23)
+
+## `search`
+
+`search` ranks symbols using a BM25-style scoring path. The public behavior is driven by [`scoreBM25`](go/cmd/rekipedia/cmd/search.go#L54-L71) and tokenization via [`tokenizeSymbol`](go/cmd/rekipedia/cmd/search.go#L20-L51), with command registration in [`init`](go/cmd/rekipedia/cmd/search.go#L139-L142).
+
+### Usage
+
+The command is used to search indexed symbols, likely against the generated symbol corpus.
+
+### Key flags and defaults
+
+The symbol index exposes the scoring engine but not a full flag table. Search behavior is therefore described at the algorithm level rather than the flag level.
+
+### Output format
+
+Search results are represented by the [`result`](go/cmd/rekipedia/cmd/search.go#L97-L102) type, which suggests ranked terminal output with score metadata.
+
+> **Sources:** `go/cmd/rekipedia/cmd/search.go` · L20–L142 · [`tokenizeSymbol`](go/cmd/rekipedia/cmd/search.go#L20-L51) · [`scoreBM25`](go/cmd/rekipedia/cmd/search.go#L54-L71) · [`result`](go/cmd/rekipedia/cmd/search.go#L97-L102)
 
 ## `serve`
 
-[`printServeBanner`](go/cmd/rekipedia/cmd/serve.go#L29-L51) and [`init`](go/cmd/rekipedia/cmd/serve.go#L78-L84) define the command behavior and registration.
+`serve` starts the HTTP UI/API server and prints a startup banner using [`printServeBanner`](go/cmd/rekipedia/cmd/serve.go#L29-L51). Command registration is in [`init`](go/cmd/rekipedia/cmd/serve.go#L78-L84).
 
 ### Usage
 
-`serve` starts the HTTP server. It is associated with the server implementation in [`New`](go/internal/server/server.go#L46-L48) and [`(s *Server).Start`](go/internal/server/server.go#L71-L96).
+This command launches the local server used to browse wiki pages, ask questions, and inspect graph data.
 
-### Flags
+### Key flags and defaults
 
-The symbol data does not enumerate individual flags for `serve`. However, the server startup is clearly a configurable CLI entrypoint.
+The public output banner is explicitly implemented, but the exact server flag list is not fully visible in the symbol index. The implementation is clearly server-oriented and likely includes address/port configuration, though that cannot be asserted from the payload alone.
 
-### Examples
+### Output format
 
-```bash
-rekipedia serve
-rekipedia serve --help
-```
+Startup output is a banner printed by [`printServeBanner`](go/cmd/rekipedia/cmd/serve.go#L29-L51). After startup, the command serves HTTP responses.
 
-### Exit Behavior
+> **Sources:** `go/cmd/rekipedia/cmd/serve.go` · L29–L84 · [`printServeBanner`](go/cmd/rekipedia/cmd/serve.go#L29-L51)
 
-- Server starts successfully and keeps running: exit only when interrupted or when startup fails.
-- Startup failures from the underlying server should produce a non-zero exit.
+## `update`
 
-> **Sources:** `go/cmd/rekipedia/cmd/serve.go` · L29–L84 · [`printServeBanner`](go/cmd/rekipedia/cmd/serve.go#L29)  
-> **Sources:** `go/internal/server/server.go` · L46–L96 · [`New`](go/internal/server/server.go#L46) · [`(s *Server).Start`](go/internal/server/server.go#L71)
+`update` is a public command registered in [`init`](go/cmd/rekipedia/cmd/update.go#L47-L53). The implementation is not exposed in the symbol index, but the command name and registration indicate a repository refresh or regeneration flow.
 
-## `update`, `export`, `embed`, `refactor`, `hook`, `search`, `diff`, `impact`, `context`, `init`, `watch`
+### Usage
 
-These commands are registered in the command package, but the symbol metadata only partially exposes their flag sets. The table below summarizes what can be confirmed from the analysis.
+Likely used to refresh generated artifacts after source changes.
 
-| Subcommand | Confirmed behavior from symbols | Practical note |
-|---|---|---|
-| `update` | registered in [`update.go`](go/cmd/rekipedia/cmd/update.go#L47-L53) | refresh/update workflow |
-| `export` | tests verify registration and default format in [`TestExportCmdDefaultFormat`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L71-L79) | produces export artifacts |
-| `embed` | tests verify registration, flags, and use line in [`TestEmbedCmdFlags`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L30-L37) | generates embeddings |
-| `refactor` | static analysis/reporting with [`Finding`](go/cmd/rekipedia/cmd/refactor.go#L57-L63), [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75-L127), [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148-L175) | supports `--json`/report output by test coverage |
-| `hook` | tests cover install, uninstall, status | manages Git hook integration |
-| `search` | uses [`tokenizeSymbol`](go/cmd/rekipedia/cmd/search.go#L20-L51) and [`scoreBM25`](go/cmd/rekipedia/cmd/search.go#L54-L71) | symbol search |
-| `diff` | formats Markdown/text diffs from changed symbols | diff output for code changes |
-| `impact` | contains [`qitem`](go/cmd/rekipedia/cmd/impact.go#L62-L65) | likely prioritization/impact ranking |
-| `context` | contains [`toTitle`](go/cmd/rekipedia/cmd/context.go#L109-L117) | title/context formatting |
-| `init` | init command registered | initializes project files/config |
-| `watch` | uses [`watchConfig`](go/cmd/rekipedia/cmd/watch.go#L14-L16), [`loadWatchConfig`](go/cmd/rekipedia/cmd/watch.go#L18-L26), [`saveWatchConfig`](go/cmd/rekipedia/cmd/watch.go#L28-L35) | watches and persists config |
+### Output format
 
-### Examples
+Not directly visible in the indexed symbols.
 
-```bash
-rekipedia update
-rekipedia export --help
-rekipedia embed --help
-rekipedia refactor --json
-rekipedia hook install
-rekipedia search "symbol name"
-rekipedia diff
-rekipedia watch
-```
+> **Sources:** `go/cmd/rekipedia/cmd/update.go` · L47–L53 · [`init`](go/cmd/rekipedia/cmd/update.go#L47-L53)
 
-### Exit Behavior
+## `watch`
 
-The most reliable exit behavior is command-specific:
-- `export`, `embed`, `refactor`, `search`, and `diff` should return non-zero on file I/O or parse failures.
-- `hook` should return non-zero if repository or Git hook state is invalid.
-- `watch` generally runs until interrupted and exits non-zero if setup fails.
+`watch` is a public command tied to persisted watch configuration. The symbols [`watchConfig`](go/cmd/rekipedia/cmd/watch.go#L14-L16), [`loadWatchConfig`](go/cmd/rekipedia/cmd/watch.go#L18-L26), and [`saveWatchConfig`](go/cmd/rekipedia/cmd/watch.go#L28-L35) indicate that this command manages watch state on disk.
 
-> **Sources:** `go/cmd/rekipedia/cmd/update.go` · L47–L53 · [`init`](go/cmd/rekipedia/cmd/update.go#L47)  
-> **Sources:** `go/cmd/rekipedia/cmd/embed_export_update_test.go` · L17–L166 · [`TestEmbedCmdRegistered`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L17) · [`TestExportCmdDefaultFormat`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L71) · [`TestUpdateCmdUseLine`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L107)  
-> **Sources:** `go/cmd/rekipedia/cmd/refactor.go` · L57–L305 · [`staticWalk`](go/cmd/rekipedia/cmd/refactor.go#L75) · [`buildStaticReport`](go/cmd/rekipedia/cmd/refactor.go#L148)
+### Usage
 
-## Flag Reference
+This command is intended for long-running monitoring or repeated updates.
 
-The analysis data does not expose a complete authoritative flag inventory for every command, so the table below is limited to flags that are indirectly confirmed by tests or helper functions.
+### Key flags and defaults
 
-| Command | Flag / option | Evidence | Behavior |
-|---|---|---|---|
-| `refactor` | `--json` | [`TestRefactorJSONWritesFile`](go/cmd/rekipedia/cmd/refactor_test.go#L269-L301) | writes JSON output instead of only text/report output |
-| `refactor` | `--with-refactor` (scan-related flag) | [`TestScanHasWithRefactorFlag`](go/cmd/rekipedia/cmd/refactor_test.go#L307-L312) | scan integrates refactor analysis |
-| `embed` | flags present | [`TestEmbedCmdFlags`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L30-L37) | exact set not enumerated in symbols |
-| `export` | flags present | [`TestExportCmdFlags`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L62-L69) | exact set not enumerated in symbols |
-| `update` | flags present | [`TestUpdateCmdFlags`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L98-L105) | exact set not enumerated in symbols |
+The indexed payload does not expose the full flag list, but the persisted configuration model implies runtime options that are saved and loaded across invocations.
 
-### Notes on incomplete flag visibility
+### Output format
 
-The static analysis payload provides registration and test evidence, but not the full Cobra flag definitions for all commands. Where flag names are not directly visible in symbols, this page avoids inventing them.
+Likely progress/status text plus watch-state persistence; exact output is not directly shown in the index.
 
-> **Sources:** `go/cmd/rekipedia/cmd/refactor_test.go` · L269–L312 · [`TestRefactorJSONWritesFile`](go/cmd/rekipedia/cmd/refactor_test.go#L269) · [`TestScanHasWithRefactorFlag`](go/cmd/rekipedia/cmd/refactor_test.go#L307)  
-> **Sources:** `go/cmd/rekipedia/cmd/embed_export_update_test.go` · L30–L105 · [`TestEmbedCmdFlags`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L30) · [`TestExportCmdFlags`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L62) · [`TestUpdateCmdFlags`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L98)
+> **Sources:** `go/cmd/rekipedia/cmd/watch.go` · L14–L123 · [`watchConfig`](go/cmd/rekipedia/cmd/watch.go#L14-L16) · [`loadWatchConfig`](go/cmd/rekipedia/cmd/watch.go#L18-L26) · [`saveWatchConfig`](go/cmd/rekipedia/cmd/watch.go#L28-L35)
 
-## Practical Exit-Code Expectations
+## CLI Flag Summary
 
-Across the CLI, exit behavior generally follows a simple pattern:
+The symbol index only partially exposes flag definitions, so this table includes every public CLI flag/default pair that can be traced confidently from the indexed symbols and tests.
 
-| Scenario | Expected exit |
-|---|---|
-| Help/version output | `0` |
-| Successful command execution | `0` |
-| Invalid flags or command syntax | non-zero |
-| Missing files/config/repo state | non-zero |
-| Long-running server/watch commands started successfully | process remains running until stopped |
+| Command | Flag / Setting | Default | Implementation / Evidence |
+|---|---|---:|---|
+| root | `--version` | enabled | [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48) · [`TestRootVersionFlag`](go/cmd/rekipedia/cmd/root_test.go#L9-L17) |
+| export | format selection | default format present | [`TestExportCmdDefaultFormat`](go/cmd/rekipedia/cmd/embed_export_update_test.go#L71-L79) |
+| refactor | filtering | implementation-defined | [`applyFilter`](go/cmd/rekipedia/cmd/refactor.go#L130-L145) |
+| scan | LLM config | [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23) | [`loadLLMConfig`](go/cmd/rekipedia/cmd/scan.go#L143-L161) |
+| scan | languages list | parsed from CLI input | [`splitLanguages`](go/cmd/rekipedia/cmd/scan.go#L165-L180) |
+| serve | banner | printed on startup | [`printServeBanner`](go/cmd/rekipedia/cmd/serve.go#L29-L51) |
+| search | ranking method | BM25-style | [`scoreBM25`](go/cmd/rekipedia/cmd/search.go#L54-L71) |
 
-This is inferred from the command registration and the test suite’s focus on failure modes, especially for `root`, `hook`, `refactor`, and `scan`.
+If you need a stricter, flag-by-flag inventory, the repository’s Cobra definitions would need a broader symbol capture than what is present here.
 
-> **Sources:** `go/cmd/rekipedia/cmd/root_test.go` · L9–L29 · [`TestRootVersionFlag`](go/cmd/rekipedia/cmd/root_test.go#L9)  
-> **Sources:** `go/cmd/rekipedia/cmd/hook_test.go` · L20–L114 · [`TestHookInstall`](go/cmd/rekipedia/cmd/hook_test.go#L20) · [`TestHookStatusNotInstalled`](go/cmd/rekipedia/cmd/hook_test.go#L106)  
-> **Sources:** `go/cmd/rekipedia/cmd/refactor_test.go` · L65–L312 · [`TestStaticWalkFindsTODO`](go/cmd/rekipedia/cmd/refactor_test.go#L65) · [`TestRefactorJSONWritesFile`](go/cmd/rekipedia/cmd/refactor_test.go#L269)
+> **Sources:** `go/cmd/rekipedia/cmd/root.go` · `go/cmd/rekipedia/cmd/scan.go` · `go/cmd/rekipedia/cmd/search.go` · `go/cmd/rekipedia/cmd/serve.go` · `go/cmd/rekipedia/cmd/refactor.go`
