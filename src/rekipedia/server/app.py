@@ -241,11 +241,22 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                 import concurrent.futures  # noqa: PLC0415
                 executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
+                # Load conversation history for multi-turn context
+                chat_history: list[dict] = []
+                if db_path.exists():
+                    with SqliteStore(db_path) as _hs:
+                        raw_hist = _hs.get_qa_history(str(repo_root), limit=20)
+                    # get_qa_history returns newest-first; LLM needs oldest-first
+                    for _h in reversed(raw_hist):
+                        chat_history.append({"role": "user", "content": _h["question"]})
+                        chat_history.append({"role": "assistant", "content": _h["answer"]})
+
                 gen = stream_ask(
                     question=question,
                     repo_root=repo_root,
                     output_dir=output_dir,
                     llm_config=llm_config,
+                    history=chat_history,
                 )
                 full_answer: list[str] = []
                 for chunk in gen:

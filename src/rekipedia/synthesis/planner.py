@@ -14,12 +14,7 @@ from rekipedia.models.contracts import AnalysisResult, LLMConfig
 logger = logging.getLogger("rekipedia.planner")
 
 
-def _sanitize_slug(slug: str) -> str:
-    """Normalise a slug: lowercase, replace bad chars with hyphens, collapse runs."""
-    slug = slug.lower().strip()
-    slug = re.sub(r"[^a-z0-9_-]+", "-", slug)
-    slug = re.sub(r"-{2,}", "-", slug).strip("-")
-    return slug or "untitled"
+from rekipedia.synthesis.slug_utils import sanitize_slug as _sanitize_slug
 
 _SYSTEM_PROMPT = """\
 You are a technical documentation architect for software repositories. Your task: analyse a repo's static-analysis data and design the OPTIMAL wiki structure — like DeepWiki does for open-source projects.

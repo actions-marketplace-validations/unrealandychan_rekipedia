@@ -29,6 +29,7 @@ logger = logging.getLogger("rekipedia.refactor_enricher")
 
 _GOD_CLASS_DEGREE_THRESHOLD = 10
 _LARGE_FILE_SYMBOL_THRESHOLD = 30
+_LARGE_FILE_BYTES_THRESHOLD = 500_000   # 500 KB — flag files that are simply too big
 _HIGH_COUPLING_OUT_THRESHOLD = 10
 _DEAD_CODE_MIN_FILE_SYMBOLS = 3  # ignore tiny files; only flag in larger files
 _MAX_ENRICHER_WORKERS = 4
