@@ -11,12 +11,32 @@ import (
 	"github.com/unrealandychan/rekipedia/internal/models"
 )
 
+// RefactorConfig holds thresholds for graph-based refactor analysis.
+// These can be overridden in .rekipedia/config.yml under the refactor: key.
+type RefactorConfig struct {
+	GodNodeTopPct        float64 `yaml:"god_node_top_pct"`
+	HighFanIn            int     `yaml:"high_fan_in"`
+	HighFanOut           int     `yaml:"high_fan_out"`
+	DeepInheritanceDepth int     `yaml:"deep_inheritance_depth"`
+}
+
+// DefaultRefactorConfig returns the default refactor thresholds.
+func DefaultRefactorConfig() RefactorConfig {
+	return RefactorConfig{
+		GodNodeTopPct:        0.05,
+		HighFanIn:            20,
+		HighFanOut:           15,
+		DeepInheritanceDepth: 3,
+	}
+}
+
 // Config is the parsed .rekipedia/config.yml structure.
 type Config struct {
 	Version   int              `yaml:"version"`
 	Ignore    []string         `yaml:"ignore"`
 	Languages []string         `yaml:"languages"`
 	LLM       models.LLMConfig `yaml:"llm"`
+	Refactor  RefactorConfig   `yaml:"refactor"`
 }
 
 // DefaultConfig returns sensible defaults.
@@ -26,6 +46,7 @@ func DefaultConfig() Config {
 		Ignore:    []string{".git", "node_modules", "__pycache__", ".rekipedia"},
 		Languages: []string{"python", "typescript"},
 		LLM:       models.DefaultLLMConfig(),
+		Refactor:  DefaultRefactorConfig(),
 	}
 }
 
