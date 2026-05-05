@@ -15,15 +15,17 @@ import (
 )
 
 var scanFlags struct {
-	model         string
-	apiKey        string
-	baseURL       string
-	outputDir     string
-	verbose       bool
-	embedModel    string
-	embedProvider string
-	languages     string
-	force         bool
+	model          string
+	apiKey         string
+	baseURL        string
+	outputDir      string
+	verbose        bool
+	embedModel     string
+	embedProvider  string
+	languages      string
+	force          bool
+	stdoutRefactor bool
+	withRefactor   bool
 }
 
 var scanCmd = &cobra.Command{
@@ -75,10 +77,11 @@ Use --force / -f to re-scan regardless.`,
 	var progress func(string) // nil — terminal output handled by pterm in orchestrator
 
 		if err := orchestrator.RunDigest(cmd.Context(), root, outDir, orchestrator.DigestOptions{
-			LLMConfig: cfg,
-			Verbose:   scanFlags.verbose,
-			Progress:  progress,
-			Languages: splitLanguages(scanFlags.languages),
+			LLMConfig:      cfg,
+			Verbose:        scanFlags.verbose,
+			Progress:       progress,
+			Languages:      splitLanguages(scanFlags.languages),
+			StdoutRefactor: scanFlags.stdoutRefactor,
 		}); err != nil {
 			return err
 		}
@@ -101,6 +104,23 @@ Use --force / -f to re-scan regardless.`,
 			}
 		}
 
+		// Auto-generate REFACTOR.md when --with-refactor is set.
+		if scanFlags.withRefactor {
+			pterm.Info.Println("Generating REFACTOR.md (--with-refactor)...")
+			findings, walkErr := staticWalk(root)
+			if walkErr != nil {
+				pterm.Warning.Printfln("--with-refactor static walk failed: %v", walkErr)
+			} else {
+				report := buildStaticReport(root, findings)
+				outPath := outDir + "/REFACTOR.md"
+				if writeErr := os.WriteFile(outPath, []byte(report), 0o644); writeErr != nil {
+					pterm.Warning.Printfln("--with-refactor write failed: %v", writeErr)
+				} else {
+					pterm.Success.Printf("REFACTOR.md written → %s\n", outPath)
+				}
+			}
+		}
+
 		return nil
 	},
 }
@@ -115,6 +135,8 @@ func init() {
 	scanCmd.Flags().StringVar(&scanFlags.embedProvider, "embed-provider", "", "Embedding provider")
 	scanCmd.Flags().StringVarP(&scanFlags.languages, "languages", "l", "", "Comma-separated languages to include, e.g. python,typescript,go (default: all)")
 	scanCmd.Flags().BoolVarP(&scanFlags.force, "force", "f", false, "Force re-scan even if a completed scan already exists in the DB")
+	scanCmd.Flags().BoolVar(&scanFlags.stdoutRefactor, "stdout", false, "Print REFACTOR.md to stdout after scan (useful for piping to Claude Code)")
+	scanCmd.Flags().BoolVar(&scanFlags.withRefactor, "with-refactor", false, "Auto-generate REFACTOR.md after scan completes")
 }
 
 // loadLLMConfig merges flags with config file defaults.

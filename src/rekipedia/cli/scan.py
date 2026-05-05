@@ -20,6 +20,23 @@ def _load_config(repo: Path) -> dict:
     return {}
 
 
+def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
+    """Run static analysis and write REFACTOR.md after a scan."""
+    try:
+        from rekipedia.cli.refactor import _build_static_report, _static_walk
+        findings = _static_walk(repo)
+        report = _build_static_report(repo, findings)
+        out_path = output_dir / "REFACTOR.md"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(report, encoding="utf-8")
+        console.print(f"  REFACTOR.md : {out_path}")
+    except Exception as exc:
+        if verbose:
+            console.print_exception(show_locals=True)
+        else:
+            console.print(f"[yellow]  --with-refactor failed: {exc}[/yellow]")
+
+
 @click.command("scan")
 @click.argument(
     "repo",
@@ -34,6 +51,9 @@ def _load_config(repo: Path) -> dict:
 @click.option("--embed-provider", default=None, envvar="REKIPEDIA_EMBED_PROVIDER", help="Embedding provider prefix (e.g. openai, ollama, azure). Combined with --embed-model as 'provider/model'.")
 @click.option("--languages", "-l", default=None, help="Comma-separated list of languages to include, e.g. python,typescript,go. Default: all.")
 @click.option("--force", "-f", is_flag=True, default=False, help="Force re-scan even if a completed scan already exists in the DB.")
+@click.option("--no-llm", is_flag=True, default=False, help="Skip LLM enrichment for refactoring issues (static analysis only).")
+@click.option("--stdout", "stdout_refactor", is_flag=True, default=False, help="Print REFACTOR.md to stdout after scan (useful for piping to Claude Code).")
+@click.option("--with-refactor", is_flag=True, default=False, help="Auto-generate REFACTOR.md after scan completes.")
 def scan_cmd(
     repo: Path,
     model: str | None,
@@ -44,11 +64,15 @@ def scan_cmd(
     embed_provider: str | None,
     languages: str | None,
     force: bool,
+    no_llm: bool,
+    stdout_refactor: bool,
+    with_refactor: bool,
 ) -> None:
     """Scan REPO and (re)build the rekipedia knowledge store.
 
     Produces wiki pages in OUTPUT_DIR/wiki/, diagrams in OUTPUT_DIR/diagrams/,
-    and a JSON manifest in OUTPUT_DIR/exports/manifest.json.
+    a JSON manifest in OUTPUT_DIR/exports/manifest.json, and a refactoring
+    report in OUTPUT_DIR/REFACTOR.md + OUTPUT_DIR/refactor_report.json.
 
     By default, scan is skipped if a completed scan already exists in the DB.
     Use --force to re-scan regardless.
@@ -58,7 +82,10 @@ def scan_cmd(
         rekipedia scan .
         rekipedia scan ./my-project --no-docker
         rekipedia scan . --verbose
-        rekipedia scan . --force       # force re-scan even if DB exists
+        rekipedia scan . --force          # force re-scan even if DB exists
+        rekipedia scan . --no-llm         # static analysis only, skip LLM enrichment
+        rekipedia scan . --stdout | claude # pipe refactor guide to Claude
+        rekipedia scan . --with-refactor  # also generate REFACTOR.md
         REKIPEDIA_MODEL=gpt-4o rekipedia scan .
     """
     repo = repo.resolve()
@@ -132,6 +159,8 @@ def scan_cmd(
             verbose=verbose,
             progress=_log,
             languages=lang_list,
+            no_llm=no_llm,
+            stdout_refactor=stdout_refactor,
         )
     except Exception as exc:
         if verbose:
@@ -147,4 +176,11 @@ def scan_cmd(
     console.print(f"  Wiki pages  : {output_dir / 'wiki'}")
     console.print(f"  Diagrams    : {output_dir / 'diagrams'}")
     console.print(f"  Manifest    : {output_dir / 'exports' / 'manifest.json'}")
+    console.print(f"  Refactor    : {output_dir / 'REFACTOR.md'}")
     console.print(f"  Database    : {output_dir / 'store.db'}")
+
+    # ── Optional: generate REFACTOR.md ────────────────────────────────────────
+    if with_refactor:
+        console.rule()
+        console.print("[bold cyan]rekipedia refactor[/bold cyan] (triggered by --with-refactor)")
+        _run_with_refactor(repo, output_dir, verbose)

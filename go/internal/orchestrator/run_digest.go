@@ -13,6 +13,7 @@ import (
 	"github.com/pterm/pterm"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/unrealandychan/rekipedia/internal/analysis"
 	"github.com/unrealandychan/rekipedia/internal/extractor"
 	"github.com/unrealandychan/rekipedia/internal/llm"
 	"github.com/unrealandychan/rekipedia/internal/models"
@@ -26,10 +27,12 @@ const maxShardWorkers = 4
 type DigestOptions struct {
 	LLMConfig models.LLMConfig
 	// Caller overrides the default LLM client — inject a llm.FakeCaller in tests.
-	Caller    llm.Caller
-	Verbose   bool
-	Progress  func(string) // optional progress callback (for non-terminal consumers, e.g. web SSE)
-	Languages []string     // nil = all languages
+	Caller          llm.Caller
+	Verbose         bool
+	Progress        func(string) // optional progress callback (for non-terminal consumers, e.g. web SSE)
+	Languages       []string     // nil = all languages
+	StdoutRefactor  bool         // when true, print REFACTOR.md to stdout after writing
+	RekipediaVersion string      // injected at build time; falls back to "dev"
 }
 
 // RunDigest executes the full scan → plan → generate → export pipeline.
@@ -264,6 +267,21 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 		}
 	}
 	persistSpinner.Success("Pages persisted")
+
+	// ── Refactor report ─────────────────────────────────────────────────────
+	refactorSpinner, _ := pterm.DefaultSpinner.WithText("Writing refactor report…").Start()
+	if cb != nil {
+		cb("Writing refactor report…")
+	}
+	rekVer := opts.RekipediaVersion
+	if rekVer == "" {
+		rekVer = "dev"
+	}
+	if err := analysis.WriteRefactorOutputs(combined, outputDir, rekVer, opts.StdoutRefactor); err != nil {
+		refactorSpinner.Warning(fmt.Sprintf("Refactor report skipped: %v", err))
+	} else {
+		refactorSpinner.Success("REFACTOR.md + refactor_report.json written")
+	}
 
 	// ── Summary box ────────────────────────────────────────────────────────
 	elapsed := time.Since(start).Round(time.Millisecond)

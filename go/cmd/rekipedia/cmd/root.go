@@ -72,5 +72,6 @@ func init() {
 		impactCmd,
 		searchCmd,
 		watchCmd,
+		refactorCmd,
 	)
 }

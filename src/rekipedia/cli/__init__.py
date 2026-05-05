@@ -17,6 +17,7 @@ from rekipedia.cli.impact import impact_cmd
 from rekipedia.cli.mcp_cmd import mcp_cmd
 from rekipedia.cli.watch import watch_cmd
 from rekipedia.cli.search import search_cmd
+from rekipedia.cli.refactor import refactor_cmd
 
 
 @click.group()
@@ -39,3 +40,4 @@ main.add_command(impact_cmd)
 main.add_command(mcp_cmd)
 main.add_command(watch_cmd)
 main.add_command(search_cmd)
+main.add_command(refactor_cmd)

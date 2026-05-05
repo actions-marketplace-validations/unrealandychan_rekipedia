@@ -48,6 +48,8 @@ def run_digest(
     verbose: bool = False,
     progress: Callable[[str], None] | None = None,
     languages: list[str] | None = None,
+    no_llm: bool = False,
+    stdout_refactor: bool = False,
 ) -> None:
     """Full scan pipeline.
 
@@ -58,6 +60,9 @@ def run_digest(
         force_local: Skip Docker even if available.
         verbose: Enable debug logging (litellm, HTTP, stack traces).
         progress: Optional callback that receives status strings for display.
+        languages: Optional list of language names to include (e.g. ["python"]).
+        no_llm: Skip LLM enrichment for refactoring issues (static analysis only).
+        stdout_refactor: When True, also print REFACTOR.md to stdout after writing.
     """
     if verbose:
         logging.basicConfig(
@@ -183,6 +188,25 @@ def run_digest(
         combined.evidence["pre_built_module_graph"] = diagrams.get("module-graph", (None, ""))[1]
         combined.evidence["pre_built_dependency_graph"] = diagrams.get("class-hierarchy", (None, ""))[1]
 
+        # ── 4.5. Refactor enrichment ──────────────────────────────────
+        _vlog("Running refactor issue detection…")
+        _log("Detecting refactoring issues…")
+        from rekipedia.analysis.refactor_enricher import RefactorEnricher  # noqa: PLC0415
+        from rekipedia.llm.client import LLMClient  # noqa: PLC0415
+
+        _enricher_caller = None if no_llm else LLMClient(llm_config)
+        enricher = RefactorEnricher(_enricher_caller)
+        notes_raw = store.get_rationale_notes(run_id)
+        refactor_issues = enricher.enrich_all(combined, notes=notes_raw)
+        _vlog(f"  {len(refactor_issues)} refactoring issue(s) detected")
+        if no_llm:
+            _vlog("  --no-llm: skipped LLM enrichment for refactoring issues")
+        # Persist as JSON in evidence so exporters can surface it
+        import json as _json  # noqa: PLC0415
+        combined.evidence["refactor_issues"] = _json.dumps(
+            [i.to_dict() for i in refactor_issues], ensure_ascii=False
+        )
+
         # ── 5. Plan wiki structure then generate pages ────────────────
         _log("Planning wiki structure…")
         from rekipedia.synthesis.planner import PlannerAgent  # noqa: PLC0415
@@ -301,6 +325,18 @@ def run_digest(
             logger.info("Wrote agent hint: %s", p)
         write_mcp_json(repo_root)
         update_gitignore(repo_root)
+
+        # ── 7c. Refactor report ───────────────────────────────────────────
+        from rekipedia.analysis.refactor_writer import write_refactor_outputs  # noqa: PLC0415
+
+        _vlog("Writing refactor report…")
+        _log("Writing refactor report…")
+        write_refactor_outputs(
+            combined_for_build,
+            output_dir,
+            stdout=stdout_refactor,
+        )
+        _vlog("REFACTOR.md + refactor_report.json written")
 
         # ── 8. RAG embed (optional — skip if no embed key configured) ─
         embed_model = (
