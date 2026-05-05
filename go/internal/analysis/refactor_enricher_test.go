@@ -3,6 +3,7 @@ package analysis
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -46,7 +47,7 @@ func TestDetectGodClass(t *testing.T) {
 	var syms []models.Symbol
 	syms = append(syms, sym("GodClass", "class", "src/main.go"))
 	for i := 0; i < 12; i++ {
-		caller := "Caller"
+		caller := fmt.Sprintf("Caller%d", i)
 		rels = append(rels, rel(caller, "GodClass", "calls"))
 		syms = append(syms, sym(caller, "function", "src/main.go"))
 	}
@@ -96,7 +97,7 @@ func TestDetectDeadCode(t *testing.T) {
 func TestDetectLargeFile(t *testing.T) {
 	var syms []models.Symbol
 	for i := 0; i < 35; i++ {
-		syms = append(syms, sym("Sym", "function", "src/big.go"))
+		syms = append(syms, sym(fmt.Sprintf("Sym%d", i), "function", "src/big.go"))
 	}
 	result := models.AnalysisResult{FilesSeen: []string{"src/big.go"}, Symbols: syms}
 
@@ -121,8 +122,9 @@ func TestDetectHighCoupling(t *testing.T) {
 	var syms []models.Symbol
 	syms = append(syms, sym("HeavyUser", "function", "src/main.go"))
 	for i := 0; i < 11; i++ {
-		rels = append(rels, rel("HeavyUser", "Dep", "imports"))
-		syms = append(syms, sym("Dep", "function", "src/other.go"))
+		depName := fmt.Sprintf("Dep%d", i)
+		rels = append(rels, rel("HeavyUser", depName, "imports"))
+		syms = append(syms, sym(depName, "function", "src/other.go"))
 	}
 	result := models.AnalysisResult{Symbols: syms, Relationships: rels}
 	issues := DetectIssues(result)
@@ -196,7 +198,7 @@ func TestAttachCallers(t *testing.T) {
 func TestAttachCallersTop5(t *testing.T) {
 	var rels []models.Relationship
 	for i := 0; i < 10; i++ {
-		rels = append(rels, rel("Caller", "Target", "calls"))
+		rels = append(rels, rel(fmt.Sprintf("Caller%d", i), "Target", "calls"))
 	}
 	result := models.AnalysisResult{Relationships: rels}
 	issues := []RefactorIssue{{Kind: "god_class", Symbol: "Target"}}
@@ -282,11 +284,11 @@ func TestEnricherNoLLMReturnsIssuesUnchanged(t *testing.T) {
 	var syms []models.Symbol
 	syms = append(syms, sym("GodClass", "class", "src/main.go"))
 	for i := 0; i < 12; i++ {
-		syms = append(syms, sym("Caller", "function", "src/main.go"))
+		syms = append(syms, sym(fmt.Sprintf("Caller%d", i), "function", "src/main.go"))
 	}
 	var rels []models.Relationship
 	for i := 0; i < 12; i++ {
-		rels = append(rels, rel("Caller", "GodClass", "calls"))
+		rels = append(rels, rel(fmt.Sprintf("Caller%d", i), "GodClass", "calls"))
 	}
 	result := models.AnalysisResult{Symbols: syms, Relationships: rels}
 	issues := enricher.EnrichAll(context.Background(), result, nil)
@@ -354,11 +356,11 @@ func TestEnrichAllEndToEnd(t *testing.T) {
 	var syms []models.Symbol
 	syms = append(syms, sym("GodClass", "class", "src/main.go"))
 	for i := 0; i < 12; i++ {
-		syms = append(syms, sym("Caller", "function", "src/main.go"))
+		syms = append(syms, sym(fmt.Sprintf("Caller%d", i), "function", "src/main.go"))
 	}
 	var rels []models.Relationship
 	for i := 0; i < 12; i++ {
-		rels = append(rels, rel("Caller", "GodClass", "calls"))
+		rels = append(rels, rel(fmt.Sprintf("Caller%d", i), "GodClass", "calls"))
 	}
 	result := models.AnalysisResult{Symbols: syms, Relationships: rels}
 
