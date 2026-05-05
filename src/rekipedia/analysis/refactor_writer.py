@@ -13,10 +13,8 @@ import sys
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from rekipedia.models.contracts import AnalysisResult
+from rekipedia.models.contracts import AnalysisResult, Symbol  # noqa: TCH001
 
 # ── Severity → presentation mapping ─────────────────────────────────────────
 
@@ -53,7 +51,7 @@ def _rekipedia_version() -> str:
         return "unknown"
 
 
-def detect_issues(combined: "AnalysisResult") -> list[dict]:
+def detect_issues(combined: AnalysisResult) -> list[dict]:
     """Detect refactoring issues from an ``AnalysisResult``.
 
     Detects:
@@ -77,35 +75,21 @@ def detect_issues(combined: "AnalysisResult") -> list[dict]:
     out_deg: dict[str, int] = defaultdict(int)  # fan_out (how many callees)
     callers_map: dict[str, list[str]] = defaultdict(list)
 
-    relationships = (
-        combined.relationships if hasattr(combined, "relationships") else []
-    )
-    for rel in relationships:
-        from_name = rel.from_ if hasattr(rel, "from_") else rel.get("from_", "")
-        to_name = rel.to if hasattr(rel, "to") else rel.get("to", "")
-        kind = str(rel.kind if hasattr(rel, "kind") else rel.get("kind", ""))
-
-        if from_name:
-            out_deg[from_name] += 1
-        if to_name:
-            in_deg[to_name] += 1
-        if kind in ("call", "calls") and from_name and to_name:
-            callers_map[to_name].append(from_name)
+    for rel in combined.relationships:
+        if rel.from_:
+            out_deg[rel.from_] += 1
+        if rel.to:
+            in_deg[rel.to] += 1
+        if str(rel.kind) in ("call", "calls") and rel.from_ and rel.to:
+            callers_map[rel.to].append(rel.from_)
 
     # ── Build symbol lookup ───────────────────────────────────────────────────
-    symbols = combined.symbols if hasattr(combined, "symbols") else []
-    sym_lookup: dict[str, object] = {}
-    for sym in symbols:
-        name = sym.name if hasattr(sym, "name") else sym.get("name", "")  # type: ignore[union-attr]
-        sym_lookup[name] = sym
-
-    entry_points: set[str] = set(
-        combined.entry_points if hasattr(combined, "entry_points") else []
-    )
+    sym_lookup: dict[str, Symbol] = {sym.name: sym for sym in combined.symbols}
+    entry_points: set[str] = set(combined.entry_points)
 
     # ── 1. God Class detection ────────────────────────────────────────────────
     for name, sym in sym_lookup.items():
-        kind_str = str(sym.kind if hasattr(sym, "kind") else sym.get("kind", ""))  # type: ignore[union-attr]
+        kind_str = str(sym.kind)
         if kind_str not in ("class", "interface"):
             continue
 
@@ -116,20 +100,15 @@ def detect_issues(combined: "AnalysisResult") -> list[dict]:
         if degree < _GOD_CLASS_DEGREE_THRESHOLD:
             continue
 
-        sym_file = str(sym.file if hasattr(sym, "file") else sym.get("file", ""))  # type: ignore[union-attr]
-        line_start = int(
-            (sym.line_start if hasattr(sym, "line_start") else sym.get("line_start")) or 0  # type: ignore[union-attr]
-        )
-        line_end = int(
-            (sym.line_end if hasattr(sym, "line_end") else sym.get("line_end")) or 0  # type: ignore[union-attr]
-        )
+        line_start = sym.line_start or 0
+        line_end = sym.line_end or 0
         lines = max(0, line_end - line_start)
 
         unique_callers = list(dict.fromkeys(callers_map.get(name, [])))
         issues.append({
             "kind": "god_class",
             "symbol": name,
-            "file": sym_file,
+            "file": sym.file,
             "severity": "high",
             "metrics": {"lines": lines, "fan_in": fan_in, "fan_out": fan_out},
             "suggestion": (
@@ -140,7 +119,7 @@ def detect_issues(combined: "AnalysisResult") -> list[dict]:
 
     # ── 2. Dead Code detection ────────────────────────────────────────────────
     for name, sym in sym_lookup.items():
-        kind_str = str(sym.kind if hasattr(sym, "kind") else sym.get("kind", ""))  # type: ignore[union-attr]
+        kind_str = str(sym.kind)
         if kind_str not in ("function", "method"):
             continue
         if name in entry_points:
@@ -150,10 +129,8 @@ def detect_issues(combined: "AnalysisResult") -> list[dict]:
             continue
         if name.startswith("__") and name.endswith("__"):
             continue
-
-        sym_file = str(sym.file if hasattr(sym, "file") else sym.get("file", ""))  # type: ignore[union-attr]
         # Also skip symbols defined in test files
-        if any(s in sym_file for s in _TEST_PATH_SUBSTRINGS):
+        if any(s in sym.file for s in _TEST_PATH_SUBSTRINGS):
             continue
 
         if callers_map.get(name):
@@ -162,7 +139,7 @@ def detect_issues(combined: "AnalysisResult") -> list[dict]:
         issues.append({
             "kind": "dead_code",
             "symbol": name,
-            "file": sym_file,
+            "file": sym.file,
             "severity": "low",
             "metrics": {"fan_in": 0, "fan_out": out_deg[name]},
             "suggestion": f"Remove `{name}` — 0 callers detected",
@@ -254,7 +231,7 @@ def _build_markdown(issues: list[dict], file_count: int) -> str:
 
 
 def write_refactor_outputs(
-    combined: "AnalysisResult",
+    combined: AnalysisResult,
     output_dir: Path,
     *,
     stdout: bool = False,
@@ -272,7 +249,7 @@ def write_refactor_outputs(
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    file_count = len(combined.files_seen) if hasattr(combined, "files_seen") else 0
+    file_count = len(combined.files_seen)
     issues = detect_issues(combined)
 
     # ── Markdown ──────────────────────────────────────────────────────────────
