@@ -101,6 +101,14 @@ func (s *Store) migrate() error {
 			language   TEXT,
 			last_seen  TEXT NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS tech_lead_notes (
+			id         TEXT PRIMARY KEY,
+			content    TEXT NOT NULL,
+			tags       TEXT NOT NULL DEFAULT '',
+			source     TEXT NOT NULL DEFAULT 'manual',
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		)`,
 	}
 	for _, stmt := range ddl {
 		if _, err := s.db.Exec(stmt); err != nil {
@@ -332,4 +340,114 @@ func (s *Store) GetManifest(path string) (sha256, language string, sizeBytes int
 		return "", "", 0, nil
 	}
 	return
+}
+
+// --- Tech Lead Notes ---
+
+// NoteRow represents a tech lead note.
+type NoteRow struct {
+	ID        string
+	Content   string
+	Tags      string
+	Source    string
+	CreatedAt string
+	UpdatedAt string
+}
+
+// UpsertNote inserts or updates a tech lead note. Returns the note ID.
+func (s *Store) UpsertNote(content, tags, source string, id ...string) (string, error) {
+	var noteID string
+	if len(id) > 0 && id[0] != "" {
+		noteID = id[0]
+	} else {
+		noteID = fmt.Sprintf("%x", time.Now().UnixNano())
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err := s.db.Exec(
+		`INSERT INTO tech_lead_notes (id,content,tags,source,created_at,updated_at)
+		 VALUES (?,?,?,?,?,?)
+		 ON CONFLICT(id) DO UPDATE SET
+		   content=excluded.content, tags=excluded.tags, source=excluded.source, updated_at=excluded.updated_at`,
+		noteID, content, tags, source, now, now,
+	)
+	return noteID, err
+}
+
+// ListNotes returns all notes, optionally filtered by tag.
+func (s *Store) ListNotes(filterTag string) ([]NoteRow, error) {
+	rows, err := s.db.Query(
+		`SELECT id,content,tags,source,created_at,updated_at FROM tech_lead_notes ORDER BY created_at DESC`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var notes []NoteRow
+	for rows.Next() {
+		var n NoteRow
+		if err := rows.Scan(&n.ID, &n.Content, &n.Tags, &n.Source, &n.CreatedAt, &n.UpdatedAt); err != nil {
+			return nil, err
+		}
+		if filterTag != "" {
+			matched := false
+			for _, t := range splitTags(n.Tags) {
+				if t == filterTag {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				continue
+			}
+		}
+		notes = append(notes, n)
+	}
+	return notes, rows.Err()
+}
+
+// DeleteNote deletes a note by ID. Returns true if deleted.
+func (s *Store) DeleteNote(id string) (bool, error) {
+	res, err := s.db.Exec(`DELETE FROM tech_lead_notes WHERE id=?`, id)
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return n > 0, nil
+}
+
+func splitTags(tags string) []string {
+	if tags == "" {
+		return nil
+	}
+	var result []string
+	for _, t := range splitByComma(tags) {
+		t = trimSpace(t)
+		if t != "" {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+func splitByComma(s string) []string {
+	var parts []string
+	start := 0
+	for i, c := range s {
+		if c == ',' {
+			parts = append(parts, s[start:i])
+			start = i + 1
+		}
+	}
+	parts = append(parts, s[start:])
+	return parts
+}
+
+func trimSpace(s string) string {
+	for len(s) > 0 && (s[0] == ' ' || s[0] == '\t') {
+		s = s[1:]
+	}
+	for len(s) > 0 && (s[len(s)-1] == ' ' || s[len(s)-1] == '\t') {
+		s = s[:len(s)-1]
+	}
+	return s
 }

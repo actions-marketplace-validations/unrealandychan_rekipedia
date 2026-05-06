@@ -78,6 +78,7 @@ brew install rekipedia
 | `rekipedia mcp` | Start JSON-RPC 2.0 MCP stdio server (6 tools for AI coding assistants) |
 | `rekipedia watch add\|start\|list\|remove` | Watch repos and auto-index on file change |
 | `rekipedia refactor [REPO]` | Detect code smells + generate `REFACTOR.md` and `refactor_report.json` (use `--no-llm` for static only) |
+| `rekipedia note add\|list\|remove\|edit\|import` | Manage persistent tech lead notes — injected into `reki ask` context automatically |
 
 ---
 

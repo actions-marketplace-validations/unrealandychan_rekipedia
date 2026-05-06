@@ -73,5 +73,6 @@ func init() {
 		searchCmd,
 		watchCmd,
 		refactorCmd,
+		noteCmd,
 	)
 }

@@ -223,6 +223,35 @@ def _build_full_system(
     context_parts: list[str] = ["# Knowledge Context\n"]
     used_chars = sum(len(p) for p in context_parts)
 
+    # ── Tech Lead Notes (highest priority — team context) ─────────────
+    try:
+        db_path = output_dir / "store.db"
+        if db_path.exists():
+            with SqliteStore(db_path) as _note_store:
+                all_notes = _note_store.list_notes()
+            if all_notes:
+                # BM25-style keyword filter: rank by word overlap with question
+                _kws = set(_extract_keywords(question))
+                def _note_score(n: dict) -> float:
+                    if not _kws:
+                        return 1.0
+                    words = set(_re.findall(r'[a-z][a-z0-9_]*', (n["content"] + " " + n["tags"]).lower()))
+                    return len(_kws & words)
+                _max_notes = 5
+                scored_notes = sorted(all_notes, key=_note_score, reverse=True)[:_max_notes]
+                relevant_notes = [n for n in scored_notes if _note_score(n) > 0 or len(all_notes) <= _max_notes]
+                if not relevant_notes:
+                    relevant_notes = scored_notes
+                notes_section = "## Team Context / Tech Lead Notes\n\n"
+                for n in relevant_notes:
+                    tag_prefix = f"[{n['tags']}] " if n["tags"] else ""
+                    notes_section += f"{tag_prefix}{n['content']}\n\n"
+                if used_chars + len(notes_section) < _CONTEXT_CHAR_BUDGET:
+                    context_parts.append(notes_section)
+                    used_chars += len(notes_section)
+    except Exception:
+        pass  # notes are optional — never break ask
+
     # ── Wiki pages (highest priority — curated prose) ──────────────────
     ranked_pages = _rank_pages_by_query(page_texts, retrieval_query)
     for page in ranked_pages:

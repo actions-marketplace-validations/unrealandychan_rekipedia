@@ -612,4 +612,52 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                 status_code=503,
             )
 
+    # ── Notes API ────────────────────────────────────────────────────
+
+    @app.get("/api/notes", response_class=JSONResponse)
+    async def api_notes_list():
+        db_path = output_dir / "store.db"
+        with SqliteStore(db_path) as store:
+            return JSONResponse(store.list_notes())
+
+    @app.post("/api/notes", response_class=JSONResponse)
+    async def api_notes_create(request: Request):
+        body = await request.json()
+        content = body.get("content", "").strip()
+        if not content:
+            return JSONResponse({"error": "content required"}, status_code=400)
+        tags = body.get("tags", "")
+        if isinstance(tags, list):
+            tags = ",".join(tags)
+        db_path = output_dir / "store.db"
+        with SqliteStore(db_path) as store:
+            nid = store.upsert_note(content=content, tags=tags, source="manual")
+            note = store.get_note(nid)
+        return JSONResponse(note, status_code=201)
+
+    @app.delete("/api/notes/{note_id}", response_class=JSONResponse)
+    async def api_notes_delete(note_id: str):
+        db_path = output_dir / "store.db"
+        with SqliteStore(db_path) as store:
+            deleted = store.delete_note(note_id)
+        if deleted:
+            return JSONResponse({"deleted": True})
+        return JSONResponse({"error": "not found"}, status_code=404)
+
+    @app.get("/notes", response_class=HTMLResponse)
+    async def notes_page(request: Request):
+        pages = _wiki_pages()
+        db_path = output_dir / "store.db"
+        with SqliteStore(db_path) as store:
+            notes = store.list_notes()
+        return templates.TemplateResponse(
+            "notes.html",
+            {
+                "request": request,
+                "pages": pages,
+                "notes": notes,
+                "project_name": repo_root.name,
+            },
+        )
+
     return app

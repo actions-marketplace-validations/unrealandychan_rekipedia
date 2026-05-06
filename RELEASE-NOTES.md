@@ -1,3 +1,12 @@
+## v0.10.5 — Tech Lead Notes
+
+### New Features
+- **Note storage** (#62): persistent `tech_lead_notes` table in SQLite, independent of scan runs
+- **Note CLI** (#63): `reki note add/list/remove/edit/import` commands (Python + Go)
+- **RAG injection** (#64): relevant notes auto-injected into `reki ask` context as high-priority team context
+- **Batch import** (#65): `reki note import notes.yml` / `reki note import TECH_CONTEXT.md`
+- **Web UI** (#66): `/notes` management page in `reki serve` with tag filtering and inline add/delete
+
 # Release Notes
 
 ## v0.10.4 — Fix Docker Sandbox Missing tree-sitter Dependencies

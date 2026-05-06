@@ -553,6 +553,83 @@ class SqliteStore:
             for r in rows
         ]
 
+    # ── Tech Lead Notes ───────────────────────────────────────────────
+
+    def upsert_note(
+        self,
+        content: str,
+        tags: str = "",
+        source: str = "manual",
+        note_id: str | None = None,
+    ) -> str:
+        """Insert or update a tech lead note. Returns the note id."""
+        import uuid as _uuid
+        now = _now()
+        if note_id is None:
+            note_id = str(_uuid.uuid4())
+        self._c.execute(
+            """
+            INSERT INTO tech_lead_notes (id, content, tags, source, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                content=excluded.content,
+                tags=excluded.tags,
+                source=excluded.source,
+                updated_at=excluded.updated_at
+            """,
+            (note_id, content, tags, source, now, now),
+        )
+        self._c.commit()
+        return note_id
+
+    def list_notes(self, tags: str | None = None) -> list[dict]:
+        """Return all notes, optionally filtered by a tag."""
+        rows = self._c.execute(
+            "SELECT id, content, tags, source, created_at, updated_at FROM tech_lead_notes "
+            "ORDER BY created_at DESC"
+        ).fetchall()
+        result = [
+            {
+                "id": r[0],
+                "content": r[1],
+                "tags": r[2],
+                "source": r[3],
+                "created_at": r[4],
+                "updated_at": r[5],
+            }
+            for r in rows
+        ]
+        if tags:
+            filter_tag = tags.strip().lower()
+            result = [
+                n for n in result
+                if any(t.strip().lower() == filter_tag for t in n["tags"].split(",") if t.strip())
+            ]
+        return result
+
+    # Alias for backwards compat / spec name
+    def get_notes(self, tags: str | None = None) -> list[dict]:
+        return self.list_notes(tags=tags)
+
+    def delete_note(self, note_id: str) -> bool:
+        """Delete a note by id. Returns True if deleted."""
+        cur = self._c.execute(
+            "DELETE FROM tech_lead_notes WHERE id = ?", (note_id,)
+        )
+        self._c.commit()
+        return cur.rowcount > 0
+
+    def get_note(self, note_id: str) -> dict | None:
+        """Fetch a single note by id."""
+        row = self._c.execute(
+            "SELECT id, content, tags, source, created_at, updated_at FROM tech_lead_notes WHERE id = ?",
+            (note_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return {"id": row[0], "content": row[1], "tags": row[2], "source": row[3],
+                "created_at": row[4], "updated_at": row[5]}
+
 
 # ── helpers ──────────────────────────────────────────────────────────
 

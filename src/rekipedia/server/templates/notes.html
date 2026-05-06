@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>📝 Tech Lead Notes</h1>
+  <p class="subtitle">Team knowledge, persistent across scans.</p>
+</div>
+
+<style>
+  .notes-toolbar { display:flex; gap:0.5rem; margin-bottom:1rem; align-items:center; flex-wrap:wrap; }
+  .notes-toolbar input { flex:1; min-width:180px; padding:0.4rem 0.7rem; border:1px solid var(--border-subtle); border-radius:6px; background:var(--surface); color:var(--text); }
+  .note-card { background:var(--surface); border:1px solid var(--border-subtle); border-radius:8px; padding:1rem 1.2rem; margin-bottom:0.75rem; position:relative; }
+  .note-card .note-tags { display:flex; gap:0.3rem; flex-wrap:wrap; margin-bottom:0.4rem; }
+  .note-card .tag-badge { font-size:0.72rem; padding:0.15rem 0.5rem; border-radius:12px; background:var(--accent-dim); color:var(--accent); }
+  .note-card .note-content { white-space:pre-wrap; word-break:break-word; }
+  .note-card .note-meta { font-size:0.72rem; color:var(--muted); margin-top:0.5rem; }
+  .note-card .delete-btn { position:absolute; top:0.7rem; right:0.9rem; background:none; border:none; cursor:pointer; color:var(--muted); font-size:1rem; }
+  .note-card .delete-btn:hover { color:#e05; }
+  .add-form { background:var(--surface); border:1px solid var(--border-subtle); border-radius:8px; padding:1rem 1.2rem; margin-bottom:1.5rem; }
+  .add-form h3 { margin:0 0 0.75rem; font-size:0.95rem; }
+  .add-form textarea { width:100%; min-height:80px; padding:0.5rem; border:1px solid var(--border-subtle); border-radius:6px; background:var(--bg); color:var(--text); resize:vertical; box-sizing:border-box; }
+  .add-form input[type=text] { width:100%; margin-top:0.5rem; padding:0.4rem 0.7rem; border:1px solid var(--border-subtle); border-radius:6px; background:var(--bg); color:var(--text); box-sizing:border-box; }
+  .add-form button { margin-top:0.5rem; padding:0.45rem 1.1rem; background:var(--accent); color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:0.88rem; }
+  .add-form button:hover { opacity:0.85; }
+  #no-notes { color:var(--muted); }
+</style>
+
+<div class="add-form">
+  <h3>Add Note</h3>
+  <textarea id="note-content" placeholder="Note content…"></textarea>
+  <input type="text" id="note-tags" placeholder="Tags (comma-separated, e.g. ops,auth)">
+  <button onclick="addNote()">Add Note</button>
+</div>
+
+<div class="notes-toolbar">
+  <input type="text" id="tag-filter" placeholder="🏷 Filter by tag…" oninput="filterNotes()">
+  <span id="note-count" style="color:var(--muted);font-size:0.82rem;"></span>
+</div>
+
+<div id="notes-list">
+{% if notes %}
+  {% for note in notes %}
+  <div class="note-card" data-tags="{{ note.tags }}" data-id="{{ note.id }}">
+    {% if note.tags %}
+    <div class="note-tags">
+      {% for tag in note.tags.split(',') %}{% if tag.strip() %}
+      <span class="tag-badge">{{ tag.strip() }}</span>
+      {% endif %}{% endfor %}
+    </div>
+    {% endif %}
+    <div class="note-content">{{ note.content }}</div>
+    <div class="note-meta">{{ note.source }} · {{ note.created_at[:19] }}</div>
+    <button class="delete-btn" onclick="deleteNote('{{ note.id }}')" title="Delete">✕</button>
+  </div>
+  {% endfor %}
+{% else %}
+  <p id="no-notes">No notes yet. Add your first tech lead note above.</p>
+{% endif %}
+</div>
+
+<script>
+function filterNotes() {
+  const q = document.getElementById('tag-filter').value.trim().toLowerCase();
+  const cards = document.querySelectorAll('.note-card');
+  let shown = 0;
+  cards.forEach(card => {
+    const tags = (card.dataset.tags || '').toLowerCase();
+    const content = card.querySelector('.note-content').textContent.toLowerCase();
+    if (!q || tags.includes(q) || content.includes(q)) {
+      card.style.display = '';
+      shown++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+  document.getElementById('note-count').textContent = shown + ' note(s)';
+}
+
+async function addNote() {
+  const content = document.getElementById('note-content').value.trim();
+  const tags = document.getElementById('note-tags').value.trim();
+  if (!content) { alert('Content is required.'); return; }
+  const res = await fetch('/api/notes', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content, tags})
+  });
+  if (res.ok) {
+    location.reload();
+  } else {
+    const err = await res.json();
+    alert('Error: ' + (err.error || 'unknown'));
+  }
+}
+
+async function deleteNote(id) {
+  if (!confirm('Delete this note?')) return;
+  const res = await fetch('/api/notes/' + id, {method: 'DELETE'});
+  if (res.ok) {
+    const card = document.querySelector('.note-card[data-id="' + id + '"]');
+    if (card) card.remove();
+    filterNotes();
+  } else {
+    alert('Failed to delete note.');
+  }
+}
+
+// Initial count
+document.addEventListener('DOMContentLoaded', () => {
+  const count = document.querySelectorAll('.note-card').length;
+  document.getElementById('note-count').textContent = count + ' note(s)';
+});
+</script>
+{% endblock %}
