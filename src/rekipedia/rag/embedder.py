@@ -215,6 +215,200 @@ def _chunk_file(path: Path, repo_root: Path) -> list[dict]:
     return chunks
 
 
+def _symbol_chunk_file(path: Path, repo_root: Path) -> list[dict]:
+    """Chunk a source file along AST symbol boundaries (functions, classes, methods).
+
+    Falls back to character-based chunking if:
+    - tree-sitter is not installed
+    - the language is not supported
+    - the file has no recognizable symbols
+    - any tree-sitter error occurs
+
+    Returns same dict format as _chunk_file() — fully compatible.
+    """
+    try:
+        return _symbol_chunk_file_inner(path, repo_root)
+    except Exception:
+        return _chunk_file(path, repo_root)
+
+
+def _symbol_chunk_file_inner(path: Path, repo_root: Path) -> list[dict]:
+    """Inner implementation — raises on error so caller can fall back."""
+    import bisect
+    import hashlib
+
+    ext = path.suffix.lower()
+
+    # Determine language and node types
+    if ext in (".py", ".pyw"):
+        lang_name = "python"
+        top_level_types = {"function_definition", "class_definition", "decorated_definition"}
+        class_body_type = "block"
+        child_types = {"function_definition", "decorated_definition"}
+    elif ext in (".ts", ".tsx", ".js", ".jsx"):
+        lang_name = "typescript" if ext in (".ts", ".tsx") else "javascript"
+        top_level_types = {
+            "function_declaration", "class_declaration", "export_statement",
+            "lexical_declaration", "expression_statement",
+        }
+        class_body_type = "class_body"
+        child_types = {"method_definition", "function_declaration"}
+    elif ext == ".go":
+        lang_name = "go"
+        top_level_types = {"function_declaration", "method_declaration", "type_declaration"}
+        class_body_type = None
+        child_types = set()
+    else:
+        # Unsupported — fall back
+        return _chunk_file(path, repo_root)
+
+    # Load tree-sitter parser
+    try:
+        from tree_sitter import Language, Parser  # noqa: PLC0415
+        if lang_name == "python":
+            import tree_sitter_python as ts_lang  # noqa: PLC0415
+            lang_obj = Language(ts_lang.language())
+        elif lang_name in ("typescript", "javascript"):
+            import tree_sitter_typescript as ts_lang  # noqa: PLC0415
+            if ext in (".tsx",):
+                lang_obj = Language(ts_lang.language_tsx())
+            else:
+                lang_obj = Language(ts_lang.language_typescript())
+        elif lang_name == "go":
+            import tree_sitter_go as ts_lang  # noqa: PLC0415
+            lang_obj = Language(ts_lang.language())
+        else:
+            return _chunk_file(path, repo_root)
+        parser = Parser(lang_obj)
+    except (ImportError, Exception):
+        return _chunk_file(path, repo_root)
+
+    # Read source
+    is_doc = ext in _DOC_EXTS
+    max_chars = _MAX_DOC_CHARS if is_doc else _MAX_CODE_CHARS
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return []
+
+    if len(text) > max_chars:
+        logger.debug("Skipping %s — too large (%d chars)", path, len(text))
+        return []
+
+    rel = str(path.relative_to(repo_root))
+    impl = _is_implementation(rel)
+    source_bytes = text.encode("utf-8", errors="replace")
+
+    # Parse
+    tree = parser.parse(source_bytes)
+
+    # Build line-start offset table
+    line_starts = [0]
+    for i, ch in enumerate(text):
+        if ch == "\n":
+            line_starts.append(i + 1)
+
+    def char_to_line(char_offset: int) -> int:
+        return bisect.bisect_right(line_starts, char_offset)
+
+    def byte_range_to_chars(start_byte: int, end_byte: int):
+        # Convert byte offsets to char offsets (UTF-8 decode)
+        start_char = len(source_bytes[:start_byte].decode("utf-8", errors="replace"))
+        end_char = len(source_bytes[:end_byte].decode("utf-8", errors="replace"))
+        return start_char, end_char
+
+    # Collect symbol ranges: list of (start_char, end_char)
+    symbol_ranges: list[tuple[int, int]] = []
+
+    root_node = tree.root_node
+    for node in root_node.children:
+        if node.type in top_level_types:
+            sc, ec = byte_range_to_chars(node.start_byte, node.end_byte)
+            symbol_ranges.append((sc, ec))
+            # Also collect direct children of class body (methods)
+            if class_body_type:
+                for child in node.children:
+                    if child.type == class_body_type:
+                        for grandchild in child.children:
+                            if grandchild.type in child_types:
+                                gsc, gec = byte_range_to_chars(grandchild.start_byte, grandchild.end_byte)
+                                symbol_ranges.append((gsc, gec))
+
+    # If no symbols found, fall back
+    if not symbol_ranges:
+        return _chunk_file(path, repo_root)
+
+    # Sort by start position and remove duplicates
+    symbol_ranges.sort()
+    # Remove overlapping/duplicate ranges (keep outer if nested)
+    merged: list[tuple[int, int]] = []
+    for sc, ec in symbol_ranges:
+        if merged and sc >= merged[-1][0] and ec <= merged[-1][1]:
+            continue  # contained in previous, skip
+        merged.append((sc, ec))
+    symbol_ranges = merged
+
+    # Build chunks from symbol ranges
+    _MIN_CHUNK = _CHUNK_CHARS // 4
+    raw_chunks: list[tuple[int, int, str]] = []  # (start_char, end_char, text)
+
+    for sc, ec in symbol_ranges:
+        sym_text = text[sc:ec]
+        if not sym_text.strip():
+            continue
+        if len(sym_text) <= _CHUNK_CHARS:
+            raw_chunks.append((sc, ec, sym_text))
+        else:
+            # Split large symbol by characters with overlap
+            pos = sc
+            while pos < ec:
+                end = min(pos + _CHUNK_CHARS, ec)
+                chunk_text = text[pos:end]
+                if chunk_text.strip():
+                    raw_chunks.append((pos, end, chunk_text))
+                pos += _CHUNK_CHARS - _OVERLAP_CHARS
+
+    # Merge tiny adjacent chunks
+    merged_chunks: list[tuple[int, int, str]] = []
+    for sc, ec, ct in raw_chunks:
+        if (
+            merged_chunks
+            and len(merged_chunks[-1][2]) < _MIN_CHUNK
+            and len(merged_chunks[-1][2]) + len(ct) <= _CHUNK_CHARS
+        ):
+            prev_sc, _prev_ec, prev_ct = merged_chunks.pop()
+            merged_chunks.append((prev_sc, ec, prev_ct + ct))
+        else:
+            merged_chunks.append((sc, ec, ct))
+
+    # Build final chunk dicts
+    chunks = []
+    for idx, (sc, ec, ct) in enumerate(merged_chunks):
+        if not ct.strip():
+            continue
+        start_line = char_to_line(sc)
+        end_line = char_to_line(max(sc, ec - 1))
+        text_hash = hashlib.sha256(ct.encode("utf-8", errors="replace")).hexdigest()
+        chunks.append({
+            "file": rel,
+            "chunk_idx": idx,
+            "start_char": sc,
+            "end_char": ec,
+            "start_line": start_line,
+            "end_line": end_line,
+            "text_hash": text_hash,
+            "text": ct,
+            "is_code": not is_doc,
+            "is_implementation": impl,
+            "ext": ext,
+        })
+
+    if not chunks:
+        return _chunk_file(path, repo_root)
+
+    return chunks
+
+
 # ---------------------------------------------------------------------------
 # Embedding
 # ---------------------------------------------------------------------------
@@ -316,7 +510,7 @@ class EmbedPipeline:
                 skipped_too_large += 1
                 logger.debug("Skipping %s — too large (%d chars > %d limit)", f, size, max_chars)
                 continue
-            all_chunks.extend(_chunk_file(f, repo_root))
+            all_chunks.extend(_symbol_chunk_file(f, repo_root))
 
         n = len(all_chunks)
         if n == 0:
@@ -599,7 +793,7 @@ class EmbedPipeline:
             abs_path = repo_root / rel_path
             if not abs_path.exists():
                 continue  # deleted — skip
-            new_chunks = _chunk_file(abs_path, repo_root)
+            new_chunks = _symbol_chunk_file(abs_path, repo_root)
             for chunk in new_chunks:
                 h = chunk["text_hash"]
                 if h in stale_hash_to_vec:

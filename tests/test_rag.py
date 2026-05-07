@@ -348,3 +348,72 @@ def test_carry_forward_rag_chunks(tmp_path):
     assert len(result_b) == 0
     store.close()
 
+
+# ---------------------------------------------------------------------------
+# _symbol_chunk_file tests
+# ---------------------------------------------------------------------------
+
+from rekipedia.rag.embedder import _symbol_chunk_file  # noqa: E402
+
+
+def test_symbol_chunk_file_python_basic(tmp_path):
+    """Symbol chunker should produce chunks for a Python file with functions."""
+    content = '''
+def alpha():
+    """Alpha function."""
+    return 1
+
+def beta():
+    """Beta function."""
+    x = 1 + 2
+    return x
+
+class Gamma:
+    def method_one(self):
+        pass
+    
+    def method_two(self):
+        pass
+'''
+    f = tmp_path / "sample.py"
+    f.write_text(content)
+    chunks = _symbol_chunk_file(f, tmp_path)
+    # Should produce at least 1 chunk
+    assert len(chunks) >= 1
+    # All chunks have required fields
+    for c in chunks:
+        assert "start_line" in c
+        assert "end_line" in c
+        assert "text_hash" in c
+        assert "file" in c
+        assert c["start_line"] >= 1
+
+
+def test_symbol_chunk_file_fallback_for_unsupported_ext(tmp_path):
+    """Symbol chunker should fall back to char-based for unsupported file types."""
+    f = tmp_path / "README.md"
+    f.write_text("# Hello\n\nThis is a readme.\n" * 100)
+    chunks = _symbol_chunk_file(f, tmp_path)
+    assert len(chunks) >= 1
+    for c in chunks:
+        assert "text_hash" in c
+
+
+def test_symbol_chunk_file_fallback_on_tssitter_missing(tmp_path, monkeypatch):
+    """Symbol chunker should fall back gracefully if tree-sitter is not installed."""
+    import sys
+    # Simulate tree_sitter_python not available
+    monkeypatch.setitem(sys.modules, "tree_sitter_python", None)
+    f = tmp_path / "code.py"
+    f.write_text("def foo():\n    pass\n" * 20)
+    chunks = _symbol_chunk_file(f, tmp_path)
+    assert len(chunks) >= 1
+
+
+def test_symbol_chunk_file_large_function_splits(tmp_path):
+    """A single very large function should be split into multiple chunks."""
+    big_func = "def big_fn():\n" + "    x = 1\n" * 1000
+    f = tmp_path / "big.py"
+    f.write_text(big_func)
+    chunks = _symbol_chunk_file(f, tmp_path)
+    assert len(chunks) >= 2  # too big for one chunk

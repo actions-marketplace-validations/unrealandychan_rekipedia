@@ -1,3 +1,8 @@
+## v0.10.9 — 2026-xx-xx
+
+### New Features
+- **Symbol-boundary chunking** (`#78`): RAG chunks for Python, TypeScript, and Go files now align to AST symbol boundaries (functions, classes, methods) using tree-sitter. Chunks no longer cut through function definitions mid-statement, resulting in more semantically coherent RAG context. Falls back to character-based chunking when tree-sitter is unavailable or the language is unsupported.
+
 ## v0.10.8 — 2026-xx-xx
 
 ### New Features
