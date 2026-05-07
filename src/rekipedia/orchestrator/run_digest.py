@@ -336,6 +336,8 @@ def run_digest(
 
         for slug, (title, content) in pages.items():
             store.upsert_page(run_id, slug, title, content)
+            # Record which source files contributed to this page (issue #77)
+            store.upsert_page_sources(run_id, slug, combined_for_build.files_seen)
         for name, (dtype, content) in diagrams.items():
             store.upsert_diagram(run_id, name, dtype, content)
 

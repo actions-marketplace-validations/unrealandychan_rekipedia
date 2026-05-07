@@ -530,6 +530,79 @@ class SqliteStore:
         return len(to_copy)
 
 
+    # ── Page sources (issue #77) ───────────────────────────────────────
+
+    def upsert_page_sources(self, run_id: str, page_slug: str, file_paths: list[str]) -> None:
+        """Record which source files contributed to *page_slug* in *run_id*."""
+        for fp in file_paths:
+            self._c.execute(
+                "INSERT OR REPLACE INTO page_sources (run_id, page_slug, file_path) VALUES (?, ?, ?)",
+                (run_id, page_slug, fp),
+            )
+        self._c.commit()
+
+    def get_pages_for_files(self, run_id: str, file_paths: list[str]) -> set[str]:
+        """Return set of page slugs whose sources include any of *file_paths* in *run_id*."""
+        if not file_paths:
+            return set()
+        if "page_sources" not in self._table_names():
+            return set()
+        placeholders = ",".join("?" * len(file_paths))
+        rows = self._c.execute(
+            f"SELECT DISTINCT page_slug FROM page_sources WHERE run_id = ? AND file_path IN ({placeholders})",
+            [run_id, *file_paths],
+        ).fetchall()
+        return {r[0] for r in rows}
+
+    def get_all_page_slugs(self, run_id: str) -> list[str]:
+        """Return all page slugs stored for *run_id*."""
+        if "scan_wiki_pages" not in self._table_names():
+            return []
+        rows = self._c.execute(
+            "SELECT slug FROM scan_wiki_pages WHERE run_id = ?",
+            [run_id],
+        ).fetchall()
+        return [r[0] for r in rows]
+
+    def carry_forward_page_sources(self, from_run_id: str, to_run_id: str, page_slugs: list[str]) -> None:
+        """Copy page_sources entries from *from_run_id* to *to_run_id* for *page_slugs*."""
+        if not page_slugs:
+            return
+        if "page_sources" not in self._table_names():
+            return
+        placeholders = ",".join("?" * len(page_slugs))
+        rows = self._c.execute(
+            f"SELECT page_slug, file_path FROM page_sources WHERE run_id = ? AND page_slug IN ({placeholders})",
+            [from_run_id, *page_slugs],
+        ).fetchall()
+        for r in rows:
+            self._c.execute(
+                "INSERT OR REPLACE INTO page_sources (run_id, page_slug, file_path) VALUES (?, ?, ?)",
+                (to_run_id, r[0], r[1]),
+            )
+        self._c.commit()
+
+    def copy_pages(self, from_run_id: str, to_run_id: str, page_slugs: list[str]) -> None:
+        """Copy wiki pages from *from_run_id* to *to_run_id* for *page_slugs*."""
+        if not page_slugs:
+            return
+        if "scan_wiki_pages" not in self._table_names():
+            return
+        placeholders = ",".join("?" * len(page_slugs))
+        rows = self._c.execute(
+            f"SELECT slug, title, content, pinned FROM scan_wiki_pages WHERE run_id = ? AND slug IN ({placeholders})",
+            [from_run_id, *page_slugs],
+        ).fetchall()
+        for r in rows:
+            self._c.execute(
+                """
+                INSERT OR REPLACE INTO scan_wiki_pages(run_id, slug, title, content, pinned, updated_at)
+                VALUES(?, ?, ?, ?, ?, ?)
+                """,
+                [to_run_id, r[0], r[1], r[2], r[3], _now()],
+            )
+        self._c.commit()
+
     # ── Q&A history ───────────────────────────────────────────────────
 
     def save_qa(self, repo_path: str, question: str, answer: str, model: str = "") -> int:

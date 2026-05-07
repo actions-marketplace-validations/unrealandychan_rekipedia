@@ -1,3 +1,8 @@
+## v0.10.8 — 2026-xx-xx
+
+### New Features
+- **Targeted wiki re-synthesis** (`#77`): `reki update` now tracks which source files contributed to each wiki page (`page_sources` table, migration 005). On update, only pages whose sources changed are re-synthesised. Unaffected pages are carried forward at zero LLM cost. Falls back to full re-synthesis if page sources not yet recorded (first update after upgrade).
+
 ## v0.10.7 — 2026-xx-xx
 
 ### New Features

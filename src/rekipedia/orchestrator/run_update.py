@@ -136,7 +136,7 @@ def run_update(
                 store.upsert_symbols(run_id, symbols_dicts)
                 store.upsert_relationships(run_id, rels_dicts)
 
-        # ── 7. Synthesise wiki pages (always full re-synthesis) ───────
+        # ── 7. Synthesise wiki pages ──────────────────────────────────
         _log("Synthesising wiki pages…")
         from rekipedia.synthesis.page_builder import PageBuilder  # noqa: PLC0415
         from rekipedia.synthesis.diagram_builder import DiagramBuilder  # noqa: PLC0415
@@ -153,16 +153,55 @@ def run_update(
         all_symbols_raw = store.get_all_symbols(run_id)
         _log(f"  {len(all_symbols_raw)} total symbols in index")
 
-        builder = PageBuilder(llm_config)
-        pages = builder.build(combined)
+        # ── Targeted re-synthesis: only pages whose sources changed ──
+        affected_pages = store.get_pages_for_files(last_run_id, list(changed_paths))
 
-        diagram_builder = DiagramBuilder()
-        diagrams = diagram_builder.build(all_rels_raw)
+        if not affected_pages:
+            # No page_sources recorded yet (first update after upgrade) → full re-synthesis
+            _log("  No page_sources recorded — running full re-synthesis (backward compat)…")
+            builder = PageBuilder(llm_config)
+            pages = builder.build(combined)
 
-        for slug, (title, content) in pages.items():
-            store.upsert_page(run_id, slug, title, content)
-        for name, (dtype, content) in diagrams.items():
-            store.upsert_diagram(run_id, name, dtype, content)
+            diagram_builder = DiagramBuilder()
+            diagrams = diagram_builder.build(all_rels_raw)
+
+            for slug, (title, content) in pages.items():
+                store.upsert_page(run_id, slug, title, content)
+                store.upsert_page_sources(run_id, slug, combined.files_seen)
+            for name, (dtype, content) in diagrams.items():
+                store.upsert_diagram(run_id, name, dtype, content)
+        else:
+            _log(f"  Re-synthesising {len(affected_pages)} affected page(s)…")
+            all_page_slugs = store.get_all_page_slugs(last_run_id)
+            unaffected = [s for s in all_page_slugs if s not in affected_pages]
+
+            # Carry forward unaffected pages
+            store.copy_pages(last_run_id, run_id, unaffected)
+            store.carry_forward_page_sources(last_run_id, run_id, unaffected)
+
+            # Re-synthesise affected pages
+            builder = PageBuilder(llm_config)
+            diagram_builder = DiagramBuilder()
+            diagrams = diagram_builder.build(all_rels_raw)
+
+            pages_dict: dict = {}
+            # Load carried-forward pages for export
+            for row in store.get_pages(run_id):
+                # row is a tuple: (run_id, slug, title, content, pinned, updated_at)
+                pages_dict[row[1]] = (row[2], row[3])
+
+            for slug in affected_pages:
+                result = builder.build_one(slug, combined)
+                if result:
+                    title, content = result
+                    store.upsert_page(run_id, slug, title, content)
+                    store.upsert_page_sources(run_id, slug, combined.files_seen)
+                    pages_dict[slug] = (title, content)
+
+            pages = pages_dict
+
+            for name, (dtype, content) in diagrams.items():
+                store.upsert_diagram(run_id, name, dtype, content)
 
         # ── 8. Export ─────────────────────────────────────────────────
         _log("Exporting…")
