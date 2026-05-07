@@ -1,101 +1,61 @@
 {
-  "run_id": "a2f8b2d0-82c7-4ed1-b639-7055376853d8",
-  "generated_at": "2026-05-05T04:59:13.714977+00:00",
-  "file_count": 285,
-  "symbol_count": 1668,
-  "relationship_count": 6809,
+  "run_id": "10182866-8f53-441f-9886-52b67b17eec6",
+  "generated_at": "2026-05-07T04:13:30.278361+00:00",
+  "file_count": 297,
+  "symbol_count": 207,
+  "relationship_count": 1996,
   "nav_order": [
-    "installation-and-setup",
     "index",
-    "configuration",
-    "architecture-overview",
-    "repository-structure",
-    "module-go-cli",
-    "architecture-data-flow",
-    "module-analysis",
-    "module-python-core",
-    "module-sandbox",
-    "module-tests",
-    "cli-reference",
+    "architecture",
+    "core-modules",
     "algorithms",
-    "technical-debt",
+    "cli-and-api",
+    "installation-and-setup",
+    "configuration",
     "testing",
-    "ci-cd",
-    "deployment",
-    "python-api"
+    "ecosystem-and-integrations",
+    "technical-debt"
   ],
   "pages": [
     {
-      "slug": "installation-and-setup",
-      "title": "Getting Started: Build and Run"
-    },
-    {
       "slug": "index",
-      "title": "Overview"
+      "title": "Project Overview"
     },
     {
-      "slug": "configuration",
-      "title": "Configuration Surfaces and Defaults"
+      "slug": "architecture",
+      "title": "Rekipedia Architectural Overview"
     },
     {
-      "slug": "architecture-overview",
-      "title": "System Overview"
-    },
-    {
-      "slug": "repository-structure",
-      "title": "Repository Map"
-    },
-    {
-      "slug": "module-go-cli",
-      "title": "Go CLI Application"
-    },
-    {
-      "slug": "architecture-data-flow",
-      "title": "End-to-End Data Flow"
-    },
-    {
-      "slug": "module-analysis",
-      "title": "Go Refactor Detection Engine"
-    },
-    {
-      "slug": "module-python-core",
-      "title": "Python Implementation Area: Core Analysis and Runtime Support"
-    },
-    {
-      "slug": "module-sandbox",
-      "title": "Sandboxed Task Runner and Fixture Repositories"
-    },
-    {
-      "slug": "module-tests",
-      "title": "Test Architecture"
-    },
-    {
-      "slug": "cli-reference",
-      "title": "Rekipedia CLI Reference"
+      "slug": "core-modules",
+      "title": "Core Modules"
     },
     {
       "slug": "algorithms",
-      "title": "Core Analysis and Ranking Algorithms"
+      "title": "Core Algorithms and Data Processing Logic"
     },
     {
-      "slug": "technical-debt",
-      "title": "Risk, TODO/FIXME, and Test Coverage Review"
+      "slug": "cli-and-api",
+      "title": "CLI Reference and Programmatic API"
+    },
+    {
+      "slug": "installation-and-setup",
+      "title": "Installation and Setup Guide"
+    },
+    {
+      "slug": "configuration",
+      "title": "Configuration Reference"
     },
     {
       "slug": "testing",
-      "title": "Testing the Repository End to End"
+      "title": "Testing Strategy and How to Run Tests"
     },
     {
-      "slug": "ci-cd",
-      "title": "Automation and Delivery Pipeline Overview"
+      "slug": "ecosystem-and-integrations",
+      "title": "External Integrations, Plugins, and Ecosystem"
     },
     {
-      "slug": "deployment",
-      "title": "Packaging and Distribution Across Supported Runtimes"
-    },
-    {
-      "slug": "python-api",
-      "title": "Public Python-Facing API Reference"
+      "slug": "technical-debt",
+      "title": "Technical Debt Audit"
     }
   ],
   "diagrams": [
@@ -104,18 +64,9 @@
   ],
   "risks": [],
   "build_commands": [
-    "uv build",
-    "CGO_ENABLED=0 go build -ldflags \"-s -w\" -o /tmp/reki ./cmd/rekipedia",
-    "hatch build",
-    "hatch build",
-    "docker build .",
-    "npm run build  # tsc"
+    "uv build"
   ],
   "test_commands": [
-    "pytest",
-    "go test ./... -v -count=1 -timeout 120s",
-    "pytest tests/ -v --timeout=60 \\",
-    "pip install pytest",
     "pytest"
   ]
 }

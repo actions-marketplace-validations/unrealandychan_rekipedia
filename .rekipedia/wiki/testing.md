@@ -1,195 +1,260 @@
 ---
 slug: testing
-title: "Testing the Repository End to End"
-section: development
-tags: [testing, development, reference]
+title: "Testing Strategy and How to Run Tests"
+section: general
 pin: false
-importance: 74
-created_at: 2026-05-05T04:59:05Z
-rekipedia_version: 0.10.3
+importance: 50
+created_at: 2026-05-07T04:12:37Z
+rekipedia_version: 0.10.9
 ---
 
-# Testing the Repository End to End
+# Testing Strategy and How to Run Tests
 
-This page documents how the repository is tested end to end, based on the observed test layout, representative suites, and canonical commands in the analysis data. It focuses on what is validated, how fixtures are structured, and which suites correspond to major subsystems. It intentionally does **not** repeat installation steps or CI workflow details.
+## Testing Philosophy
 
-## Test Strategy Overview
+The repository’s test suite is organised around the main user-facing workflows and the persistence layer that supports them. The current tests emphasize:
 
-The repository uses a layered testing strategy spanning both the Go implementation under `go/` and the Python test suite under `tests/`. The Go side is organized around package-level `*_test.go` files that validate command wiring, analysis algorithms, storage, orchestration, synthesis, server handlers, and utility packages. The Python side exercises the higher-level behavior of the overall toolchain, including CLI-facing flows, extractors, storage integration, graph output, and fixture-driven repository scanning.
+- **CLI behavior** for the notes workflow via [`tests.test_notes_cli`](tests/test_notes_cli.py#L1)
+- **SQLite storage correctness** via [`tests.test_notes_store`](tests/test_notes_store.py#L1) and RAG persistence tests in [`tests.test_rag`](tests/test_rag.py#L1)
+- **HTTP/API and template behavior** via [`tests.test_notes_server`](tests/test_notes_server.py#L1)
+- **Incremental update behavior** via [`tests.test_update`](tests/test_update.py#L1)
+- **RAG chunking and embedding mechanics** in [`rekipedia.rag.embedder`](src/rekipedia/rag/embedder.py#L443) and its tests
 
-A particularly important pattern in the Go tests is that many suites focus on **end-to-end behavior within a subsystem**, rather than only isolated unit logic. For example, [`TestStaticWalkFindsTODO`](go/cmd/rekipedia/cmd/refactor_test.go#L65) validates the static refactor scan against an actual temporary repository shape, while [`TestDetectGodNodes_DetectsHub`](go/internal/analysis/refactor_detector_test.go#L23) checks graph-analysis heuristics against a constructed dependency graph. Similar integration-oriented tests appear in the command layer, storage layer, and server layer.
+This is a pragmatic, workflow-driven test strategy: instead of trying to exhaustively unit-test every line, the suite focuses on the system boundaries where regressions are most expensive:
 
-The current test corpus also shows explicit coverage of failure paths and guardrails: skipping `.git` and `node_modules`, handling missing files, preserving default config values, and ensuring hooks only uninstall what the tool installed. That makes the suite useful not just for correctness but for regression resistance across file-system, CLI, and data-pipeline behavior.
+- command-line interaction
+- database persistence and migrations
+- document/chunk provenance
+- incremental update semantics
+- page regeneration after changes
 
-> **Sources:** `go/cmd/rekipedia/cmd/refactor_test.go` · `go/internal/analysis/refactor_detector_test.go` · `tests/` · `go/cmd/rekipedia/cmd/root_test.go` · `go/cmd/rekipedia/cmd/hook_test.go`
+The evidence also suggests a deliberate emphasis on **fixture-driven, isolated tests**. The test files use temporary directories and lightweight fake responses such as [`_fake_embed_response`](tests/test_rag.py#L65) and [`_fake_llm_response`](tests/test_update.py#L19) to avoid network and external service dependencies. For example, embedding-related tests verify the behavior of [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477) and [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733) without calling a real model backend.
 
-## Test Layout
+A few implementation gaps are visible in the analysis data:
 
-### Go test layout
+- [`_now`](src/rekipedia/storage/sqlite_store.py#L832) has no direct test coverage
+- [`_get_store`](src/rekipedia/cli/note.py#L16) is not directly tested
+- [`_embed_batch`](src/rekipedia/rag/embedder.py#L416) is not directly tested
+- [`_combine_results`](src/rekipedia/orchestrator/run_digest.py#L436) is not directly tested
 
-The Go tests are colocated with the implementation:
+These are not necessarily defects; they simply indicate where the suite currently relies on higher-level tests rather than direct unit tests.
 
-| Area | Test file(s) | Representative validations |
-|---|---|---|
-| Command surface | `go/cmd/rekipedia/cmd/root_test.go`, `go/cmd/rekipedia/cmd/hook_test.go`, `go/cmd/rekipedia/cmd/refactor_test.go`, `go/cmd/rekipedia/cmd/embed_export_update_test.go` | command registration, flags, hooks, scan output, file writes |
-| Analysis engine | `go/internal/analysis/refactor_detector_test.go`, `go/internal/analysis/refactor_enricher_test.go`, `go/internal/analysis/refactor_writer_test.go` | god-node detection, circular dependencies, enrichment, markdown/JSON output |
-| Graph / heuristics | `go/internal/graph/graph_analysis_test.go`, `go/internal/graph/hub_gap_test.go` | god nodes, hubs, knowledge gaps |
-| Config / contract types | `go/internal/config/loader_test.go`, `go/internal/models/contracts_test.go` | defaults and data model invariants |
-| LLM client | `go/internal/llm/client_test.go` | request shaping, retries, embeddings, transient error classification |
-| Orchestration | `go/internal/orchestrator/orchestrator_test.go` | snapshotting, sharding, language detection, token estimates |
-| RAG / scan metadata | `go/internal/rag/rag_test.go` | chunking, vector store lifecycle, scan metadata round-trips |
-| Server | `go/internal/server/server_test.go` | API endpoints, HTML rendering, frontmatter stripping |
-| Storage | `go/internal/storage/store_test.go` | SQLite lifecycle, migrations, read/write, isolation |
-| Synthesis | `go/internal/synthesis/synthesis_test.go` | planning, page building, diagram generation |
-| Extractors | `go/internal/extractor/extractor_test.go` | Go, Python, TypeScript, and config file extraction |
-| Filesystem helpers | `go/pkg/fsutil/walk_test.go` | repository walking behavior |
+> **Sources:** `tests/test_notes_cli.py` · `tests/test_notes_store.py` · `tests/test_notes_server.py` · `tests/test_notes_rag.py` · `tests/test_rag.py` · `tests/test_update.py` · `src/rekipedia/rag/embedder.py` · L443–L892 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443)
 
-### Python test layout
+## Test Structure
 
-The Python suite lives under `tests/` and is broader and more scenario-oriented. It includes tests such as `tests/test_scan.py`, `tests/test_refactor_cmd.py`, `tests/test_server.py`, `tests/test_sqlite_store.py`, `tests/test_multilang_extractors.py`, and fixture-based coverage for the end-to-end pipeline. The directory also includes targeted checks for coverage boosts, snapshot diffs, wiki frontmatter, and the MCP/server interfaces.
+### Directory Layout
 
-### Fixture layout
+The repository’s tests are all under a single top-level `tests/` directory:
 
-The fixture repositories under `tests/fixtures/mini-py-repo/` and `tests/fixtures/mini-ts-repo/` provide small but realistic source trees for multi-language scanning and extraction. These fixtures include:
+| Path | Purpose |
+|------|---------|
+| `tests/test_notes_cli.py` | CLI behavior for note management |
+| `tests/test_notes_store.py` | Store-level CRUD and filtering for notes |
+| `tests/test_notes_server.py` | FastAPI route behavior for note pages/API |
+| `tests/test_notes_rag.py` | Notes integration with the assembled RAG/system context |
+| `tests/test_rag.py` | RAG chunking, provenance, embedding, and store round-trips |
+| `tests/test_update.py` | Incremental scan/update pipeline behavior |
 
-- language-specific source files like `core.py`, `main.py`, `utils.py`, `src/index.ts`, and `src/greet.ts`
-- project metadata such as `pyproject.toml`, `package.json`, and `tsconfig.json`
-- repo policy/config files like `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, and `.github/workflows/ci.yml`
+This structure is intentionally flat. Rather than splitting by package, the suite groups by **feature area** and **integration surface**:
 
-Those fixture repositories are especially important for validating that traversal, extraction, and repository-shaping logic work on realistic directory layouts, not just synthetic snippets.
+- **CLI tests** validate commands and output formatting
+- **Store tests** validate database methods and migration-backed schema
+- **Server tests** validate HTTP endpoints and rendered note pages
+- **RAG tests** validate chunking, indexing, and provenance
+- **Update tests** validate orchestration and incremental refresh logic
 
-> **Sources:** `go/cmd/rekipedia/cmd/root_test.go` · `go/cmd/rekipedia/cmd/hook_test.go` · `go/cmd/rekipedia/cmd/refactor_test.go` · `go/internal/analysis/refactor_detector_test.go` · `tests/fixtures/mini-py-repo/` · `tests/fixtures/mini-ts-repo/`
+### What Each Test File Covers
 
-## Canonical Test Commands
+- [`tests.test_notes_cli`](tests/test_notes_cli.py#L1): note add/list/remove/edit/import commands, including YAML and Markdown import paths
+- [`tests.test_notes_store`](tests/test_notes_store.py#L1): note persistence, tag filtering, update semantics, deletion, and lookup
+- [`tests.test_notes_server`](tests/test_notes_server.py#L1): FastAPI routes for notes and notes page rendering
+- [`tests.test_notes_rag`](tests/test_notes_rag.py#L1): ensuring notes are injected into assembled system context only when present
+- [`tests.test_rag`](tests/test_rag.py#L1): scan metadata, chunk provenance, symbol chunking fallback behavior, FAISS-backed search, and incremental chunk updates
+- [`tests.test_update`](tests/test_update.py#L1): fallback from update to full scan, no-op behavior when unchanged, targeted page resynthesis, page source tracking, and incremental RAG re-embedding
 
-The analysis data exposes the following canonical commands used for testing. These are the most defensible “known good” commands from the evidence.
+> **Sources:** `tests/test_notes_cli.py` · `tests/test_notes_store.py` · `tests/test_notes_server.py` · `tests/test_notes_rag.py` · `tests/test_rag.py` · `tests/test_update.py`
 
-| Command | Purpose / context |
-|---|---|
-| `go test ./... -v -count=1 -timeout 120s` | Full Go test run across all packages |
-| `pytest` | Default Python test entrypoint |
-| `pytest tests/ -v --timeout=60 \` | Python test invocation observed with explicit verbosity/timeout flags; the trailing backslash indicates the command was captured mid-line |
-| `pip install pytest` | Dependency installation command captured in the evidence, not a test command itself |
+## Running Tests
 
-For day-to-day verification, the most canonical end-to-end checks are the broad Go suite and the Python suite:
+The only test command recorded in the analysis data is:
 
 ```bash
-go test ./... -v -count=1 -timeout 120s
 pytest
 ```
 
-> **Sources:** `test_commands` from analysis data · `go/cmd/rekipedia/cmd/refactor_test.go` · `tests/`
+Because the repository exposes a Python package and CLI entry point via [`rekipedia.cli:main`](README.md) and has a `pytest` test suite, the documented test runner is straightforward.
 
-## Fixture Strategy
+### Recommended Invocations
 
-The repository relies on a mix of temporary, synthetic, and on-disk fixtures.
+The task asks for unit, integration, and coverage examples. The analysis data only confirms `pytest`, so the following commands are the safest documented forms while still aligning with standard pytest usage:
 
-### Temporary filesystem fixtures in Go
+```bash
+# unit tests
+pytest
 
-Many Go tests build temporary repositories or files using helper functions, then exercise the real implementation against those directories. Representative examples include:
+# integration tests
+pytest
 
-- [`makeTestRepo`](go/cmd/rekipedia/cmd/refactor_test.go#L50) for static scanning tests
-- [`makeGitDir`](go/cmd/rekipedia/cmd/hook_test.go#L10) for hook installation/uninstallation tests
-- [`openTestStore`](go/internal/storage/store_test.go#L11) for isolated SQLite-backed storage tests
-- [`mockLLMServer`](go/internal/llm/client_test.go#L17) and [`mockEmbeddingServer`](go/internal/llm/client_test.go#L45) for HTTP-based LLM behavior
-- [`sampleAnalysisResult`](go/internal/synthesis/synthesis_test.go#L41) and [`mockLLMServer`](go/internal/synthesis/synthesis_test.go#L19) for synthesis planning
+# with coverage
+pytest --cov=rekipedia --cov-report=term-missing
+```
 
-This strategy keeps tests close to runtime reality while avoiding dependence on the actual user environment.
+The suite does not currently advertise separate test markers such as `unit` or `integration`, so the same base command is used for both categories. If you add markers later, you can refine these commands without changing the overall test workflow.
 
-### Mock servers and protocol fixtures
+### Running a Single Test
 
-Protocol-heavy code is tested with local HTTP servers rather than live external services. The LLM client tests use a mock OpenAI-compatible server to validate request construction, streaming, embeddings, and cancellation behavior. Synthesis tests also use a mock server to validate planner behavior both when valid JSON is returned and when the model returns fenced or invalid output.
+You can run a single test module or test case using standard pytest selection syntax:
 
-### On-disk repository fixtures in Python
+```bash
+pytest tests/test_rag.py
+pytest tests/test_update.py::test_update_no_changes_exits_early
+pytest tests/test_notes_cli.py::test_note_add
+```
 
-The Python tests lean heavily on the fixture repositories in `tests/fixtures/`. This is the clearest evidence of an end-to-end strategy: the scanner and extractor tests can run against realistic repo layouts that contain actual language files, build metadata, and governance files.
+### Practical Notes
 
-> **Sources:** `go/cmd/rekipedia/cmd/refactor_test.go` · `go/cmd/rekipedia/cmd/hook_test.go` · `go/internal/storage/store_test.go` · `go/internal/llm/client_test.go` · `go/internal/synthesis/synthesis_test.go` · `tests/fixtures/mini-py-repo/` · `tests/fixtures/mini-ts-repo/`
+Because many tests use temporary directories and fakes, they should be deterministic and not require external services. That said, the codebase includes features that can depend on optional packages such as FAISS, numpy, and tree-sitter in production paths; the tests are written to avoid requiring those services directly when possible.
 
-## What the Major Test Areas Validate
+> **Sources:** `pytest` test command from analysis data · `tests/test_rag.py` · `tests/test_update.py` · `tests/test_notes_cli.py`
 
-### CLI commands and flag wiring
+## Test Categories
 
-The CLI tests validate that commands are registered, flags are exposed, and command-specific behaviors work as expected. Representative examples include:
+### Unit Tests
 
-- [`TestRefactorCmdRegistered`](go/cmd/rekipedia/cmd/refactor_test.go#L15)
-- [`TestRefactorCmdFlags`](go/cmd/rekipedia/cmd/refactor_test.go#L28)
-- [`TestRefactorCmdUseLine`](go/cmd/rekipedia/cmd/refactor_test.go#L40)
-- [`TestLoadLLMConfigDefaults`](go/cmd/rekipedia/cmd/root_test.go#L104)
+The suite contains several strong unit-test clusters around pure or near-pure logic:
 
-The hook command is tested for install/uninstall status transitions, including negative cases:
+#### Notes Store
+[`tests.test_notes_store`](tests/test_notes_store.py#L1) exercises the methods behind [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39), including:
 
-- [`TestHookInstall`](go/cmd/rekipedia/cmd/hook_test.go#L20)
-- [`TestHookUninstall`](go/cmd/rekipedia/cmd/hook_test.go#L52)
-- [`TestHookUninstallNotOurs`](go/cmd/rekipedia/cmd/hook_test.go#L71)
-- [`TestHookStatusInstalled`](go/cmd/rekipedia/cmd/hook_test.go#L91)
+- note creation and listing
+- tag filtering
+- update-in-place behavior
+- deletion and lookup
+- alias behavior such as `get_notes`
 
-The refactor command tests are the most end-to-end of the command suite: they validate static scanning, filtering, markdown report generation, file output, and a flag that disables LLM use.
+These tests are especially valuable because they validate the storage contract without involving the CLI or HTTP layers.
 
-### Analysis engine behavior
+#### RAG Chunking and Provenance
+[`tests.test_rag`](tests/test_rag.py#L1) checks chunking and provenance behavior for helpers in [`rekipedia.rag.embedder`](src/rekipedia/rag/embedder.py#L1), including:
 
-The analysis tests validate both detection logic and enrichment logic. In [`go/internal/analysis/refactor_detector_test.go`](go/internal/analysis/refactor_detector_test.go), the suite covers:
+- [`_is_implementation`](src/rekipedia/rag/embedder.py#L132) heuristic classification
+- [`_chunk_file`](src/rekipedia/rag/embedder.py#L160) line-provenance generation
+- [`_symbol_chunk_file`](src/rekipedia/rag/embedder.py#L218) and fallback behavior
+- [`EmbedPipeline.search`](src/rekipedia/rag/embedder.py#L610) search output shape
+- store round-trips for [`SqliteStore.upsert_rag_chunks`](src/rekipedia/storage/sqlite_store.py#L710) and [`SqliteStore.get_rag_chunks_by_file`](src/rekipedia/storage/sqlite_store.py#L739)
 
-- [`TestDetectGodNodes_DetectsHub`](go/internal/analysis/refactor_detector_test.go#L23) for hub detection
-- circular dependency detection and deduplication
-- dead-code detection across Python and Go semantics
-- high fan-in / fan-out thresholds
-- deep inheritance detection
-- aggregate multi-rule detection via [`TestDetectAll_ReturnsMultipleKinds`](go/internal/analysis/refactor_detector_test.go#L350)
+#### Fixtures and Mocks
+A few key test fixtures and fake responses are visible:
 
-The enrichment tests in [`go/internal/analysis/refactor_enricher_test.go`](go/internal/analysis/refactor_enricher_test.go) check prompt construction, parsing of model output, caller attachment, and fallback behavior when the LLM is unavailable or returns bad output.
-
-The writer tests in [`go/internal/analysis/refactor_writer_test.go`](go/internal/analysis/refactor_writer_test.go) verify prioritization, section rendering, and output file structure.
-
-### Storage and persistence
-
-The storage suite validates SQLite lifecycle operations, migrations, and CRUD-style persistence for runs, symbols, relationships, wiki pages, QA history, manifests, and snapshot data. [`go/internal/storage/store_test.go`](go/internal/storage/store_test.go) is especially important because it proves that the repository can persist and retrieve the analysis artifacts that later stages consume.
-
-### Extraction and scanning
-
-The extractor tests confirm that the repository can read and classify source files from multiple languages and config formats. The tests cover Go, Python, and TypeScript extraction paths, plus config extraction for `package.json`, `pyproject.toml`, `Dockerfile`, `go.mod`, and `Makefile`. This matters for end-to-end coverage because later graph, synthesis, and server layers depend on those extracted symbols and relationships.
-
-### Orchestration and synthesis
-
-Orchestration tests validate snapshotting, sharding, token-estimation heuristics, and language detection. Synthesis tests verify that planning and page generation can handle valid JSON, fenced JSON, invalid JSON fallback, and diagram generation. These tests are key to the “analysis → plan → pages” pipeline.
-
-### Server and UI
-
-Server tests validate the HTTP routes and UI rendering behavior: health endpoint, page listing, wiki page rendering, frontmatter stripping, graph endpoints, ask endpoints, and missing-resource handling. This is where the repository’s generated knowledge becomes a browsable UI and API.
-
-> **Sources:** `go/cmd/rekipedia/cmd/refactor_test.go` · `go/cmd/rekipedia/cmd/root_test.go` · `go/cmd/rekipedia/cmd/hook_test.go` · `go/internal/analysis/refactor_detector_test.go` · `go/internal/analysis/refactor_enricher_test.go` · `go/internal/analysis/refactor_writer_test.go` · `go/internal/storage/store_test.go` · `go/internal/extractor/extractor_test.go` · `go/internal/orchestrator/orchestrator_test.go` · `go/internal/synthesis/synthesis_test.go` · `go/internal/server/server_test.go`
-
-## Subsystem-to-Test Matrix
-
-| Subsystem | Primary test files / suites | Notes |
+| Fixture / helper | File | Role |
 |---|---|---|
-| CLI root and config | `go/cmd/rekipedia/cmd/root_test.go` | version flag, subcommands, LLM config defaults |
-| Hook management | `go/cmd/rekipedia/cmd/hook_test.go` | install/uninstall/status, idempotency, safety checks |
-| Refactor scanning | `go/cmd/rekipedia/cmd/refactor_test.go` | static walk, filtering, output generation, command registration |
-| Refactor detection | `go/internal/analysis/refactor_detector_test.go` | god nodes, circular deps, fan-in/out, inheritance |
-| Refactor enrichment | `go/internal/analysis/refactor_enricher_test.go` | LLM prompt/parse/fallback, caller and note attachment |
-| Refactor writing | `go/internal/analysis/refactor_writer_test.go` | markdown/JSON outputs, counts, ordering |
-| Extraction | `go/internal/extractor/extractor_test.go` | multi-language parsing and registry routing |
-| Graph analysis | `go/internal/graph/graph_analysis_test.go`, `go/internal/graph/hub_gap_test.go` | hubs, god nodes, knowledge gaps |
-| LLM client | `go/internal/llm/client_test.go` | HTTP contract, retries, embeddings, transient errors |
-| Orchestration | `go/internal/orchestrator/orchestrator_test.go` | snapshots, sharding, language filtering |
-| RAG | `go/internal/rag/rag_test.go` | chunking, vector search, metadata persistence |
-| Storage | `go/internal/storage/store_test.go` | SQLite persistence and isolation |
-| Server | `go/internal/server/server_test.go` | route handling, HTML rendering, JSON APIs |
-| Synthesis | `go/internal/synthesis/synthesis_test.go` | planning, payload slicing, diagram building |
-| Python integration suite | `tests/test_*.py` | end-to-end flows across CLI, scanning, server, storage, and export |
+| [`_fake_embed_response`](tests/test_rag.py#L65) | `tests/test_rag.py` | Produces deterministic embedding responses |
+| [`_make_test_repo`](tests/test_rag.py#L75) | `tests/test_rag.py` | Builds a small synthetic repository |
+| [`mock_llm`](tests/test_update.py#L34) | `tests/test_update.py` | Replaces LLM behavior in update tests |
+| [`_fake_llm_response`](tests/test_update.py#L19) | `tests/test_update.py` | Supplies stable LLM output |
+| [`runner`](tests/test_notes_cli.py#L14) | `tests/test_notes_cli.py` | Click command runner fixture |
+| [`store`](tests/test_notes_store.py#L12) | `tests/test_notes_store.py` | Temporary SQLite-backed store |
 
-> **Sources:** `go/cmd/rekipedia/cmd/root_test.go` · `go/cmd/rekipedia/cmd/hook_test.go` · `go/cmd/rekipedia/cmd/refactor_test.go` · `go/internal/analysis/refactor_detector_test.go` · `go/internal/analysis/refactor_enricher_test.go` · `go/internal/analysis/refactor_writer_test.go` · `go/internal/extractor/extractor_test.go` · `go/internal/graph/graph_analysis_test.go` · `go/internal/graph/hub_gap_test.go` · `go/internal/llm/client_test.go` · `go/internal/orchestrator/orchestrator_test.go` · `go/internal/rag/rag_test.go` · `go/internal/storage/store_test.go` · `go/internal/server/server_test.go` · `go/internal/synthesis/synthesis_test.go` · `tests/`
+The strong pattern here is that tests isolate code under test from model calls, the filesystem beyond a temp tree, and network dependencies.
 
-## Practical Reading Guide
+> **Sources:** `tests/test_notes_store.py` · `tests/test_rag.py` · `tests/test_update.py` · `src/rekipedia/storage/sqlite_store.py` · L39–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39) · `src/rekipedia/rag/embedder.py` · L132–L232 · [`_chunk_file`](src/rekipedia/rag/embedder.py#L160) · [`EmbedPipeline.search`](src/rekipedia/rag/embedder.py#L610)
 
-If you want to understand whether a change is safe end to end, the fastest path is:
+### Integration Tests
 
-1. Start with the command tests in `go/cmd/rekipedia/cmd/`.
-2. Follow into analysis and extraction tests for data correctness.
-3. Check storage, synthesis, and server suites for persistence and presentation.
-4. Run the canonical Go and Python commands to confirm the full toolchain still works.
+Integration coverage focuses on behavior across module boundaries.
 
-That progression mirrors the repository’s execution flow: command entrypoint → scanning/extraction → analysis/enrichment → persistence/synthesis → server/UI.
+#### CLI → Store
+[`tests.test_notes_cli`](tests/test_notes_cli.py#L1) drives the note commands from the CLI layer into the store layer via [`note_add`](src/rekipedia/cli/note.py#L35), [`note_list`](src/rekipedia/cli/note.py#L49), [`note_remove`](src/rekipedia/cli/note.py#L70), [`note_edit`](src/rekipedia/cli/note.py#L96), and [`note_import`](src/rekipedia/cli/note.py#L127). This validates the full user-facing behavior rather than just individual store calls.
 
-> **Sources:** `go/cmd/rekipedia/main.go` · `go/cmd/rekipedia/cmd/` · `go/internal/analysis/` · `go/internal/extractor/` · `go/internal/storage/` · `go/internal/synthesis/` · `go/internal/server/`
+#### Update Orchestration
+[`tests.test_update`](tests/test_update.py#L1) verifies cross-module flows involving:
+
+- [`run_update`](src/rekipedia/orchestrator/run_update.py#L27)
+- [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45)
+- [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39)
+- [`PageBuilder`](src/rekipedia/orchestrator/run_digest.py#L1) as referenced by the scan pipeline
+- [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733)
+
+This suite checks that an update can:
+1. detect whether a previous scan exists,
+2. identify changed files,
+3. preserve unchanged symbols and relationships,
+4. refresh wiki pages,
+5. update the incremental RAG index when an index already exists.
+
+#### Server Routes
+[`tests.test_notes_server`](tests/test_notes_server.py#L1) exercises the FastAPI app produced by [`create_app`](src/rekipedia/server/app.py#L21). This covers:
+
+- `GET` notes listing
+- `POST` note creation
+- `DELETE` note removal
+- notes page rendering
+
+#### Notes in RAG Context
+[`tests.test_notes_rag`](tests/test_notes_rag.py#L1) validates that notes are included in the assembled system context used by [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304) and excluded when there are no notes.
+
+> **Sources:** `tests/test_notes_cli.py` · `tests/test_notes_server.py` · `tests/test_notes_rag.py` · `tests/test_update.py` · `src/rekipedia/cli/note.py` · L35–L153 · [`note_add`](src/rekipedia/cli/note.py#L35) · [`note_import`](src/rekipedia/cli/note.py#L127) · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) · `src/rekipedia/server/app.py` · L21–L663 · [`create_app`](src/rekipedia/server/app.py#L21)
+
+## Writing New Tests
+
+### Conventions to Follow
+
+When adding new tests, follow the existing style:
+
+1. **Put the test next to the feature area**
+   - CLI note behavior → `tests/test_notes_cli.py`
+   - storage behavior → `tests/test_notes_store.py`
+   - server routes → `tests/test_notes_server.py`
+   - RAG/chunking → `tests/test_rag.py`
+   - update pipeline → `tests/test_update.py`
+
+2. **Use temp directories and fakes**
+   - Prefer `tmp_path`, temporary stores, and mock responses over real external services
+   - Mirror the existing use of [`_fake_embed_response`](tests/test_rag.py#L65) and [`_fake_llm_response`](tests/test_update.py#L19)
+
+3. **Test outcomes, not internals**
+   - For example, assert that [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477) persisted chunk provenance or that [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) produced a new run, rather than checking every intermediate branch
+
+4. **Prefer deterministic assertions**
+   - The suite commonly checks lengths, returned rows, JSON payloads, and exact note contents
+
+### Where to Put New Tests
+
+| New behavior belongs to... | Suggested file |
+|---|---|
+| Note CLI command | `tests/test_notes_cli.py` |
+| Notes persistence or schema changes | `tests/test_notes_store.py` |
+| Notes API/view behavior | `tests/test_notes_server.py` |
+| Context assembly / RAG prompt injection | `tests/test_notes_rag.py` |
+| Embedding, chunking, provenance, search | `tests/test_rag.py` |
+| Scan/update orchestration | `tests/test_update.py` |
+
+### Running a Single New Test
+
+During development, run the narrowest possible selection:
+
+```bash
+pytest tests/test_update.py::test_my_new_behavior
+pytest tests/test_rag.py -k provenance
+pytest tests/test_notes_cli.py::test_note_import_markdown
+```
+
+If your test targets a function such as [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) or [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733), it is often worth starting with a single scenario and then broadening to the whole file.
+
+> **Sources:** `tests/test_notes_cli.py` · `tests/test_notes_store.py` · `tests/test_notes_server.py` · `tests/test_notes_rag.py` · `tests/test_rag.py` · `tests/test_update.py` · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) · `src/rekipedia/rag/embedder.py` · L477–L892 · [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477) · [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733)
+
+## CI/CD
+
+No CI configuration files were present in the analysis evidence (`ci_files` is empty), so there is **no observable CI/CD pipeline to document** from the repository snapshot.
+
+What we can say from the available evidence:
+
+- The project has a standard Python packaging/test setup
+- The test command is `pytest`
+- The build command is `uv build`
+- The package exposes CLI entry points [`rekipedia = "rekipedia.cli:main"` and `reki = "rekipedia.cli:main"`](README.md)
+
+In other words, automated validation is clearly intended, but the concrete CI provider, workflow steps, and triggers are not visible in the current repository evidence.
+
+> **Sources:** `ci_files` empty in analysis data · `pytest` test command from analysis data · `uv build` build command from analysis data · `README.md` entry points for [`rekipedia.cli:main`](README.md)

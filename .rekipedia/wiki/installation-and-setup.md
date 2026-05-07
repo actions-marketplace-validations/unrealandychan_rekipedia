@@ -1,124 +1,138 @@
 ---
 slug: installation-and-setup
-title: "Getting Started: Build and Run"
-section: getting-started
-tags: [getting-started, configuration]
+title: "Installation and Setup Guide"
+section: general
 pin: false
-importance: 68
-created_at: 2026-05-05T04:57:55Z
-rekipedia_version: 0.10.3
+importance: 50
+created_at: 2026-05-07T04:12:04Z
+rekipedia_version: 0.10.9
 ---
 
-# Getting Started: Build and Run
+# Installation and Setup Guide
 
-This page focuses on the shortest path to a successful local setup and a production-like run of the project. It deliberately avoids project overview and architecture details, and concentrates on prerequisites, installation, build commands, and a minimal verification step.
+This guide explains how to install and run **rekipedia** from source or via package managers, based on the repository’s analyzed build and runtime entry points. The project exposes a Python CLI via [`rekipedia.cli:main`](src/rekipedia/cli/__init__.py#L26) and also contains a Go implementation under `go/`, but the documented install path here is the Python package, since the available packaging metadata and commands are Python-oriented. The package version observed in the repository metadata is `0.10.9` for both Python and npm naming information.
 
-## Prerequisites
+## Requirements
 
-The repository contains explicit signals about the toolchain it expects in different distribution modes:
+### System Requirements
 
-- **Python packaging/tooling** is present via `pyproject.toml`, `uv.lock`, and the package entry points declared in the evidence:
-  - `rekipedia = "rekipedia.cli:main"`
-  - `reki = "rekipedia.cli:main"`
-- **Go toolchain** is also required for the Go implementation under `go/`, with build commands and a Go module file in `go/go.mod`.
-- **Node/TypeScript tooling** is used for the TypeScript build path, indicated by `package.json` and the explicit build command `npm run build  # tsc`.
-- **Docker** is supported for a containerized production-like build, with `docker build .` and a scratch-based Docker image in the evidence (`FROM scratch`).
-- The repo also contains standard developer tooling and configuration files such as `.env.sample`, `.pre-commit-config.yaml`, `.eslintrc.json`, `.golangci.yml`, and `.prettierrc.json`, indicating linting and environment configuration are part of the expected workflow.
+`rekipedia` is a local developer tool that stores data in SQLite and builds a RAG index over repository content. At minimum, you need:
 
-### Environment variables and configuration
+- A modern Python runtime
+- SQLite support via the bundled database layer
+- Enough disk space for the local `.rekipedia/` cache and generated wiki output
+- Network access if your LLM provider is remote
 
-The only explicitly evidenced environment/configuration artifact in the payload is [` .env.sample`](.env.sample), which strongly suggests copying or adapting it for local runs. The analysis payload does not expose the actual variable names, so the safest guidance is:
+The storage layer is implemented by [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39), which opens a database file and applies schema migrations on startup. That means a writable working directory is required, because the store is created in a project-local output directory, typically `.rekipedia/`.
 
-1. Start from `.env.sample`.
-2. Populate values required by your chosen runtime path.
-3. Keep any secrets or API keys local and uncommitted.
+### Language Versions
 
-If you are following the Go runtime path, the codebase also includes LLM-related configuration types such as [`LLMConfig`](go/internal/models/contracts.go#L6) and a default configuration helper [`DefaultLLMConfig`](go/internal/models/contracts.go#L18), which indicates runtime behavior may depend on model/provider settings even if the exact env var names are not surfaced in the analysis.
+The repository includes both Python and Go code, but the install/setup surface for the CLI is Python-first:
 
-> **Sources:** `.env.sample` · `pyproject.toml` · `uv.lock` · `go/go.mod` · `package.json` · `Dockerfile.sandbox` · [`LLMConfig`](go/internal/models/contracts.go#L6-L15) · [`DefaultLLMConfig`](go/internal/models/contracts.go#L18-L23)
+| Component | Evidence |
+|---|---|
+| Python package name | `rekipedia` |
+| Python package version | `0.10.9` |
+| CLI entry point | [`rekipedia = "rekipedia.cli:main"`](src/rekipedia/cli/__init__.py#L26) |
+| Alternate CLI entry point | [`reki = "rekipedia.cli:main"`](src/rekipedia/cli/__init__.py#L26) |
+| Build command | `uv build` |
 
-## Installation
+### Runtime Dependencies
 
-There are at least two practical installation tracks visible in the repository: Python packaging for the `rekipedia` CLI, and a Go build path for the newer implementation under `go/`.
+The code paths show these major runtime dependencies:
 
-### Python path
+- `click` for CLI wiring in [`rekipedia.cli.__init__`](src/rekipedia/cli/__init__.py#L1)
+- `faiss` and `numpy` for embedding and ANN search in [`rekipedia.rag.embedder`](src/rekipedia/rag/embedder.py#L1)
+- `litellm` for embeddings and LLM calls in [`_embed_batch`](src/rekipedia/rag/embedder.py#L416)
+- `tree_sitter` language bindings for symbol-aware chunking in [`_symbol_chunk_file_inner`](src/rekipedia/rag/embedder.py#L235)
+- `fastapi` and templating libraries for the web server in [`create_app`](src/rekipedia/server/app.py#L21)
+- `yaml` for note import in [`import_notes_from_file`](src/rekipedia/notes/__init__.py#L7)
 
-The Python package is configured with console entry points in the repository evidence:
+The embedding CLI also explicitly checks for missing `faiss-cpu`/`numpy` and exits with a friendly error via [`_check_rag_deps`](src/rekipedia/cli/embed.py#L22).
 
-```text
-rekipedia = "rekipedia.cli:main"
-reki = "rekipedia.cli:main"
-```
+> **Sources:** `pyproject.toml` · `package.json` · [`main`](src/rekipedia/cli/__init__.py#L26) · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39) · [`_check_rag_deps`](src/rekipedia/cli/embed.py#L22-L41) · [`_embed_batch`](src/rekipedia/rag/embedder.py#L416-L436) · [`_symbol_chunk_file_inner`](src/rekipedia/rag/embedder.py#L235-L409) · [`create_app`](src/rekipedia/server/app.py#L21-L663)
 
-That means a successful installation should expose either `rekipedia` or `reki` on your PATH. The packaging toolchain is centered around **uv** and **hatch** based on the build commands found in the repo.
+## Installation Methods
 
-Typical local workflow:
+### From Source
+
+The analysis data includes one explicit build command: [`uv build`](#). In practice, the source install flow is:
+
+1. Clone the repository.
+2. Create and activate a Python environment.
+3. Install project dependencies.
+4. Build the package if you want a distributable artifact.
+5. Invoke the CLI entry point.
+
+A typical source workflow looks like this:
 
 ```bash
+git clone <repository-url>
+cd <repository-dir>
+
+uv venv
+source .venv/bin/activate
+
 uv sync
 uv build
 ```
 
-If you prefer the hatch workflow:
+If you are not using `uv` to manage the environment, you can still install in editable mode using standard Python tooling, provided your environment already has the dependencies required by the package:
 
 ```bash
-hatch build
+pip install -e .
 ```
 
-### Go path
+The build command is confirmed by the repository analysis (`build_commands: ["uv build"]`), so `uv build` is the canonical packaging step.
 
-The Go project lives under `go/` and has its own module and build tooling. A minimal build from that subdirectory is:
+### Via Package Manager
+
+Both `pyproject.toml` and `package.json` are present, which means the project is discoverable through Python packaging and also has npm metadata.
+
+#### Python Package Manager
+
+The Python package name is `rekipedia` and the version is `0.10.9`. Install it with:
 
 ```bash
-cd go
-CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia
+pip install rekipedia==0.10.9
 ```
 
-This produces a statically linked binary-like artifact suitable for local testing or containerization.
-
-> **Sources:** `pyproject.toml` · `uv.lock` · `go/go.mod` · `go/cmd/rekipedia/main.go` · `go/cmd/rekipedia/cmd/root.go` · `go/cmd/rekipedia/cmd/serve.go` · `go/Makefile`
-
-## Supported build commands
-
-The repository evidence explicitly names the following build commands:
-
-| Command | Use case | Notes |
-|--------|----------|-------|
-| `uv build` | Python package build | Matches the Python packaging workflow |
-| `hatch build` | Python package build | Appears twice in evidence, likely an alternate or repeated CI target |
-| `CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia` | Go binary build | Produces a stripped, statically linked binary |
-| `docker build .` | Container image build | Production-like image build path |
-| `npm run build  # tsc` | TypeScript compilation | Uses the project’s npm/TypeScript toolchain |
-
-A few practical observations from the evidence:
-
-- `CGO_ENABLED=0` is an explicit requirement for the Go binary build command.
-- `-ldflags "-s -w"` indicates the Go binary is intended to be minimized for distribution.
-- `docker build .` pairs naturally with the `FROM scratch` evidence, implying a very small runtime image.
-- The TypeScript path is explicitly compile-only (`tsc`), which is consistent with build-time verification rather than a runtime server.
-
-> **Sources:** `Makefile` · `go/Makefile` · `package.json` · `go/Dockerfile` · `Dockerfile.sandbox`
-
-## Local development workflow
-
-For day-to-day development, the fastest path is usually to build from the language/runtime you are actively changing.
-
-### Python development loop
-
-If you are working on the Python CLI or library code under `src/rekipedia/`, use the Python packaging toolchain:
+or with `uv`:
 
 ```bash
-uv sync
-uv build
+uv pip install rekipedia==0.10.9
 ```
 
-If your environment is already configured with hatch:
+If you are developing locally, editable install is usually preferred:
 
 ```bash
-hatch build
+pip install -e .
 ```
 
-The repository also exposes a CLI entry point from Python, so after installation you should be able to run:
+#### npm
+
+The repository metadata includes `package.json` with npm package name `rekipedia` and version `0.10.9`. However, the analysis does not provide an npm build or runtime workflow comparable to the Python CLI. Treat the npm metadata as packaging metadata rather than the primary installation path.
+
+### Docker
+
+No `Dockerfile` was present in the analyzed file list, so there is no evidence-based Docker build/run flow to document. If you want containerized usage, you would need to author a Dockerfile yourself or check the repository outside the analyzed snapshot.
+
+> **Sources:** `pyproject.toml` · `package.json` · `build_commands` · [`main`](src/rekipedia/cli/__init__.py#L26-L27)
+
+## First Run
+
+The first-run experience centers around the CLI entry point and the project-local `.rekipedia/` directory.
+
+### 1. Verify the CLI is available
+
+The package exposes two entry points:
+
+- `rekipedia`
+- `reki`
+
+Both resolve to [`rekipedia.cli:main`](src/rekipedia/cli/__init__.py#L26).
+
+Run:
 
 ```bash
 rekipedia --help
@@ -126,115 +140,151 @@ rekipedia --help
 reki --help
 ```
 
-### Go development loop
+The CLI module is organized with Click in [`rekipedia.cli.__init__`](src/rekipedia/cli/__init__.py#L1), so `--help` should show the command tree.
 
-For the Go implementation, the primary build target is the command under `go/cmd/rekipedia`:
+### 2. Create or select a repository to scan
 
-```bash
-cd go
-go build ./cmd/rekipedia
+The main workflows operate against a repository root. The scanning pipeline is implemented by [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45) and the update pipeline by [`run_update`](src/rekipedia/orchestrator/run_update.py#L27). Both expect a repository root and an output directory, typically `.rekipedia/`.
+
+### 3. Run the initial scan / digest
+
+Although the CLI command wrapper for scan is not fully shown in the analyzed set, the underlying full scan pipeline is [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45). It:
+
+- creates a run record
+- snapshots files
+- extracts symbols and relationships
+- synthesizes wiki pages
+- writes Markdown/JSON outputs
+- optionally builds embeddings via [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477)
+
+A first run should therefore populate:
+
+- `.rekipedia/store.db`
+- `.rekipedia/wiki/`
+- embedding artifacts if the RAG step is enabled
+
+### 4. Open the server
+
+The web app factory is [`create_app`](src/rekipedia/server/app.py#L21). In a healthy setup, the server reads the latest successful run and renders wiki pages and note management UI from the generated local store.
+
+### Execution Flow
+
+```mermaid
+flowchart LR
+  CLI[CLI entry point]
+  Digest[run_digest]
+  Store[SqliteStore]
+  Pages[Wiki pages]
+  Embed[EmbedPipeline]
+  Server[create_app]
+
+  CLI --> Digest
+  Digest --> Store
+  Digest --> Pages
+  Digest --> Embed
+  Server --> Store
+  Server --> Pages
 ```
 
-For a production-like artifact, prefer the explicit stripped build used in the evidence:
+> **Sources:** [`main`](src/rekipedia/cli/__init__.py#L26-L27) · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45-L433) · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244) · [`create_app`](src/rekipedia/server/app.py#L21-L663) · [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477-L604)
+
+## Environment Variables
+
+The repository analysis shows several environment-sensitive code paths, even where the exact variable names are not fully enumerated in the metadata.
+
+### LLM and Embedding Configuration
+
+The embedding CLI accepts provider/model settings in [`embed_cmd`](src/rekipedia/cli/embed.py#L85). It uses an [`LLMConfig`](src/rekipedia/cli/embed.py#L85) instance and passes `base_url`/API-related settings down to [`_embed_batch`](src/rekipedia/rag/embedder.py#L416), which routes through `litellm.embedding()`.
+
+The orchestrator also uses [`LLMConfig`](src/rekipedia/orchestrator/run_digest.py#L45) and [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304) / [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L333) for answer generation, so common LLM configuration is likely shared across scan and ask workflows.
+
+### RAG Behaviour Flags
+
+The embedding search path documents one explicit environment-driven toggle:
+
+- `REKIPEDIA_RAG_MMR=0` disables Maximal Marginal Relevance in [`EmbedPipeline.search`](src/rekipedia/rag/embedder.py#L610-L711)
+
+This is useful when you want deterministic top-K nearest neighbours without diversification.
+
+### Shell Environment Dependencies
+
+The note-editing flow uses the `$EDITOR` environment variable when content is not passed directly, in [`note_edit`](src/rekipedia/cli/note.py#L96-L120). If `$EDITOR` is unset, editing may fail or fall back poorly depending on the shell/platform.
+
+### What is Observable vs. What is Not
+
+The analysis data confirms environment-driven behavior, but it does **not** provide a complete inventory of all possible variables. In particular, there is no exhaustive config reference file in the analyzed snapshot. The safest documented assumptions are:
+
+| Area | Observable behavior |
+|---|---|
+| LLM provider/model | Configurable through `LLMConfig`-driven CLI/runtime paths |
+| RAG MMR | `REKIPEDIA_RAG_MMR=0` disables diversification |
+| Note editing | `$EDITOR` may be used by the CLI |
+
+> **Sources:** [`embed_cmd`](src/rekipedia/cli/embed.py#L85-L201) · [`_embed_batch`](src/rekipedia/rag/embedder.py#L416-L436) · [`EmbedPipeline.search`](src/rekipedia/rag/embedder.py#L610-L711) · [`note_edit`](src/rekipedia/cli/note.py#L96-L120)
+
+## Troubleshooting
+
+### Missing `faiss-cpu` or `numpy`
+
+If you run the embedding command and see a dependency error, it is likely from [`_check_rag_deps`](src/rekipedia/cli/embed.py#L22-L41). The command intentionally checks for these packages and exits with a friendly message.
+
+**Fix:**
 
 ```bash
-cd go
-CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia
+pip install numpy faiss-cpu
+# or, if using uv:
+uv pip install numpy faiss-cpu
 ```
 
-The command tree under `go/cmd/rekipedia/` includes subcommands like `serve`, `scan`, `update`, `export`, and `watch`, with the CLI rooted in [`main`](go/cmd/rekipedia/main.go#L6-L8) and dispatched through [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48).
+### Tree-sitter not installed or unsupported language
 
-> **Sources:** `src/rekipedia/__main__.py` · `src/rekipedia/cli/__init__.py` · `go/cmd/rekipedia/main.go` · [`Execute`](go/cmd/rekipedia/cmd/root.go#L44-L48) · `go/cmd/rekipedia/cmd/root.go` · `go/cmd/rekipedia/cmd/serve.go` · `go/cmd/rekipedia/cmd/watch.go`
+Symbol-aware chunking in [`_symbol_chunk_file`](src/rekipedia/rag/embedder.py#L218-L232) falls back gracefully when tree-sitter is unavailable or a language is unsupported. This is not fatal, but it can reduce chunk quality.
 
-## Production-like modes
+**Symptoms:**
+- fewer symbol-aligned chunks
+- less precise provenance in RAG results
 
-The repository supports more than one “production-like” execution pattern.
+**Fix:**
+Install the relevant tree-sitter bindings used by the project and rerun embedding.
 
-### Containerized run
+### Database or migration issues
 
-The clearest production-style path is Docker-based:
+The store automatically applies migrations in [`SqliteStore._apply_migrations`](src/rekipedia/storage/sqlite_store.py#L117-L131). If the database is corrupt or schema state is stale, remove the local `.rekipedia/` directory and re-run the initial scan.
+
+**Fix:**
 
 ```bash
-docker build .
+rm -rf .rekipedia
+rekipedia ...
 ```
 
-This is reinforced by the scratch-based base image evidence (`FROM scratch`), which suggests the final image is designed for a minimal runtime footprint.
+### “No successful scan exists” errors
 
-### Compiled binary run
+The ask flow validates that a successful scan already exists via [`_verify_scan`](src/rekipedia/orchestrator/run_ask.py#L37-L52). If it fails, you likely tried to ask questions before running a scan.
 
-For a non-containerized production-like artifact, build the Go CLI with CGO disabled:
+**Fix:**
+Run the full scan/digest pipeline first, then retry the question workflow.
+
+### Notes editing opens the wrong editor or fails
+
+[`note_edit`](src/rekipedia/cli/note.py#L96-L120) may open an editor through `$EDITOR`. If the editor does not launch, set it explicitly:
 
 ```bash
-cd go
-CGO_ENABLED=0 go build -ldflags "-s -w" -o reki ./cmd/rekipedia
-./reki --help
+export EDITOR=vim
+# or
+export EDITOR=nano
 ```
 
-This is likely the closest local approximation to how the CLI would be shipped or embedded in release artifacts.
+### Server shows no pages or empty content
 
-### TypeScript validation build
+The server depends on generated wiki output and the latest successful run, both read through [`create_app`](src/rekipedia/server/app.py#L21-L663). If the UI is empty, check that:
 
-If you are working on the TS frontend or helper package, the production-like step is the TypeScript compile:
+1. the scan completed successfully,
+2. `.rekipedia/wiki/` exists,
+3. `.rekipedia/store.db` contains the latest run.
 
-```bash
-npm run build  # tsc
-```
+### Embedding index absent after update
 
-That command is a build-time verification, not a runtime start command, but it is still an important “first success” milestone for the JS/TS path.
+The update path only performs incremental embedding when an index already exists; otherwise [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733-L892) falls back to a full build. If the index is missing, the first update may take longer than expected because it rebuilds from scratch.
 
-> **Sources:** `go/Dockerfile` · `Dockerfile.sandbox` · `go/cmd/rekipedia/main.go` · `package.json`
-
-## Minimal verification step
-
-The minimal verification step should prove that the toolchain is installed, the project builds, and the CLI can start or at least report its usage.
-
-### Recommended smoke tests
-
-Pick one based on the code path you are using:
-
-#### Go CLI smoke test
-
-```bash
-cd go
-CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia
-/tmp/reki --help
-```
-
-Success criteria:
-- the binary builds without errors
-- the binary prints CLI usage/help
-- no missing dependency or runtime configuration errors appear immediately
-
-#### Python CLI smoke test
-
-```bash
-uv build
-rekipedia --help
-```
-
-or, if the installed binary is named differently:
-
-```bash
-reki --help
-```
-
-Success criteria:
-- the package builds
-- the console script launches
-- help text renders without stack traces
-
-#### Docker smoke test
-
-```bash
-docker build .
-```
-
-Success criteria:
-- the image builds successfully
-- no missing build context or dependency issues are reported
-
-### What not to over-validate here
-
-This page is intentionally not the place to verify graph generation, wiki export, or orchestration features. The goal is only to confirm that setup is correct and the project can be built/run in at least one supported mode.
-
-> **Sources:** `go/cmd/rekipedia/main.go` · `go/cmd/rekipedia/cmd/root.go` · `pyproject.toml` · `package.json` · `go/Dockerfile`
+> **Sources:** [`_check_rag_deps`](src/rekipedia/cli/embed.py#L22-L41) · [`_symbol_chunk_file`](src/rekipedia/rag/embedder.py#L218-L232) · [`SqliteStore._apply_migrations`](src/rekipedia/storage/sqlite_store.py#L117-L131) · [`_verify_scan`](src/rekipedia/orchestrator/run_ask.py#L37-L52) · [`note_edit`](src/rekipedia/cli/note.py#L96-L120) · [`create_app`](src/rekipedia/server/app.py#L21-L663) · [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733-L892)

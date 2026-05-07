@@ -1,139 +1,164 @@
 ---
 slug: index
-title: "Overview"
-section: getting-started
-tags: [overview, getting-started, repository-structure]
+title: "Project Overview"
+section: general
 pin: false
-importance: 100
-created_at: 2026-05-05T04:57:57Z
-rekipedia_version: 0.10.3
+importance: 50
+created_at: 2026-05-07T04:04:39Z
+rekipedia_version: 0.10.9
 ---
 
-# Overview
+# Project Overview
 
-## What it is
+## What is this project?
 
-Rekipedia is a developer tool for turning source repositories into navigable, searchable documentation and analysis outputs. The project includes a Python package under `src/rekipedia`, a Go implementation under `go/`, and supporting scripts, workflows, and fixtures for testing across languages and packaging targets. At a high level, it can scan code, extract symbols and relationships, generate wiki pages and diagrams, persist results in storage, and expose the content through a server and command-line entry points such as [`main`](go/cmd/rekipedia/main.go#L6) and the Python package entry point in `src/rekipedia/__main__.py`.  
+`rekipedia` is an agentic “repo-to-wiki” knowledge store: it scans a source repository, extracts symbols and relationships, synthesizes wiki pages, and stores everything in a local database for later querying. The project is centered around the Python entry point [`main`](src/rekipedia/cli/__init__.py#L26) exposed as the console scripts `rekipedia` and `reki`, which are both mapped to [`rekipedia.cli:main`](src/rekipedia/cli/__init__.py#L26). From there, the CLI fans out into operational commands such as [`embed_cmd`](src/rekipedia/cli/embed.py#L85-L201) for building a retrieval index and note-management commands in [`note_cmd`](src/rekipedia/cli/note.py#L27-L28).
 
-The repository clearly supports multiple workflows: build/package, analysis, export, and serving content. The presence of `README.md`, `CONTRIBUTING.md`, `docs/`, `tests/`, and the Go and Python source trees indicates it is intended both as an end-user tool and as a maintained engineering project.
+At the heart of the system are a few high-level modules:
 
-> **Sources:** `README.md`; `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6); `src/rekipedia/__main__.py`
+- [`rekipedia.orchestrator.run_digest`](src/rekipedia/orchestrator/run_digest.py#L45-L433) — performs a full repository scan and synthesis pass.
+- [`rekipedia.orchestrator.run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244) — performs an incremental update when files change.
+- [`rekipedia.orchestrator.run_ask`](src/rekipedia/orchestrator/run_ask.py#L304-L330) — answers questions against the generated knowledge store.
+- [`rekipedia.rag.embedder`](src/rekipedia/rag/embedder.py#L1-L1) — builds and queries the RAG index via [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443-L892).
+- [`rekipedia.storage.sqlite_store`](src/rekipedia/storage/sqlite_store.py#L39-L827) — persists scans, wiki pages, notes, QA history, and chunk provenance via [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39-L827).
+
+In practice, the project solves a recurring problem for codebases: “How do I automatically turn a repository into navigable documentation and an LLM-friendly knowledge base, then keep it updated as the code changes?” The answer here is a local, structured pipeline backed by SQLite and optional FAISS-based semantic retrieval.
+
+> **Sources:** `src/rekipedia/cli/__init__.py` · L26–L27 · [`main`](src/rekipedia/cli/__init__.py#L26) · `src/rekipedia/cli/embed.py` · L85–L201 · [`embed_cmd`](src/rekipedia/cli/embed.py#L85-L201) · `src/rekipedia/cli/note.py` · L27–L28 · [`note_cmd`](src/rekipedia/cli/note.py#L27-L28) · `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45-L433) · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244) · `src/rekipedia/orchestrator/run_ask.py` · L304–L330 · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304-L330) · `src/rekipedia/rag/embedder.py` · L443–L892 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443-L892) · `src/rekipedia/storage/sqlite_store.py` · L39–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39-L827)
+
+## Who is it for?
+
+`rekipedia` is aimed at developers and teams who need durable, queryable understanding of a repository rather than a one-off summary. The generated wiki pages, stored Q&A history, and RAG chunks suggest several practical user groups:
+
+### Primary audience
+- **Maintainers and tech leads** who want continuously updated documentation and a local record of architectural intent.
+- **Developers onboarding to a large codebase** who need a searchable knowledge base with source-backed context.
+- **AI-assisted engineering workflows** where an LLM needs repository-grounded answers rather than generic responses.
+
+### Typical use cases
+- Run a full scan to generate documentation pages, diagrams, and metadata from a repo.
+- Use the semantic index to search source files and retrieve implementation-relevant chunks.
+- Ask natural-language questions against the generated knowledge store using [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304-L330).
+- Manage curated “tech lead notes” via [`note_add`](src/rekipedia/cli/note.py#L35-L42), [`note_list`](src/rekipedia/cli/note.py#L49-L64), [`note_edit`](src/rekipedia/cli/note.py#L96-L120), and [`note_import`](src/rekipedia/cli/note.py#L127-L153).
+
+A notable signal from the codebase is that notes are first-class context: the tests in [`tests/test_notes_rag.py`](tests/test_notes_rag.py#L11-L47) verify that notes are injected into the assembled system prompt when present.
+
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L304–L330 · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304-L330) · `src/rekipedia/cli/note.py` · L35–L153 · [`note_add`](src/rekipedia/cli/note.py#L35-L42) · [`note_list`](src/rekipedia/cli/note.py#L49-L64) · [`note_edit`](src/rekipedia/cli/note.py#L96-L120) · [`note_import`](src/rekipedia/cli/note.py#L127-L153) · `tests/test_notes_rag.py` · L11–L47 · `src/rekipedia/storage/sqlite_store.py` · L631–L704 · [`SqliteStore.upsert_note`](src/rekipedia/storage/sqlite_store.py#L631-L656) · [`SqliteStore.list_notes`](src/rekipedia/storage/sqlite_store.py#L658-L681)
 
 ## Key Features
 
-### Multi-language extraction and analysis
+- **Full repository digestion** via [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45-L433), which orchestrates scanning, synthesis, exporting, and persistence.
+- **Incremental updates** via [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244), which reuses unchanged symbols, relationships, wiki pages, and RAG provenance where possible.
+- **Question answering over repo knowledge** via [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304-L330) and [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L333-L349).
+- **Semantic retrieval** through [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477-L604), [`EmbedPipeline.search`](src/rekipedia/rag/embedder.py#L610-L711), and [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733-L892).
+- **Symbol-aware chunking** using [`_symbol_chunk_file`](src/rekipedia/rag/embedder.py#L218-L232) and [`_symbol_chunk_file_inner`](src/rekipedia/rag/embedder.py#L235-L409), with fallback chunking through [`_chunk_file`](src/rekipedia/rag/embedder.py#L160-L215).
+- **SQLite-backed persistence** for runs, files, symbols, relationships, wiki pages, diagrams, QA history, notes, and RAG chunk provenance via [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39-L827).
+- **Tech lead notes** with CRUD and import support, implemented in [`rekipedia.cli.note`](src/rekipedia/cli/note.py#L1-L1) and parsed by [`import_notes_from_file`](src/rekipedia/notes/__init__.py#L7-L19).
+- **Web UI** served by [`create_app`](src/rekipedia/server/app.py#L21-L663), which renders wiki pages and note-backed views using Jinja templates.
 
-The codebase contains extractors for several languages and config files. In the Go implementation, the extractor registry is defined around [`Extractor`](go/internal/extractor/extractor.go#L11) and [`NewRegistry`](go/internal/extractor/extractor.go#L24), with concrete extractors for Go, Python, and TypeScript such as [`(e *GoExtractor).Extract`](go/internal/extractor/golang.go#L27), [`(e *PythonExtractor).Extract`](go/internal/extractor/python.go#L37), and [`(e *TypeScriptExtractor).Extract`](go/internal/extractor/typescript.go#L40). The Python side mirrors this with modules like `src/rekipedia/extractors/go_extractor.py`, `python_extractor.py`, and `typescript_extractor.py`.
-
-### Wiki generation and synthesis
-
-The system can turn analysis into wiki pages and diagrams through synthesis components like [`PageBuilder`](go/internal/synthesis/page_builder.go#L60), [`DiagramBuilder`](go/internal/synthesis/diagram_builder.go#L16), and [`PlannerAgent`](go/internal/synthesis/planner.go#L77). This is reinforced by the server templates in `go/internal/server/templates/` and `src/rekipedia/server/templates/`, which indicate a rendered documentation experience rather than just raw JSON output.
-
-### Search, RAG, and LLM-assisted workflows
-
-The project includes retrieval and generation support via [`EmbedPipeline`](go/internal/rag/embedder.go#L15), [`VectorStore`](go/internal/rag/vector_store.go#L15), and the LLM client [`Client`](go/internal/llm/client.go#L110). Higher-level orchestration lives in [`RunAsk`](go/internal/orchestrator/run_ask.go#L59), [`RunDigest`](go/internal/orchestrator/run_digest.go#L48), and [`RunUpdate`](go/internal/orchestrator/run_update.go#L30), showing that the tool can answer questions, synthesize digests, and update repository knowledge.
-
-### Storage and web serving
-
-Persistent state is handled by [`Store`](go/internal/storage/store.go#L18), with API and HTML delivery through [`Server`](go/internal/server/server.go#L35) and handlers like [`(s *Server).handleWikiPage`](go/internal/server/server.go#L147) and [`(s *Server).handleAPIGraph`](go/internal/server/server.go#L649). This suggests a complete loop from codebase analysis to indexed, browsable output.
-
-> **Sources:** `go/internal/extractor/extractor.go` · L11–L68 · [`Extractor`](go/internal/extractor/extractor.go#L11) · [`NewRegistry`](go/internal/extractor/extractor.go#L24); `go/internal/synthesis/page_builder.go` · L60–L239 · [`PageBuilder`](go/internal/synthesis/page_builder.go#L60); `go/internal/rag/embedder.go` · L15–L84 · [`EmbedPipeline`](go/internal/rag/embedder.go#L15); `go/internal/storage/store.go` · L18–L335 · [`Store`](go/internal/storage/store.go#L18)
+> **Sources:** `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45-L433) · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244) · `src/rekipedia/orchestrator/run_ask.py` · L304–L349 · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304-L330) · [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L333-L349) · `src/rekipedia/rag/embedder.py` · L160–L232 · L235–L409 · L443–L892 · [`_chunk_file`](src/rekipedia/rag/embedder.py#L160-L215) · [`_symbol_chunk_file`](src/rekipedia/rag/embedder.py#L218-L232) · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443-L892) · `src/rekipedia/storage/sqlite_store.py` · L39–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39-L827) · `src/rekipedia/cli/note.py` · L1–L153 · `src/rekipedia/notes/__init__.py` · L7–L80 · [`import_notes_from_file`](src/rekipedia/notes/__init__.py#L7-L19) · `src/rekipedia/server/app.py` · L21–L663 · [`create_app`](src/rekipedia/server/app.py#L21-L663)
 
 ## Quick Start
 
-The repository shows multiple supported build paths, but the primary ones visible in the analysis are Go and Python packaging workflows. For a first-time developer, the fastest way to validate the Go toolchain is:
-
-```bash
-CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia
-```
-
-If you are working from the Python package, the repository also supports:
-
-```bash
-uv build
-```
-
-For a first run, the clearest entry point in the codebase is the Go CLI executable built from [`main`](go/cmd/rekipedia/main.go#L6). After building the binary, run it directly:
-
-```bash
-/tmp/reki
-```
-
-If you are using the Python entry point instead, the package is wired through `src/rekipedia/__main__.py`, so the equivalent first run is:
-
-```bash
-python -m rekipedia
-```
-
-These commands are intentionally minimal here; detailed flags and subcommands are documented on the deeper CLI and architecture pages.
+The repository metadata provides a very small build/test surface:
 
 | Purpose | Command |
 |---|---|
-| Build Go binary | `CGO_ENABLED=0 go build -ldflags "-s -w" -o /tmp/reki ./cmd/rekipedia` |
-| Build Python package | `uv build` |
-| First run Go CLI | `/tmp/reki` |
-| First run Python entry point | `python -m rekipedia` |
+| Build package | `uv build` |
+| Run test suite | `pytest` |
 
-> **Sources:** `go/cmd/rekipedia/main.go` · L6–L8 · [`main`](go/cmd/rekipedia/main.go#L6); `uv.lock`; `pyproject.toml`; `go/go.mod`
+### Fastest path to get going
+1. Install dependencies from the project’s packaging workflow.
+2. Build the package with [`uv build`](#).
+3. Run the test suite with [`pytest`](#).
+4. Start using the CLI entry point `rekipedia` or `reki`, both mapped to [`rekipedia.cli:main`](src/rekipedia/cli/__init__.py#L26-L27).
 
-## Repository Map
-
-Top-level layout, grouped for a quick orientation:
+### Example CLI entry points
+The analysis data shows these entry points explicitly in package metadata:
 
 ```text
-.
-├── .github/
-├── docs/
-├── go/
-├── pipelines/
-├── scripts/
-├── skills/
-├── src/
-├── tests/
-├── package.json
-├── pyproject.toml
-├── uv.lock
-├── Makefile
-└── README.md
+rekipedia = "rekipedia.cli:main"
+reki = "rekipedia.cli:main"
 ```
 
-### What each area is for
+From there, the two most visible operational commands are:
 
-- `.github/` — CI/workflow definitions and contributor guidance.
-- `docs/` — planning and design documents.
-- `go/` — the Go implementation, including CLI, internal packages, and release/build assets.
-- `src/rekipedia/` — the Python package implementation.
-- `tests/` — automated tests and fixtures for both Python and TypeScript-style sample repositories.
-- `pipelines/` — harness and delivery pipeline definitions.
-- `scripts/` — utility scripts such as lint/report helpers.
-- `skills/` — operational and workflow guidance used by the repo.
-- `package.json`, `pyproject.toml`, `uv.lock`, `Makefile` — top-level build and packaging entry points.
+```bash
+rekipedia note add "Capture a design decision" --tag architecture
+rekipedia embed /path/to/repo --output-dir .rekipedia
+```
 
-> **Sources:** `files_seen` list; `go/README.md`; `README.md`; `pyproject.toml`; `package.json`; `Makefile`
+The second command is implemented by [`embed_cmd`](src/rekipedia/cli/embed.py#L85-L201) and is the fastest route to building the RAG index and scan metadata.
 
-## Architecture at a Glance
+### What the quick start does not show
+The repository snapshot does not include a dedicated bootstrap script or a richer setup guide in the analysis data, so the safest documented path is the package build + test commands above, followed by the CLI entry points defined in metadata.
 
-Rekipedia is organized as a pipeline: repository content is extracted, normalized into models, analyzed and enriched, then persisted and rendered through exports or a web server. The main architectural layers are visible in the Go implementation around extraction (`go/internal/extractor`), orchestration (`go/internal/orchestrator`), synthesis (`go/internal/synthesis`), persistence (`go/internal/storage`), retrieval (`go/internal/rag`), and serving (`go/internal/server`). If you want the deeper breakdown, see the dedicated architecture pages for module relationships, core modules, and algorithms; this landing page only establishes the path from source tree to generated wiki.
+> **Sources:** `uv build` · `pytest` · `src/rekipedia/cli/__init__.py` · L26–L27 · [`main`](src/rekipedia/cli/__init__.py#L26-L27) · `src/rekipedia/cli/embed.py` · L85–L201 · [`embed_cmd`](src/rekipedia/cli/embed.py#L85-L201)
 
-A useful mental model is:
+## Project Structure
+
+The repository has a mixed Python + Go layout, but the Python package is the main application surface in the available analysis. The following diagram shows the top-level directory/module organization evidenced in the scanned files.
 
 ```mermaid
-flowchart LR
-    CLI[CLI entry points]
-    Extract[Extraction]
-    Orchestrate[Orchestration]
-    Synthesis[Synthesis]
-    Store[Storage]
-    Server[Web server]
+flowchart TD
+    Root[Repository Root]
+    Go[go/]
+    Src[src/rekipedia/]
+    Tests[tests/]
+    Docs[README.md<br/>RELEASE-NOTES.md]
+    PyPkg[pyproject.toml]
+    Npm[package.json]
 
-    CLI --> Extract
-    Extract --> Orchestrate
-    Orchestrate --> Synthesis
-    Orchestrate --> Store
-    Synthesis --> Store
-    Store --> Server
+    Root --> Go
+    Root --> Src
+    Root --> Tests
+    Root --> Docs
+    Root --> PyPkg
+    Root --> Npm
+
+    Go --> GoCmd[go/cmd/rekipedia/cmd/]
+    Go --> GoStore[go/internal/storage/store.go]
+
+    Src --> Cli[cli/]
+    Src --> Notes[notes/]
+    Src --> Orch[orchestrator/]
+    Src --> Rag[rag/]
+    Src --> Server[server/]
+    Src --> Storage[storage/]
+
+    Cli --> CliMain[__init__.py]
+    Cli --> CliEmbed[embed.py]
+    Cli --> CliNote[note.py]
+
+    Notes --> NotesInit[__init__.py]
+    Notes --> NotesImporter[importer.py]
+
+    Orch --> Ask[run_ask.py]
+    Orch --> Digest[run_digest.py]
+    Orch --> Update[run_update.py]
+
+    Rag --> Embedder[embed.py]
+    Server --> App[app.py]
+    Server --> Templates[templates/]
+    Storage --> Migrations[migrations/]
+    Storage --> Store[sqlite_store.py]
+
+    Tests --> TestFiles[test_*.py]
 ```
 
-For a first-time developer, the main next step is to read the architecture pages that explain these modules in detail rather than trying to infer everything from the repository root.
+### Reading the structure
+- [`src/rekipedia/cli/__init__.py`](src/rekipedia/cli/__init__.py#L1-L27) is the Python command group root.
+- [`src/rekipedia/orchestrator/`](src/rekipedia/orchestrator/run_ask.py#L1-L349) contains the main execution pipelines.
+- [`src/rekipedia/rag/embedder.py`](src/rekipedia/rag/embedder.py#L1-L901) contains the semantic indexing engine.
+- [`src/rekipedia/storage/sqlite_store.py`](src/rekipedia/storage/sqlite_store.py#L39-L827) is the primary persistence layer.
+- [`src/rekipedia/server/app.py`](src/rekipedia/server/app.py#L21-L663) is the HTTP interface factory.
 
-> **Sources:** `go/internal/extractor/extractor.go` · L11–L68 · [`Extractor`](go/internal/extractor/extractor.go#L11); `go/internal/orchestrator/run_digest.go` · L48–L396 · [`RunDigest`](go/internal/orchestrator/run_digest.go#L48); `go/internal/synthesis/page_builder.go` · L60–L266 · [`PageBuilder`](go/internal/synthesis/page_builder.go#L60); `go/internal/storage/store.go` · L18–L335 · [`Store`](go/internal/storage/store.go#L18); `go/internal/server/server.go` · L35–L955 · [`Server`](go/internal/server/server.go#L35)
+> **Sources:** `src/rekipedia/cli/__init__.py` · L1–L27 · [`main`](src/rekipedia/cli/__init__.py#L26-L27) · `src/rekipedia/orchestrator/run_ask.py` · L1–L349 · `src/rekipedia/orchestrator/run_digest.py` · L1–L450 · `src/rekipedia/orchestrator/run_update.py` · L1–L244 · `src/rekipedia/rag/embedder.py` · L1–L901 · `src/rekipedia/storage/sqlite_store.py` · L39–L827 · `src/rekipedia/server/app.py` · L21–L663
+
+## How it Works (High Level)
+
+A typical end-to-end run starts at the CLI [`main`](src/rekipedia/cli/__init__.py#L26-L27), which routes user intent to commands like [`embed_cmd`](src/rekipedia/cli/embed.py#L85-L201) or note-management commands in [`rekipedia.cli.note`](src/rekipedia/cli/note.py#L1-L153). For a full scan, [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45-L433) coordinates repository analysis, symbol/relationship collection, wiki page synthesis, and persistence into [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39-L827). When the repository changes, [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244) detects changed files and reuses unchanged outputs to minimize work. For retrieval, [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477-L604) chunks source files and writes a FAISS-backed index, while [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304-L330) assembles wiki pages, symbol lines, note context, and optional RAG chunks into a grounded prompt for the LLM.
+
+The result is a closed loop: scan → synthesize → persist → embed → query → update. That loop is reinforced by provenance methods like [`SqliteStore.upsert_rag_chunks`](src/rekipedia/storage/sqlite_store.py#L710-L737) and [`SqliteStore.upsert_page_sources`](src/rekipedia/storage/sqlite_store.py#L535-L542), which keep generated artifacts traceable back to the source files that produced them.
+
+> **Sources:** `src/rekipedia/cli/__init__.py` · L26–L27 · [`main`](src/rekipedia/cli/__init__.py#L26-L27) · `src/rekipedia/cli/embed.py` · L85–L201 · [`embed_cmd`](src/rekipedia/cli/embed.py#L85-L201) · `src/rekipedia/cli/note.py` · L1–L153 · `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45-L433) · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244) · `src/rekipedia/rag/embedder.py` · L477–L604 · [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477-L604) · `src/rekipedia/orchestrator/run_ask.py` · L304–L330 · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304-L330) · `src/rekipedia/storage/sqlite_store.py` · L535–L737 · [`SqliteStore.upsert_page_sources`](src/rekipedia/storage/sqlite_store.py#L535-L542) · [`SqliteStore.upsert_rag_chunks`](src/rekipedia/storage/sqlite_store.py#L710-L737)
