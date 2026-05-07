@@ -630,6 +630,93 @@ class SqliteStore:
         return {"id": row[0], "content": row[1], "tags": row[2], "source": row[3],
                 "created_at": row[4], "updated_at": row[5]}
 
+    # ------------------------------------------------------------------
+    # RAG chunk provenance (issue #75)
+    # ------------------------------------------------------------------
+
+    def upsert_rag_chunks(self, run_id: str, chunks: list[dict]) -> None:
+        """Persist RAG chunk provenance records for *run_id*.
+
+        Each dict must have: file_path, chunk_idx, start_line, end_line,
+        start_char, end_char, text_hash, is_code, is_implementation.
+        """
+        for chunk in chunks:
+            self._c.execute(
+                """
+                INSERT OR REPLACE INTO rag_chunks
+                    (run_id, file_path, chunk_idx, start_line, end_line,
+                     start_char, end_char, text_hash, is_code, is_implementation)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run_id,
+                    chunk["file_path"],
+                    chunk["chunk_idx"],
+                    chunk["start_line"],
+                    chunk["end_line"],
+                    chunk["start_char"],
+                    chunk["end_char"],
+                    chunk["text_hash"],
+                    int(chunk.get("is_code", True)),
+                    int(chunk.get("is_implementation", True)),
+                ),
+            )
+        self._c.commit()
+
+    def get_rag_chunks_by_file(self, run_id: str, file_path: str) -> list[dict]:
+        """Return all RAG chunk provenance records for *file_path* in *run_id*."""
+        rows = self._c.execute(
+            """
+            SELECT file_path, chunk_idx, start_line, end_line,
+                   start_char, end_char, text_hash, is_code, is_implementation
+            FROM rag_chunks
+            WHERE run_id = ? AND file_path = ?
+            ORDER BY chunk_idx
+            """,
+            (run_id, file_path),
+        ).fetchall()
+        return [
+            {
+                "file_path": r[0],
+                "chunk_idx": r[1],
+                "start_line": r[2],
+                "end_line": r[3],
+                "start_char": r[4],
+                "end_char": r[5],
+                "text_hash": r[6],
+                "is_code": bool(r[7]),
+                "is_implementation": bool(r[8]),
+            }
+            for r in rows
+        ]
+
+    def get_all_rag_chunks(self, run_id: str) -> list[dict]:
+        """Return all RAG chunk provenance records for *run_id*."""
+        rows = self._c.execute(
+            """
+            SELECT file_path, chunk_idx, start_line, end_line,
+                   start_char, end_char, text_hash, is_code, is_implementation
+            FROM rag_chunks
+            WHERE run_id = ?
+            ORDER BY file_path, chunk_idx
+            """,
+            (run_id,),
+        ).fetchall()
+        return [
+            {
+                "file_path": r[0],
+                "chunk_idx": r[1],
+                "start_line": r[2],
+                "end_line": r[3],
+                "start_char": r[4],
+                "end_char": r[5],
+                "text_hash": r[6],
+                "is_code": bool(r[7]),
+                "is_implementation": bool(r[8]),
+            }
+            for r in rows
+        ]
+
 
 # ── helpers ──────────────────────────────────────────────────────────
 

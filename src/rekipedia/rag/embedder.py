@@ -15,6 +15,8 @@ Usage::
 """
 from __future__ import annotations
 
+import bisect
+import hashlib
 import json
 import logging
 import os
@@ -156,7 +158,7 @@ def _iter_repo_files(repo_root: Path) -> Iterator[Path]:
 
 
 def _chunk_file(path: Path, repo_root: Path) -> list[dict]:
-    """Split file into overlapping text chunks with metadata."""
+    """Split file into overlapping text chunks with metadata including line provenance."""
     ext = path.suffix.lower()
     is_doc = ext in _DOC_EXTS
     max_chars = _MAX_DOC_CHARS if is_doc else _MAX_CODE_CHARS
@@ -172,6 +174,17 @@ def _chunk_file(path: Path, repo_root: Path) -> list[dict]:
 
     rel = str(path.relative_to(repo_root))
     impl = _is_implementation(rel)
+
+    # Build a char→line lookup: cumulative line-start offsets for O(log N) lookup.
+    line_starts = [0]
+    for i, ch in enumerate(text):
+        if ch == "\n":
+            line_starts.append(i + 1)
+
+    def char_to_line(char_offset: int) -> int:
+        """Return 1-based line number for a character offset."""
+        return bisect.bisect_right(line_starts, char_offset)
+
     chunks = []
     start = 0
     idx = 0
@@ -180,10 +193,17 @@ def _chunk_file(path: Path, repo_root: Path) -> list[dict]:
         end = min(start + _CHUNK_CHARS, len(text))
         chunk_text = text[start:end]
         if chunk_text.strip():
+            start_line = char_to_line(start)
+            end_line = char_to_line(end - 1)
+            text_hash = hashlib.sha256(chunk_text.encode("utf-8", errors="replace")).hexdigest()
             chunks.append({
                 "file": rel,
                 "chunk_idx": idx,
                 "start_char": start,
+                "end_char": end,
+                "start_line": start_line,
+                "end_line": end_line,
+                "text_hash": text_hash,
                 "text": chunk_text,
                 "is_code": not is_doc,
                 "is_implementation": impl,
@@ -229,9 +249,11 @@ def _embed_batch(texts: list[str], model: str, llm_config: LLMConfig) -> np.ndar
 class EmbedPipeline:
     """Build and query a FAISS index over a repository's source files."""
 
-    def __init__(self, output_dir: Path, llm_config: LLMConfig) -> None:
+    def __init__(self, output_dir: Path, llm_config: LLMConfig, store=None, run_id: str | None = None) -> None:
         self._out = output_dir / _RAG_DIR
         self._cfg = llm_config
+        self._store = store      # optional SqliteStore for provenance
+        self._run_id = run_id    # run_id to associate chunks with
         # Resolve embed model: CLI flag → config field → env var → default
         raw_model = (
             os.environ.get("REKIPEDIA_EMBED_MODEL")
@@ -363,6 +385,26 @@ class EmbedPipeline:
         )
 
         logger.info("EmbedPipeline: indexed %d chunks (dim=%d)", n, dim)
+
+        # Persist chunk provenance to store.db if a store is wired in
+        if self._store is not None and self._run_id is not None:
+            provenance = [
+                {
+                    "file_path": c["file"],
+                    "chunk_idx": c["chunk_idx"],
+                    "start_line": c.get("start_line", 0),
+                    "end_line": c.get("end_line", 0),
+                    "start_char": c.get("start_char", 0),
+                    "end_char": c.get("end_char", len(c["text"])),
+                    "text_hash": c.get("text_hash", ""),
+                    "is_code": c.get("is_code", True),
+                    "is_implementation": c.get("is_implementation", True),
+                }
+                for c in all_chunks
+            ]
+            self._store.upsert_rag_chunks(self._run_id, provenance)
+            logger.info("EmbedPipeline: persisted %d chunk provenance records", len(provenance))
+
         if progress_cb:
             progress_cb(f"✅ FAISS index ready — {n} chunks, dim={dim}")
         return n

@@ -1,3 +1,10 @@
+## v0.10.6 — 2026-05-07
+
+### New Features
+- **Chunk-level provenance** (`#75`): RAG chunks now track `file_path`, `start_line`, `end_line`, `start_char`, `end_char`, and `text_hash` in `store.db`. New `rag_chunks` table (migration 004) and `SqliteStore` methods: `upsert_rag_chunks()`, `get_rag_chunks_by_file()`, `get_all_rag_chunks()`. Foundation for incremental re-embedding in #76.
+- `EmbedPipeline` accepts optional `store` and `run_id` params — when provided, provenance is automatically persisted after each `reki embed` run.
+- `_chunk_file()` now includes `start_line`, `end_line`, `end_char`, `text_hash` in every chunk dict.
+
 ## v0.10.5 — Tech Lead Notes
 
 ### New Features

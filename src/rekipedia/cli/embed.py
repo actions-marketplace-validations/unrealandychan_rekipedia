@@ -147,6 +147,23 @@ def embed_cmd(
 
     pipe = EmbedPipeline(out, llm_config)
 
+    # Wire store + run_id for chunk provenance if store.db exists
+    _store = None
+    _run_id = None
+    store_db = out / "store.db"
+    if store_db.exists():
+        try:
+            from rekipedia.storage.sqlite_store import SqliteStore  # noqa: PLC0415
+            _store = SqliteStore(store_db)
+            _store.open()
+            import uuid as _uuid  # noqa: PLC0415
+            _run_id = f"embed-{_uuid.uuid4().hex[:8]}"
+            pipe = EmbedPipeline(out, llm_config, store=_store, run_id=_run_id)
+        except Exception:
+            _store = None
+            _run_id = None
+            pipe = EmbedPipeline(out, llm_config)
+
     from tqdm import tqdm  # noqa: PLC0415
 
     bar = tqdm(bar_format="  {desc}", dynamic_ncols=True, leave=False)
@@ -172,6 +189,11 @@ def embed_cmd(
         console.print(f"\nIndex saved to [bold]{out}/rag/[/bold]")
     except Exception as exc:
         bar.close()
+        if _store is not None:
+            try:
+                _store.close()
+            except Exception:
+                pass
         console.print(f"\n[red]Embed failed:[/red] {exc}")
         if verbose:
             import traceback  # noqa: PLC0415

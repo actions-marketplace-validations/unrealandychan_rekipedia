@@ -1,2 +1,2 @@
 """rekipedia — agentic repo-to-wiki knowledge store."""
-__version__ = "0.10.5"
+__version__ = "0.10.6"

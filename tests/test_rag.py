@@ -155,3 +155,103 @@ def test_is_implementation_heuristic() -> None:
     assert _is_implementation("tests/test_engine.py") is False
     assert _is_implementation("test_utils.py") is False
     assert _is_implementation("src/utils.ts") is True
+
+
+# ---------------------------------------------------------------------------
+# Issue #75: chunk-level provenance
+# ---------------------------------------------------------------------------
+
+
+def test_chunk_file_includes_line_provenance(tmp_path: Path) -> None:
+    """_chunk_file should include start_line, end_line, text_hash in each chunk."""
+    from rekipedia.rag.embedder import _chunk_file
+
+    f = tmp_path / "foo.py"
+    f.write_text("line1\nline2\nline3\n" * 100)  # enough for multiple chunks
+    chunks = _chunk_file(f, tmp_path)
+    assert len(chunks) > 0
+    for c in chunks:
+        assert "start_line" in c
+        assert "end_line" in c
+        assert "text_hash" in c
+        assert "end_char" in c
+        assert c["start_line"] >= 1
+        assert c["end_line"] >= c["start_line"]
+        assert len(c["text_hash"]) == 64  # SHA-256 hex
+
+
+def test_chunk_file_first_chunk_starts_at_line_1(tmp_path: Path) -> None:
+    from rekipedia.rag.embedder import _chunk_file
+
+    f = tmp_path / "foo.py"
+    f.write_text("def hello():\n    pass\n")
+    chunks = _chunk_file(f, tmp_path)
+    assert chunks[0]["start_line"] == 1
+
+
+def test_sqlite_store_upsert_and_get_rag_chunks(tmp_path: Path) -> None:
+    """upsert_rag_chunks + get_rag_chunks_by_file round-trip."""
+    from rekipedia.storage.sqlite_store import SqliteStore
+
+    store = SqliteStore(tmp_path / "store.db")
+    store.open()
+    run_id = "run-test-001"
+    store.upsert_run(run_id, "/tmp/repo")
+    chunks = [
+        {"file_path": "foo.py", "chunk_idx": 0, "start_line": 1, "end_line": 10,
+         "start_char": 0, "end_char": 200, "text_hash": "abc123", "is_code": True, "is_implementation": True},
+        {"file_path": "foo.py", "chunk_idx": 1, "start_line": 9, "end_line": 20,
+         "start_char": 180, "end_char": 400, "text_hash": "def456", "is_code": True, "is_implementation": True},
+    ]
+    store.upsert_rag_chunks(run_id, chunks)
+    result = store.get_rag_chunks_by_file(run_id, "foo.py")
+    assert len(result) == 2
+    assert result[0]["start_line"] == 1
+    assert result[0]["text_hash"] == "abc123"
+    assert result[1]["chunk_idx"] == 1
+    store.close()
+
+
+def test_sqlite_store_get_all_rag_chunks(tmp_path: Path) -> None:
+    from rekipedia.storage.sqlite_store import SqliteStore
+
+    store = SqliteStore(tmp_path / "store.db")
+    store.open()
+    run_id = "run-test-002"
+    store.upsert_run(run_id, "/tmp/repo")
+    chunks = [
+        {"file_path": "a.py", "chunk_idx": 0, "start_line": 1, "end_line": 5,
+         "start_char": 0, "end_char": 100, "text_hash": "aaa", "is_code": True, "is_implementation": True},
+        {"file_path": "b.py", "chunk_idx": 0, "start_line": 1, "end_line": 3,
+         "start_char": 0, "end_char": 50, "text_hash": "bbb", "is_code": True, "is_implementation": False},
+    ]
+    store.upsert_rag_chunks(run_id, chunks)
+    all_chunks = store.get_all_rag_chunks(run_id)
+    assert len(all_chunks) == 2
+    files = {c["file_path"] for c in all_chunks}
+    assert files == {"a.py", "b.py"}
+    store.close()
+
+
+def test_embed_pipeline_persists_provenance(tmp_path: Path) -> None:
+    """EmbedPipeline.build() should call upsert_rag_chunks when store is provided."""
+    from unittest.mock import MagicMock, patch as mpatch
+
+    from rekipedia.rag.embedder import EmbedPipeline
+
+    store = MagicMock()
+    pipeline = EmbedPipeline(tmp_path, LLMConfig(), store=store, run_id="run-42")
+    # Create fake repo with one file
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "foo.py").write_text("def hello():\n    pass\n")
+    mock_embed = MagicMock(return_value=np.array([[0.1] * 1536], dtype="float32"))
+    with mpatch("rekipedia.rag.embedder._embed_batch", mock_embed):
+        pipeline.build(repo)
+    store.upsert_rag_chunks.assert_called_once()
+    args = store.upsert_rag_chunks.call_args[0]
+    assert args[0] == "run-42"  # run_id
+    provenance = args[1]
+    assert len(provenance) >= 1
+    assert "start_line" in provenance[0]
+    assert "text_hash" in provenance[0]
