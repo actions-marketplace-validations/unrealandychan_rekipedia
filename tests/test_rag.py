@@ -255,3 +255,96 @@ def test_embed_pipeline_persists_provenance(tmp_path: Path) -> None:
     assert len(provenance) >= 1
     assert "start_line" in provenance[0]
     assert "text_hash" in provenance[0]
+
+
+# ---------------------------------------------------------------------------
+# update() tests
+# ---------------------------------------------------------------------------
+
+def test_embed_pipeline_update_skips_unchanged_files(tmp_path):
+    """update() should only re-embed chunks from changed files."""
+    from rekipedia.rag.embedder import EmbedPipeline
+    from rekipedia.models.contracts import LLMConfig as LC
+    from unittest.mock import patch as mpatch2
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "unchanged.py").write_text("def foo():\n    pass\n" * 50)
+    (repo / "changed.py").write_text("def bar():\n    pass\n" * 50)
+
+    pipeline = EmbedPipeline(tmp_path, LC())
+
+    fake_vec = np.array([[0.1] * 1536], dtype="float32")
+    embed_call_count = []
+
+    def mock_embed(texts, model, cfg):
+        embed_call_count.append(len(texts))
+        return np.tile(fake_vec, (len(texts), 1))
+
+    with mpatch2("rekipedia.rag.embedder._embed_batch", mock_embed):
+        total = pipeline.build(repo)
+
+    calls_on_build = sum(embed_call_count)
+    embed_call_count.clear()
+
+    # Update with only "changed.py" as changed
+    (repo / "changed.py").write_text("def bar_v2():\n    pass\n" * 50)
+
+    with mpatch2("rekipedia.rag.embedder._embed_batch", mock_embed):
+        re_embedded = pipeline.update(
+            repo_root=repo,
+            changed_files=["changed.py"],
+            last_run_id=None,
+            new_run_id=None,
+        )
+
+    calls_on_update = sum(embed_call_count)
+    assert re_embedded < total
+    assert calls_on_update < calls_on_build
+
+
+def test_embed_pipeline_update_falls_back_to_build_if_no_index(tmp_path):
+    """update() should fall back to build() if no existing index found."""
+    from rekipedia.rag.embedder import EmbedPipeline
+    from rekipedia.models.contracts import LLMConfig as LC
+    from unittest.mock import patch as mpatch2
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "foo.py").write_text("def hello():\n    pass\n")
+
+    pipeline = EmbedPipeline(tmp_path, LC())
+    fake_vec = np.array([[0.1] * 1536], dtype="float32")
+    with mpatch2("rekipedia.rag.embedder._embed_batch", lambda t, m, c: np.tile(fake_vec, (len(t), 1))):
+        n = pipeline.update(repo, ["foo.py"], None, None)
+
+    assert n > 0
+    assert pipeline.is_built()
+
+
+def test_carry_forward_rag_chunks(tmp_path):
+    from rekipedia.storage.sqlite_store import SqliteStore
+    import uuid
+
+    store = SqliteStore(tmp_path / "store.db")
+    store.open()
+    run1 = str(uuid.uuid4())
+    run2 = str(uuid.uuid4())
+    store.upsert_run(run1, "/repo")
+    store.upsert_run(run2, "/repo")
+    chunks = [
+        {"file_path": "a.py", "chunk_idx": 0, "start_line": 1, "end_line": 5,
+         "start_char": 0, "end_char": 100, "text_hash": "aaa", "is_code": True, "is_implementation": True},
+        {"file_path": "b.py", "chunk_idx": 0, "start_line": 1, "end_line": 3,
+         "start_char": 0, "end_char": 50, "text_hash": "bbb", "is_code": True, "is_implementation": False},
+    ]
+    store.upsert_rag_chunks(run1, chunks)
+    n = store.carry_forward_rag_chunks(run1, run2, ["a.py"])
+    assert n == 1
+    result = store.get_rag_chunks_by_file(run2, "a.py")
+    assert len(result) == 1
+    assert result[0]["text_hash"] == "aaa"
+    result_b = store.get_rag_chunks_by_file(run2, "b.py")
+    assert len(result_b) == 0
+    store.close()
+

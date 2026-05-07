@@ -175,6 +175,24 @@ def run_update(
         store.update_run_status(run_id, "success")
         _log("Done.")
 
+        # ── 9. Incremental RAG embed ───────────────────────────────────
+        try:
+            from rekipedia.rag.embedder import EmbedPipeline  # noqa: PLC0415
+            pipe = EmbedPipeline(output_dir, llm_config, store=store, run_id=run_id)
+            if pipe.is_built():
+                _log("Updating RAG index (incremental)…")
+                n_reembedded = pipe.update(
+                    repo_root=repo_root,
+                    changed_files=list(changed_paths),
+                    last_run_id=last_run_id,
+                    new_run_id=run_id,
+                    progress_cb=_log,
+                )
+                _log(f"  RAG index updated — {n_reembedded} chunks re-embedded")
+        except Exception as _rag_exc:
+            import logging as _logging  # noqa: PLC0415
+            _logging.getLogger("rekipedia.run_update").warning("Incremental RAG embed failed (non-fatal): %s", _rag_exc)
+
     except Exception:
         # Best-effort status update — run_id may not exist yet if we raised early
         try:

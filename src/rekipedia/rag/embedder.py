@@ -532,6 +532,171 @@ class EmbedPipeline:
     def is_built(self) -> bool:
         return (self._out / _INDEX_FILE).exists() or (self._out / (_INDEX_FILE + ".npy")).exists()
 
+    # ------------------------------------------------------------------
+    # Incremental update
+    # ------------------------------------------------------------------
+
+    def update(
+        self,
+        repo_root: Path,
+        changed_files: list[str],
+        last_run_id: int | str | None,
+        new_run_id: int | str | None,
+        progress_cb=None,
+    ) -> int:
+        """Incrementally update the RAG index — only re-embed chunks from changed files.
+
+        Returns number of chunks re-embedded (not total chunks).
+        Falls back to full build() if no existing index found.
+        """
+        chunks_path = self._out / _CHUNKS_FILE
+        index_path = self._out / _INDEX_FILE
+        npy_path = Path(str(index_path) + ".npy")
+
+        if not chunks_path.exists() or (not index_path.exists() and not npy_path.exists()):
+            if progress_cb:
+                progress_cb("No existing index found — falling back to full build…")
+            return self.build(repo_root, progress_cb)
+
+        try:
+            import faiss as _faiss  # noqa: PLC0415
+            _HAS_FAISS = True
+        except ImportError:
+            _faiss = None
+            _HAS_FAISS = False
+
+        # Load existing chunks + vectors
+        existing_chunks: list[dict] = json.loads(chunks_path.read_text(encoding="utf-8"))
+        if _HAS_FAISS and index_path.exists():
+            old_index = _faiss.read_index(str(index_path))
+            old_vecs = np.array([old_index.reconstruct(i) for i in range(len(existing_chunks))], dtype=np.float32)
+        elif npy_path.exists():
+            old_vecs = np.load(str(npy_path))
+        else:
+            return self.build(repo_root, progress_cb)
+
+        changed_set = set(changed_files)
+
+        # Separate kept vs stale
+        kept_chunks: list[dict] = []
+        kept_vecs: list[np.ndarray] = []
+        # Build a hash→vec map for stale chunks (for reuse if hash unchanged)
+        stale_hash_to_vec: dict[str, np.ndarray] = {}
+
+        for i, chunk in enumerate(existing_chunks):
+            if chunk["file"] not in changed_set:
+                kept_chunks.append(chunk)
+                kept_vecs.append(old_vecs[i])
+            else:
+                stale_hash_to_vec[chunk["text_hash"]] = old_vecs[i]
+
+        # Re-chunk changed files that still exist
+        reused_chunks: list[dict] = []
+        reused_vecs: list[np.ndarray] = []
+        to_embed_chunks: list[dict] = []
+
+        for rel_path in changed_files:
+            abs_path = repo_root / rel_path
+            if not abs_path.exists():
+                continue  # deleted — skip
+            new_chunks = _chunk_file(abs_path, repo_root)
+            for chunk in new_chunks:
+                h = chunk["text_hash"]
+                if h in stale_hash_to_vec:
+                    reused_chunks.append(chunk)
+                    reused_vecs.append(stale_hash_to_vec[h])
+                else:
+                    to_embed_chunks.append(chunk)
+
+        n_to_embed = len(to_embed_chunks)
+        if progress_cb:
+            progress_cb(f"🔢 Re-embedding {n_to_embed} new/modified chunks ({len(reused_chunks)} reused, {len(kept_chunks)} unchanged)…")
+
+        # Embed new chunks
+        new_vecs_list: list[np.ndarray] = []
+        if n_to_embed > 0:
+            texts = [c["text"] for c in to_embed_chunks]
+            for i in range(0, n_to_embed, _EMBED_BATCH):
+                batch = texts[i: i + _EMBED_BATCH]
+                if progress_cb:
+                    progress_cb(f"🔢 Embedding chunks {i+1}–{min(i+len(batch), n_to_embed)} / {n_to_embed}…")
+                try:
+                    vecs = _embed_batch(batch, self._model, self._cfg)
+                    new_vecs_list.append(vecs)
+                except Exception as exc:
+                    logger.error("Embedding batch %d failed: %s", i // _EMBED_BATCH, exc)
+                    dim = old_vecs.shape[1]
+                    new_vecs_list.append(np.zeros((len(batch), dim), dtype=np.float32))
+                import time as _time  # noqa: PLC0415
+                _time.sleep(0.1)
+
+        # Combine all chunks + vecs
+        all_chunks = kept_chunks + reused_chunks + to_embed_chunks
+        all_vecs_parts: list[np.ndarray] = []
+        if kept_vecs:
+            all_vecs_parts.append(np.array(kept_vecs, dtype=np.float32))
+        if reused_vecs:
+            all_vecs_parts.append(np.array(reused_vecs, dtype=np.float32))
+        if new_vecs_list:
+            all_vecs_parts.append(np.vstack(new_vecs_list))
+
+        if not all_chunks or not all_vecs_parts:
+            logger.warning("No chunks after update — index not modified.")
+            return n_to_embed
+
+        matrix = np.vstack(all_vecs_parts)
+        dim = matrix.shape[1]
+
+        self._out.mkdir(parents=True, exist_ok=True)
+
+        if _HAS_FAISS:
+            index = _faiss.IndexFlatL2(dim)
+            _faiss.normalize_L2(matrix)
+            index.add(matrix)
+            _faiss.write_index(index, str(index_path))
+        else:
+            norms = np.linalg.norm(matrix, axis=1, keepdims=True)
+            matrix /= np.where(norms == 0, 1, norms)
+            np.save(str(npy_path), matrix)
+
+        chunks_path.write_text(json.dumps(all_chunks, ensure_ascii=False, indent=1), encoding="utf-8")
+
+        # Update embed_meta
+        (self._out / _EMBED_META_FILE).write_text(
+            json.dumps({"model": self._model, "dim": dim, "n_chunks": len(all_chunks), "built_at": _ts()}, indent=2),
+            encoding="utf-8",
+        )
+
+        logger.info("EmbedPipeline.update: %d re-embedded, %d reused, %d kept", n_to_embed, len(reused_chunks), len(kept_chunks))
+
+        # Store provenance
+        if self._store is not None and new_run_id is not None:
+            # Carry forward unchanged file provenance from last run
+            if last_run_id is not None:
+                unchanged_paths = list({c["file"] for c in kept_chunks})
+                self._store.carry_forward_rag_chunks(last_run_id, new_run_id, unchanged_paths)
+            # Upsert provenance for changed/new chunks
+            provenance = [
+                {
+                    "file_path": c["file"],
+                    "chunk_idx": c["chunk_idx"],
+                    "start_line": c.get("start_line", 0),
+                    "end_line": c.get("end_line", 0),
+                    "start_char": c.get("start_char", 0),
+                    "end_char": c.get("end_char", len(c["text"])),
+                    "text_hash": c.get("text_hash", ""),
+                    "is_code": c.get("is_code", True),
+                    "is_implementation": c.get("is_implementation", True),
+                }
+                for c in reused_chunks + to_embed_chunks
+            ]
+            if provenance:
+                self._store.upsert_rag_chunks(new_run_id, provenance)
+
+        if progress_cb:
+            progress_cb(f"✅ RAG index updated — {len(all_chunks)} total chunks, {n_to_embed} re-embedded")
+        return n_to_embed
+
 
 # ---------------------------------------------------------------------------
 # helpers

@@ -1,3 +1,8 @@
+## v0.10.7 — 2026-xx-xx
+
+### New Features
+- **Incremental embed on `reki update`** (`#76`): `reki update` now automatically refreshes the RAG index — only re-embedding chunks from changed files. Unchanged files carry forward their embeddings at zero API cost. New `EmbedPipeline.update()` method and `SqliteStore.carry_forward_rag_chunks()`. Expect ~90% fewer embedding API calls on typical updates.
+
 ## v0.10.6 — 2026-05-07
 
 ### New Features

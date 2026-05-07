@@ -143,3 +143,42 @@ def test_update_wiki_pages_refreshed_after_change(mock_llm, tmp_path):
     wiki_dir = output_dir / "wiki"
     pages = list(wiki_dir.glob("*.md"))
     assert len(pages) >= 3
+
+
+def test_update_triggers_incremental_rag_embed_when_index_exists(mock_llm, tmp_path):
+    """run_update() should call EmbedPipeline.update() when index exists."""
+    import numpy as np
+    from unittest.mock import patch as mpatch2, patch
+    from rekipedia.rag.embedder import EmbedPipeline
+
+    repo = tmp_path / "repo"
+    shutil.copytree(MINI_PY, repo)
+    output_dir = tmp_path / ".rekipedia"
+
+    # Full scan first
+    _do_full_scan(repo, output_dir)
+
+    # Build an embed index
+    fake_vec = np.array([[0.1] * 1536], dtype="float32")
+    with mpatch2("rekipedia.rag.embedder._embed_batch", lambda t, m, c: np.tile(fake_vec, (len(t), 1))):
+        pipe = EmbedPipeline(output_dir, LLMConfig())
+        pipe.build(repo)
+
+    assert pipe.is_built()
+
+    # Mutate a file
+    (repo / "utils.py").write_text("# v2\ndef helper_v2(): pass\n", encoding="utf-8")
+
+    update_calls = []
+    original_update = EmbedPipeline.update
+
+    def spy_update(self, *args, **kwargs):
+        update_calls.append(True)
+        return original_update(self, *args, **kwargs)
+
+    with patch.object(EmbedPipeline, "update", spy_update):
+        with mpatch2("rekipedia.rag.embedder._embed_batch", lambda t, m, c: np.tile(fake_vec, (len(t), 1))):
+            _do_update(repo, output_dir)
+
+    assert len(update_calls) >= 1, "EmbedPipeline.update was not called during run_update"
+

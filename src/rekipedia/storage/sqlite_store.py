@@ -690,6 +690,42 @@ class SqliteStore:
             for r in rows
         ]
 
+    def carry_forward_rag_chunks(
+        self,
+        from_run_id: int | str,
+        to_run_id: int | str,
+        file_paths: list[str],
+    ) -> int:
+        """Copy RAG chunk provenance from *from_run_id* to *to_run_id* for *file_paths*.
+
+        Used by incremental embed: unchanged files keep their provenance records.
+        Returns number of rows copied.
+        """
+        if not file_paths:
+            return 0
+        placeholders = ",".join("?" * len(file_paths))
+        rows = self._c.execute(
+            f"""
+            SELECT file_path, chunk_idx, start_line, end_line,
+                   start_char, end_char, text_hash, is_code, is_implementation
+            FROM rag_chunks
+            WHERE run_id = ? AND file_path IN ({placeholders})
+            """,
+            [from_run_id, *file_paths],
+        ).fetchall()
+        for r in rows:
+            self._c.execute(
+                """
+                INSERT OR REPLACE INTO rag_chunks
+                    (run_id, file_path, chunk_idx, start_line, end_line,
+                     start_char, end_char, text_hash, is_code, is_implementation)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (to_run_id, r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8]),
+            )
+        self._c.commit()
+        return len(rows)
+
     def get_all_rag_chunks(self, run_id: str) -> list[dict]:
         """Return all RAG chunk provenance records for *run_id*."""
         rows = self._c.execute(
