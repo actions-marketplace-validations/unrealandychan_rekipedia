@@ -1,3 +1,8 @@
+## v0.11.1 — 2026-05-08
+
+### Bug Fixes
+- **`/notes` page crash** — `notes_page` was using the old Starlette `TemplateResponse` API (`TemplateResponse("template", dict)`) while all other endpoints had already migrated to the new signature (`TemplateResponse(request, "template", ctx)`). Caused `TypeError: cannot use 'tuple' as a dict key` on Python 3.14 + new Starlette. Fixed to use `_ctx()` helper consistently.
+
 ## v0.11.0 — 2025-01-XX
 
 ### New Features
