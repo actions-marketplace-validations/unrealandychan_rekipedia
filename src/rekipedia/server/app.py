@@ -651,13 +651,8 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
         with SqliteStore(db_path) as store:
             notes = store.list_notes()
         return templates.TemplateResponse(
-            "notes.html",
-            {
-                "request": request,
-                "pages": pages,
-                "notes": notes,
-                "project_name": repo_root.name,
-            },
+            request, "notes.html",
+            _ctx(request, pages=pages, notes=notes, project_name=_project_name()),
         )
 
     return app
