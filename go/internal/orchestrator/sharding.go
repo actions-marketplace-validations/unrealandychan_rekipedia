@@ -2,6 +2,9 @@
 package orchestrator
 
 import (
+	"fmt"
+	"os"
+	"strconv"
 	"path/filepath"
 	"strings"
 
@@ -23,6 +26,11 @@ type ShardPlanner struct {
 func NewShardPlanner(budget int) *ShardPlanner {
 	if budget <= 0 {
 		budget = defaultTokenBudget
+	}
+	if v := os.Getenv("REKIPEDIA_SHARD_TOKEN_BUDGET"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			budget = n
+		}
 	}
 	return &ShardPlanner{budget: budget}
 }
@@ -79,7 +87,7 @@ func (sp *ShardPlanner) splitGroup(groupDir string, files []models.FileManifest)
 func makeShard(groupDir string, idx int, files []models.FileManifest) models.Shard {
 	id := groupDir
 	if idx > 0 {
-		id = groupDir + "#" + string(rune('0'+idx))
+		id = fmt.Sprintf("%s#%d", groupDir, idx)
 	}
 	return models.Shard{
 		ShardID: id,

@@ -1,6 +1,7 @@
 """Shard planner: partition FileManifest lists into token-budget shards."""
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from rekipedia.models.contracts import FileManifest, LLMConfig, Shard
@@ -8,7 +9,7 @@ from rekipedia.models.contracts import FileManifest, LLMConfig, Shard
 # Rough tokens-per-byte ratio (4 chars ≈ 1 token for code)
 _BYTES_PER_TOKEN = 4
 # Max tokens per shard before a new shard is started
-_DEFAULT_TOKEN_BUDGET = 12_000
+_DEFAULT_TOKEN_BUDGET = 40_000
 
 
 class ShardPlanner:
@@ -19,7 +20,7 @@ class ShardPlanner:
     """
 
     def __init__(self, token_budget: int = _DEFAULT_TOKEN_BUDGET) -> None:
-        self._budget = token_budget
+        self._budget = int(os.environ.get("REKIPEDIA_SHARD_TOKEN_BUDGET", str(token_budget)))
 
     def plan(
         self,

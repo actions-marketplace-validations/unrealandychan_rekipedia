@@ -100,10 +100,3 @@ func (e *EmbedPipeline) Search(query string, topK int) ([]SearchResult, error) {
 	}
 	return store.Search(embeddings[0], topK), nil
 }
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}

@@ -54,8 +54,6 @@ func ChunkFile(path, content string) []Chunk {
 		return nil
 	}
 
-	lines := strings.Split(content, "\n")
-
 	var chunks []Chunk
 	runes := []rune(content)
 	total := len(runes)
@@ -70,7 +68,7 @@ func ChunkFile(path, content string) []Chunk {
 		text := string(runes[idx:end])
 
 		// Compute start/end line numbers
-		startLine := countLines(string(runes[:idx]), lines)
+		startLine := countLines(string(runes[:idx]))
 		endLine := startLine + strings.Count(text, "\n")
 
 		chunks = append(chunks, Chunk{
@@ -91,6 +89,6 @@ func ChunkFile(path, content string) []Chunk {
 	return chunks
 }
 
-func countLines(before string, _ []string) int {
+func countLines(before string) int {
 	return strings.Count(before, "\n")
 }
