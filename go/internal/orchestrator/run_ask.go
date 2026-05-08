@@ -208,11 +208,19 @@ func symbolLines(symbols []models.Symbol) []string {
 	return []string{"## Symbol Index\n\n```json\n" + string(b) + "\n```"}
 }
 
+// buildContext assembles context parts within the character budget.
+// Priority order (most important first, appears earliest in prompt):
+//  1. RAG chunks        — most semantically relevant retrieved source code
+//  2. Wiki pages        — curated prose, ranked by relevance
+//  3. Symbol index      — fallback structural reference (often large)
+//
+// Tech lead notes are handled in Python; the Go runtime surfaces them via
+// Q&A history (history param). This order mirrors src/rekipedia/orchestrator/run_ask.py.
 func buildContext(ragChunks, wikiPages, symLines []string, history []models.QAHistory, budget int) []string {
 	var parts []string
 	used := 0
 
-	// RAG chunks first (highest priority)
+	// RAG chunks first (highest priority — most semantically relevant)
 	for _, chunk := range ragChunks {
 		if used+len(chunk) > budget {
 			break

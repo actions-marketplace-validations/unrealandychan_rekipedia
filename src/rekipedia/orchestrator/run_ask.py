@@ -220,10 +220,37 @@ def _build_full_system(
     symbol_lines = _load_symbol_lines(output_dir)
     rag_results = _rag_chunks(retrieval_query, output_dir, llm_config)
 
+    # Context assembly priority (most important first so it appears earliest in prompt):
+    #   1. RAG chunks        — most semantically relevant retrieved source code
+    #   2. Tech lead notes   — curated team context (if available)
+    #   3. Ranked wiki pages — broad curated prose, ranked by query relevance
+    #   4. Symbol index      — fallback structural reference (often large)
+    # This order mirrors the Go runtime (go/internal/orchestrator/run_ask.go).
     context_parts: list[str] = ["# Knowledge Context\n"]
     used_chars = sum(len(p) for p in context_parts)
 
-    # ── Tech Lead Notes (highest priority — team context) ─────────────
+    # ── 1. RAG: raw source code chunks (highest priority) ─────────────
+    if rag_results:
+        rag_header = "\n## Relevant Source Code (RAG)\n"
+        if used_chars + len(rag_header) < _CONTEXT_CHAR_BUDGET:
+            context_parts.append(rag_header)
+            used_chars += len(rag_header)
+            for chunk in rag_results:
+                file_ = chunk.get("file", "")
+                ext = chunk.get("ext", "")
+                lang = ext.lstrip(".") if ext else ""
+                score = chunk.get("score", 0.0)
+                text = chunk.get("text", "")
+                snippet = (
+                    f"\n### `{file_}` (relevance={score:.2f})\n"
+                    f"```{lang}\n{text}\n```\n"
+                )
+                if used_chars + len(snippet) > _CONTEXT_CHAR_BUDGET:
+                    break
+                context_parts.append(snippet)
+                used_chars += len(snippet)
+
+    # ── 2. Tech Lead Notes (if available) ─────────────────────────────
     try:
         db_path = output_dir / "store.db"
         if db_path.exists():
@@ -252,7 +279,7 @@ def _build_full_system(
     except Exception:
         pass  # notes are optional — never break ask
 
-    # ── Wiki pages (highest priority — curated prose) ──────────────────
+    # ── 3. Wiki pages (ranked by query relevance) ──────────────────────
     ranked_pages = _rank_pages_by_query(page_texts, retrieval_query)
     for page in ranked_pages:
         if used_chars + len(page) > _CONTEXT_CHAR_BUDGET:
@@ -263,28 +290,7 @@ def _build_full_system(
         context_parts.append(page)
         used_chars += len(page)
 
-    # ── RAG: raw source code chunks ────────────────────────────────────
-    if rag_results:
-        rag_header = "\n## Relevant Source Code (RAG)\n"
-        if used_chars + len(rag_header) < _CONTEXT_CHAR_BUDGET:
-            context_parts.append(rag_header)
-            used_chars += len(rag_header)
-            for chunk in rag_results:
-                file_ = chunk.get("file", "")
-                ext = chunk.get("ext", "")
-                lang = ext.lstrip(".") if ext else ""
-                score = chunk.get("score", 0.0)
-                text = chunk.get("text", "")
-                snippet = (
-                    f"\n### `{file_}` (relevance={score:.2f})\n"
-                    f"```{lang}\n{text}\n```\n"
-                )
-                if used_chars + len(snippet) > _CONTEXT_CHAR_BUDGET:
-                    break
-                context_parts.append(snippet)
-                used_chars += len(snippet)
-
-    # ── Symbol index ──────────────────────────────────────────────────
+    # ── 4. Symbol index (fallback) ─────────────────────────────────────
     if symbol_lines:
         sym_section = "\n## Symbol Index\n\n" + "\n".join(symbol_lines)
         remaining = _CONTEXT_CHAR_BUDGET - used_chars
@@ -295,6 +301,30 @@ def _build_full_system(
 
     context = "\n\n".join(context_parts)
     return f"{system_prompt}\n\n{context}"
+
+
+# ---------------------------------------------------------------------------
+# Shared setup helper
+# ---------------------------------------------------------------------------
+
+def _prepare_ask(
+    question: str,
+    repo_root: Path,
+    output_dir: Path,
+    llm_config: LLMConfig | None,
+    history: list[dict] | None,  # noqa: ARG001 — reserved for future use
+) -> tuple[LLMClient, str]:
+    """Validate scan, build system prompt, and init LLM client.
+
+    Returns:
+        (client, full_system_prompt) ready to pass to ``client.call`` /
+        ``client.stream``.
+    """
+    llm_config = llm_config or LLMConfig()
+    _verify_scan(output_dir, repo_root)
+    full_system = _build_full_system(question, output_dir, llm_config)
+    client = LLMClient(llm_config)
+    return client, full_system
 
 
 # ---------------------------------------------------------------------------
@@ -323,10 +353,7 @@ def run_ask(
     Raises:
         RuntimeError: If no successful scan exists for the repo.
     """
-    llm_config = llm_config or LLMConfig()
-    _verify_scan(output_dir, repo_root)
-    full_system = _build_full_system(question, output_dir, llm_config)
-    client = LLMClient(llm_config)
+    client, full_system = _prepare_ask(question, repo_root, output_dir, llm_config, history)
     return client.call(question, system=full_system, history=history)
 
 
@@ -342,8 +369,5 @@ def stream_ask(
     Identical to :func:`run_ask` except the final LLM call uses streaming
     and yields text chunks instead of returning a single string.
     """
-    llm_config = llm_config or LLMConfig()
-    _verify_scan(output_dir, repo_root)
-    full_system = _build_full_system(question, output_dir, llm_config)
-    client = LLMClient(llm_config)
+    client, full_system = _prepare_ask(question, repo_root, output_dir, llm_config, history)
     return client.stream(question, system=full_system, history=history)
