@@ -24,6 +24,7 @@ No hallucinations, no guessing — every answer is grounded in your actual codeb
 - **Wiki export**: bundle to a single Markdown file, ZIP archive, or structured JSON (`rekipedia export`)
 - **Incremental updates**: only re-processes changed files after the first scan
 - **Grounded Q&A**: answers cite real file paths and line numbers — no hallucinations
+- **Codebase tree index** — every scan builds a hierarchical directory/file tree in SQLite, enabling structured navigation and future reasoning-based retrieval.
 
 ## Quick start
 

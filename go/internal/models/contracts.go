@@ -143,6 +143,19 @@ type WikiPlan struct {
 	IndexSlug string         `json:"index_slug"`
 }
 
+// TreeNode represents a node in the codebase directory/file tree.
+type TreeNode struct {
+	ID         int64  `json:"id"`
+	RunID      string `json:"run_id"`
+	Path       string `json:"path"`               // relative path (e.g. "src/rekipedia/cli/scan.py")
+	Name       string `json:"name"`               // filename or dir name
+	Kind       string `json:"kind"`               // "file" or "dir"
+	Language   string `json:"language,omitempty"`
+	ParentID   *int64 `json:"parent_id,omitempty"` // NULL for root
+	Depth      int    `json:"depth"`
+	ChildCount int    `json:"child_count"` // computed, not stored
+}
+
 // ScanMeta records metadata about the last scan run.
 type ScanMeta struct {
 	Model             string `json:"model"`

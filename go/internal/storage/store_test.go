@@ -388,3 +388,80 @@ func TestListRelationships(t *testing.T) {
 	}
 }
 
+
+func TestUpsertTree(t *testing.T) {
+	s, err := Open(":memory:")
+	if err != nil {
+		t.Fatalf("Open :memory: failed: %v", err)
+	}
+	defer s.Close()
+
+	if err := s.CreateRun("tree-run", "/repo", "m"); err != nil {
+		t.Fatalf("CreateRun: %v", err)
+	}
+
+	files := []models.FileManifest{
+		{Path: "src/foo/bar.go", Language: "go"},
+		{Path: "src/foo/baz.go", Language: "go"},
+		{Path: "cmd/main.go", Language: "go"},
+	}
+	if err := s.UpsertTree("tree-run", files); err != nil {
+		t.Fatalf("UpsertTree: %v", err)
+	}
+
+	nodes, err := s.GetTree("tree-run")
+	if err != nil {
+		t.Fatalf("GetTree: %v", err)
+	}
+
+	// expect: src, src/foo, cmd dirs + 3 files = 6 nodes
+	if len(nodes) != 6 {
+		t.Errorf("expected 6 nodes, got %d", len(nodes))
+		for _, n := range nodes {
+			t.Logf("  %s kind=%s depth=%d parentID=%v", n.Path, n.Kind, n.Depth, n.ParentID)
+		}
+	}
+
+	byPath := map[string]models.TreeNode{}
+	for _, n := range nodes {
+		byPath[n.Path] = n
+	}
+
+	// check src dir
+	src, ok := byPath["src"]
+	if !ok {
+		t.Fatal("missing src node")
+	}
+	if src.Kind != "dir" || src.Depth != 0 || src.ParentID != nil {
+		t.Errorf("src: got kind=%s depth=%d parentID=%v", src.Kind, src.Depth, src.ParentID)
+	}
+
+	// check src/foo dir
+	srcFoo, ok := byPath["src/foo"]
+	if !ok {
+		t.Fatal("missing src/foo node")
+	}
+	if srcFoo.Kind != "dir" || srcFoo.Depth != 1 {
+		t.Errorf("src/foo: got kind=%s depth=%d", srcFoo.Kind, srcFoo.Depth)
+	}
+	if srcFoo.ParentID == nil || *srcFoo.ParentID != src.ID {
+		t.Errorf("src/foo parent should be src (id=%d), got %v", src.ID, srcFoo.ParentID)
+	}
+
+	// check src/foo/bar.go
+	bar, ok := byPath["src/foo/bar.go"]
+	if !ok {
+		t.Fatal("missing src/foo/bar.go node")
+	}
+	if bar.Kind != "file" || bar.Depth != 2 {
+		t.Errorf("bar.go: got kind=%s depth=%d", bar.Kind, bar.Depth)
+	}
+	if bar.ParentID == nil || *bar.ParentID != srcFoo.ID {
+		t.Errorf("bar.go parent should be src/foo (id=%d), got %v", srcFoo.ID, bar.ParentID)
+	}
+
+	// idempotency: calling again should not error
+	if err := s.UpsertTree("tree-run", files); err != nil {
+		t.Errorf("UpsertTree idempotency: %v", err)
+	}
+}

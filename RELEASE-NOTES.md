@@ -1,3 +1,13 @@
+## v0.11.0 — 2025-01-XX
+
+### New Features
+- **Codebase ToC Tree** (#85): scan now builds a `codebase_tree` table in SQLite with full directory/file hierarchy. Each node records path, name, kind (file/dir), language, parent reference, and depth. Lays groundwork for reasoning-based hierarchical retrieval (Phase 2).
+
+### Go
+- Added `models.TreeNode` struct
+- Added `storage.UpsertTree()` and `storage.GetTree()` methods
+- `RunDigest` now populates `codebase_tree` after snapshot
+
 ## v0.10.9 — 2026-xx-xx
 
 ### New Features

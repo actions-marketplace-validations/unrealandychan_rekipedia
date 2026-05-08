@@ -99,6 +99,9 @@ func RunDigest(ctx context.Context, repoRoot, outputDir string, opts DigestOptio
 	if err := store.UpsertSnapshot(runID, files); err != nil {
 		return fmt.Errorf("store snapshot: %w", err)
 	}
+	if err := store.UpsertTree(runID, files); err != nil {
+		return fmt.Errorf("store tree: %w", err)
+	}
 
 	// ── 2. Shard ───────────────────────────────────────────────────────────
 	shardSpinner, _ := pterm.DefaultSpinner.WithText("Planning shards…").Start()

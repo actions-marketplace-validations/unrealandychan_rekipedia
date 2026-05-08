@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -108,6 +110,17 @@ func (s *Store) migrate() error {
 			source     TEXT NOT NULL DEFAULT 'manual',
 			created_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS codebase_tree (
+			id        INTEGER PRIMARY KEY AUTOINCREMENT,
+			run_id    TEXT    NOT NULL,
+			path      TEXT    NOT NULL,
+			name      TEXT    NOT NULL,
+			kind      TEXT    NOT NULL CHECK(kind IN ('file','dir')),
+			language  TEXT,
+			parent_id INTEGER REFERENCES codebase_tree(id),
+			depth     INTEGER NOT NULL DEFAULT 0,
+			UNIQUE(run_id, path)
 		)`,
 	}
 	for _, stmt := range ddl {
@@ -413,6 +426,115 @@ func (s *Store) DeleteNote(id string) (bool, error) {
 	}
 	n, _ := res.RowsAffected()
 	return n > 0, nil
+}
+
+// UpsertTree builds and persists the codebase tree from file manifests.
+func (s *Store) UpsertTree(runID string, files []models.FileManifest) error {
+	type node struct {
+		path     string
+		name     string
+		kind     string
+		language string
+		depth    int
+	}
+
+	dirSet := map[string]bool{}
+	var nodes []node
+
+	for _, f := range files {
+		depth := strings.Count(f.Path, "/")
+		nodes = append(nodes, node{
+			path:     f.Path,
+			name:     filepath.Base(f.Path),
+			kind:     "file",
+			language: f.Language,
+			depth:    depth,
+		})
+		dir := filepath.Dir(f.Path)
+		for dir != "." && dir != "" {
+			if dirSet[dir] {
+				break
+			}
+			dirSet[dir] = true
+			dir = filepath.Dir(dir)
+		}
+	}
+
+	for dir := range dirSet {
+		nodes = append(nodes, node{
+			path:  dir,
+			name:  filepath.Base(dir),
+			kind:  "dir",
+			depth: strings.Count(dir, "/"),
+		})
+	}
+
+	sort.Slice(nodes, func(i, j int) bool {
+		if nodes[i].kind != nodes[j].kind {
+			return nodes[i].kind == "dir"
+		}
+		if nodes[i].depth != nodes[j].depth {
+			return nodes[i].depth < nodes[j].depth
+		}
+		return nodes[i].path < nodes[j].path
+	})
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	pathToID := map[string]int64{}
+	for _, n := range nodes {
+		parentDir := filepath.Dir(n.path)
+		var parentID *int64
+		if parentDir != "." && parentDir != "" {
+			if pid, ok := pathToID[parentDir]; ok {
+				parentID = &pid
+			}
+		}
+		res, err := tx.Exec(
+			`INSERT OR IGNORE INTO codebase_tree (run_id,path,name,kind,language,parent_id,depth)
+			 VALUES (?,?,?,?,?,?,?)`,
+			runID, n.path, n.name, n.kind, n.language, parentID, n.depth,
+		)
+		if err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+		id, _ := res.LastInsertId()
+		if id != 0 {
+			pathToID[n.path] = id
+		} else {
+			var existID int64
+			if err2 := tx.QueryRow(`SELECT id FROM codebase_tree WHERE run_id=? AND path=?`, runID, n.path).Scan(&existID); err2 == nil {
+				pathToID[n.path] = existID
+			}
+		}
+	}
+
+	return tx.Commit()
+}
+
+// GetTree returns all tree nodes for a run, ordered by path.
+func (s *Store) GetTree(runID string) ([]models.TreeNode, error) {
+	rows, err := s.db.Query(
+		`SELECT id,run_id,path,name,kind,COALESCE(language,''),parent_id,depth FROM codebase_tree WHERE run_id=? ORDER BY path`,
+		runID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var nodes []models.TreeNode
+	for rows.Next() {
+		var n models.TreeNode
+		if err := rows.Scan(&n.ID, &n.RunID, &n.Path, &n.Name, &n.Kind, &n.Language, &n.ParentID, &n.Depth); err != nil {
+			return nil, err
+		}
+		nodes = append(nodes, n)
+	}
+	return nodes, rows.Err()
 }
 
 func splitTags(tags string) []string {
