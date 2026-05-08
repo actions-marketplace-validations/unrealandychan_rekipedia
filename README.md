@@ -120,7 +120,15 @@ llm:
 export REKIPEDIA_MODEL=gpt-5.5
 export REKIPEDIA_API_KEY=sk-...
 export REKIPEDIA_BASE_URL=https://my-proxy/v1
+export REKIPEDIA_SHARD_TOKEN_BUDGET=40000
 ```
+
+| Variable | Description |
+|---|---|
+| `REKIPEDIA_MODEL` | LLM model name to use |
+| `REKIPEDIA_API_KEY` | API key for the LLM provider |
+| `REKIPEDIA_BASE_URL` | Base URL for OpenAI-compatible endpoints |
+| `REKIPEDIA_SHARD_TOKEN_BUDGET` | Max tokens per shard group (default: 40000) |
 
 ---
 

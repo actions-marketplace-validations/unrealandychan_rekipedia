@@ -1,3 +1,18 @@
+## v0.12.0 — 2026-05-08
+
+### Bug Fixes
+- **Go shard ID overflow** — shard IDs no longer corrupt at idx≥10; switched from rune arithmetic to `fmt.Sprintf` (#86)
+- **Token budget unified** — Python default raised 12K→40K to match Go; both now respect `REKIPEDIA_SHARD_TOKEN_BUDGET` env var (#87)
+- **LLMClient.stream() dead code** — removed redundant api_key/base_url assignments already covered by `_base_kwargs()` (#89)
+- **wiki_pages mtime cache** — `_wiki_pages()` now caches with directory mtime check instead of reading disk on every request (#90)
+- **Frontmatter dedup** — `_summary_html()` now uses `_strip_yaml_frontmatter()` instead of inline duplicate logic (#91)
+- **Go chunker cleanup** — removed unused `lines` param from `countLines`; eliminates wasted `strings.Split` allocation (#92)
+- **Go embedder min() shadow** — removed local `min()` that shadowed Go 1.21+ builtin (#93)
+- **Context priority unified** — Python and Go `run_ask` now assemble context in same order: RAG → notes → wiki → symbols (#97)
+
+### Refactoring
+- **run_ask/stream_ask** — shared preamble extracted into `_prepare_ask()` helper; eliminates code duplication (#88)
+
 ## v0.11.1 — 2026-05-08
 
 ### Bug Fixes
