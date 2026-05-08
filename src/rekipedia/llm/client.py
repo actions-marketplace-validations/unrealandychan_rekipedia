@@ -173,10 +173,6 @@ class LLMClient:
         messages.append({"role": "user", "content": prompt})
 
         kwargs = {**self._base_kwargs(), "messages": messages, "stream": True}
-        if self._api_key:
-            kwargs["api_key"] = self._api_key
-        if self._base_url:
-            kwargs["base_url"] = self._base_url
 
         response = litellm.completion(**kwargs)
         for chunk in response:

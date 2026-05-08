@@ -26,10 +26,20 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
 
     # ── helpers ──────────────────────────────────────────────────────
 
+    _wiki_cache: list[dict] | None = None
+    _wiki_cache_mtime: float = 0.0
+
     def _wiki_pages() -> list[dict]:
+        nonlocal _wiki_cache, _wiki_cache_mtime
         wiki_dir = output_dir / "wiki"
         if not wiki_dir.exists():
             return []
+        try:
+            mtime = wiki_dir.stat().st_mtime
+        except OSError:
+            return []
+        if _wiki_cache is not None and mtime == _wiki_cache_mtime:
+            return _wiki_cache
 
         # Try to load nav_order from manifest.json (written by exporter)
         manifest_path = output_dir / "exports" / "manifest.json"
@@ -82,6 +92,8 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                         title = line[2:].strip()
                         break
             pages.append({"slug": slug, "title": title, "section": section})
+        _wiki_cache = pages
+        _wiki_cache_mtime = mtime
         return pages
 
     def _project_name() -> str:
@@ -95,32 +107,9 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
             p = wiki_dir / f"{slug}.md"
             if p.exists():
                 raw = p.read_text(encoding="utf-8")
-                # Take just the intro paragraph (before first ##)
-                lines = raw.splitlines()
-                content_lines = lines
-
-                # Strip YAML frontmatter only when it is a complete block at the
-                # start of the document. A later '---' can be a normal Markdown
-                # horizontal rule and must not cause the rest of the content to
-                # be skipped.
-                first_content_index = next(
-                    (i for i, line in enumerate(lines) if line.strip()),
-                    None,
-                )
-                if first_content_index is not None and lines[first_content_index].strip() == "---":
-                    closing_index = next(
-                        (
-                            i
-                            for i in range(first_content_index + 1, len(lines))
-                            if lines[i].strip() == "---"
-                        ),
-                        None,
-                    )
-                    if closing_index is not None:
-                        content_lines = lines[:first_content_index] + lines[closing_index + 1 :]
-
+                text_no_fm = _strip_yaml_frontmatter(raw)
                 snippet = []
-                for line in content_lines:
+                for line in text_no_fm.splitlines():
                     if line.startswith("## ") and snippet:
                         break
                     if not line.startswith("# "):
