@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sys
 import os
+import time
 from pathlib import Path
 
 TOOLS = [
@@ -14,9 +15,9 @@ TOOLS = [
          "repo":     {"type": "string", "description": "Absolute path to repo root (default: cwd)"}
        },
        "required": ["question"]}},
-    {"name": "get_context", "description": "Get symbols and relationships for a file",
+    {"name": "get_context", "description": "Get symbols and relationships for a file (partial filename match supported)",
      "inputSchema": {"type": "object", "properties": {"file": {"type": "string"}}, "required": ["file"]}},
-    {"name": "search_nodes", "description": "Search symbol names",
+    {"name": "search_nodes", "description": "Search symbol names (fast indexed lookup)",
      "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}},
     {"name": "get_relationships", "description": "Get callers and callees for a symbol",
      "inputSchema": {"type": "object", "properties": {"symbol": {"type": "string"}}, "required": ["symbol"]}},
@@ -28,101 +29,240 @@ TOOLS = [
      "inputSchema": {"type": "object", "properties": {"file": {"type": "string"}, "depth": {"type": "integer", "default": 2}}, "required": ["file"]}},
 ]
 
-def _load_store(output_dir: str = "."):
-    db_path = Path(output_dir) / ".rekipedia" / "rekipedia.db"
-    if not db_path.exists():
-        return None, None, None
-    from rekipedia.storage.sqlite_store import SqliteStore
-    store = SqliteStore(db_path)
-    run_id = store.latest_run_id()
-    if not run_id:
-        return None, None, None
-    symbols = store.get_all_symbols(run_id)
-    rels = store.get_all_relationships(run_id)
-    return store, symbols, rels
 
-def _handle_tool(name: str, args: dict, symbols, rels) -> str:
-    if symbols is None:
-        return json.dumps({"error": "No rekipedia DB found. Run reki scan first."})
-    
-    if name == "get_context":
-        file = args.get("file", "")
-        syms = [s.name if hasattr(s, 'name') else s.get('name') for s in symbols
-                if (s.file if hasattr(s, 'file') else s.get('file', '')) == file]
-        file_rels = []
-        for r in rels:
-            frm = r.get('from_', '') or r.get('from', '') if isinstance(r, dict) else (r.from_ or '')
-            if any(frm == s for s in syms):
-                to = r.get('to', '') if isinstance(r, dict) else r.to
-                kind = r.get('kind', '') if isinstance(r, dict) else r.kind
-                file_rels.append({'from': frm, 'to': to, 'kind': kind})
-        return json.dumps({'symbols': syms[:50], 'relationships': file_rels[:100]})
-    
-    elif name == "search_nodes":
-        query = args.get("query", "").lower()
-        matches = []
-        for s in symbols:
-            name_ = s.name if hasattr(s, 'name') else s.get('name', '')
-            if query in name_.lower():
-                matches.append({'name': name_, 'file': s.file if hasattr(s,'file') else s.get('file',''), 'kind': s.kind if hasattr(s,'kind') else s.get('kind','')})
-        return json.dumps({'matches': matches[:50]})
-    
-    elif name == "get_relationships":
-        symbol = args.get("symbol", "")
-        callers, callees = [], []
-        for r in rels:
-            frm = r.get('from_', '') or r.get('from', '') if isinstance(r, dict) else (r.from_ or '')
-            to = r.get('to', '') if isinstance(r, dict) else r.to
-            kind = r.get('kind', '') if isinstance(r, dict) else r.kind
-            if kind == 'calls':
-                if to == symbol: callers.append(frm)
-                if frm == symbol: callees.append(to)
-        return json.dumps({'symbol': symbol, 'callers': callers[:30], 'callees': callees[:30]})
-    
-    elif name == "get_knowledge_gaps":
-        from rekipedia.analysis.graph_analysis import _build_knowledge_gaps
-        class FakeResult:
-            pass
-        r = FakeResult()
-        r.symbols = symbols
-        r.relationships = rels
-        gaps = _build_knowledge_gaps(r)
-        return json.dumps({'knowledge_gaps': gaps})
-    
-    elif name == "get_hub_nodes":
-        from rekipedia.analysis.graph_analysis import _build_hub_nodes
-        top_n = args.get('top_n', 10)
-        hubs = _build_hub_nodes(rels, symbols, top_n=top_n)
-        return json.dumps({'hub_nodes': hubs})
-    
-    elif name == "get_impact":
-        from rekipedia.analysis.impact import compute_impact
-        file = args.get('file', '')
-        depth = args.get('depth', 2)
-        result = compute_impact(file, rels, symbols, depth=depth)
-        return json.dumps(result)
-    
-    elif name == "ask":
-        question = args.get("question", "")
-        repo_path = args.get("repo") or os.getcwd()
-        out_dir = Path(repo_path) / ".rekipedia"
-        if not out_dir.exists():
-            return json.dumps({"error": "No .rekipedia dir found. Run reki scan first."})
+class _StoreCache:
+    """
+    Lazy-loading, auto-refreshing store cache.
+
+    Symbols and relationships are loaded on first access and reloaded
+    automatically whenever the DB file's mtime changes (i.e. after reki scan).
+    This means the MCP server never needs to be restarted after a rescan.
+    """
+
+    def __init__(self, output_dir: str):
+        self.db_path = Path(output_dir) / ".rekipedia" / "rekipedia.db"
+        self._store = None
+        self._symbols: list = []
+        self._rels: list = []
+        self._mtime: float = 0.0
+        # Pre-built indices for O(1) / O(log n) lookups
+        self._name_index: dict[str, list] = {}   # lower(name) → [symbols]
+        self._file_index: dict[str, list] = {}   # lower(file) → [symbols]
+        self._callers_index: dict[str, list] = {}  # symbol → [callers]
+        self._callees_index: dict[str, list] = {}  # symbol → [callees]
+
+    # ── public accessors ──────────────────────────────────────────────────────
+
+    @property
+    def available(self) -> bool:
+        return self.db_path.exists()
+
+    @property
+    def symbols(self) -> list:
+        self._refresh()
+        return self._symbols
+
+    @property
+    def rels(self) -> list:
+        self._refresh()
+        return self._rels
+
+    def search_by_name(self, query: str) -> list:
+        self._refresh()
+        q = query.lower()
+        results = []
+        for key, syms in self._name_index.items():
+            if q in key:
+                results.extend(syms)
+        return results[:50]
+
+    def symbols_for_file(self, file_arg: str) -> list:
+        """Match by suffix so partial paths work (e.g. 'foo.py' matches '/abs/src/foo.py')."""
+        self._refresh()
+        fa = file_arg.lower().replace("\\", "/")
+        results = []
+        for key, syms in self._file_index.items():
+            if key.endswith(fa) or fa in key:
+                results.extend(syms)
+        return results
+
+    def callers_callees(self, symbol: str) -> tuple[list, list]:
+        self._refresh()
+        return (
+            self._callers_index.get(symbol, [])[:30],
+            self._callees_index.get(symbol, [])[:30],
+        )
+
+    # ── internals ─────────────────────────────────────────────────────────────
+
+    def _refresh(self):
+        if not self.db_path.exists():
+            return
         try:
+            current_mtime = self.db_path.stat().st_mtime
+        except OSError:
+            return
+        if current_mtime <= self._mtime:
+            return  # DB unchanged — use cached data
+        self._load(current_mtime)
+
+    def _load(self, mtime: float):
+        try:
+            from rekipedia.storage.sqlite_store import SqliteStore
+            store = SqliteStore(self.db_path)
+            run_id = store.latest_run_id()
+            if not run_id:
+                return
+            symbols = store.get_all_symbols(run_id)
+            rels = store.get_all_relationships(run_id)
+            self._store = store
+            self._symbols = symbols
+            self._rels = rels
+            self._mtime = mtime
+            self._rebuild_indices(symbols, rels)
+        except Exception:
+            pass  # silently keep stale data if reload fails
+
+    def _rebuild_indices(self, symbols, rels):
+        name_idx: dict[str, list] = {}
+        file_idx: dict[str, list] = {}
+        for s in symbols:
+            name = (s.name if hasattr(s, "name") else s.get("name", "")).lower()
+            file = (s.file if hasattr(s, "file") else s.get("file", "")).lower().replace("\\", "/")
+            name_idx.setdefault(name, []).append(s)
+            if file:
+                file_idx.setdefault(file, []).append(s)
+        self._name_index = name_idx
+        self._file_index = file_idx
+
+        callers: dict[str, list] = {}
+        callees: dict[str, list] = {}
+        for r in rels:
+            if isinstance(r, dict):
+                frm = r.get("from_", "") or r.get("from", "")
+                to  = r.get("to", "")
+                kind = r.get("kind", "")
+            else:
+                frm  = r.from_ or ""
+                to   = r.to or ""
+                kind = r.kind or ""
+            if kind == "calls":
+                callers.setdefault(to, []).append(frm)
+                callees.setdefault(frm, []).append(to)
+        self._callers_index = callers
+        self._callees_index = callees
+
+
+def _sym_to_dict(s) -> dict:
+    return {
+        "name": s.name if hasattr(s, "name") else s.get("name", ""),
+        "file": s.file if hasattr(s, "file") else s.get("file", ""),
+        "kind": s.kind if hasattr(s, "kind") else s.get("kind", ""),
+    }
+
+
+def _handle_tool(name: str, args: dict, cache: _StoreCache) -> str:
+    try:
+        if not cache.available:
+            return json.dumps({"error": "No rekipedia DB found. Run reki scan first."})
+
+        if name == "get_context":
+            file_arg = args.get("file", "")
+            syms = cache.symbols_for_file(file_arg)
+            sym_names = [_sym_to_dict(s)["name"] for s in syms]
+            sym_name_set = set(sym_names)
+            file_rels = []
+            for r in cache.rels:
+                if isinstance(r, dict):
+                    frm  = r.get("from_", "") or r.get("from", "")
+                    to   = r.get("to", "")
+                    kind = r.get("kind", "")
+                else:
+                    frm  = r.from_ or ""
+                    to   = r.to or ""
+                    kind = r.kind or ""
+                if frm in sym_name_set:
+                    file_rels.append({"from": frm, "to": to, "kind": kind})
+            return json.dumps({"symbols": sym_names[:50], "relationships": file_rels[:100]})
+
+        elif name == "search_nodes":
+            matches = [_sym_to_dict(s) for s in cache.search_by_name(args.get("query", ""))]
+            return json.dumps({"matches": matches})
+
+        elif name == "get_relationships":
+            symbol = args.get("symbol", "")
+            callers, callees = cache.callers_callees(symbol)
+            return json.dumps({"symbol": symbol, "callers": callers, "callees": callees})
+
+        elif name == "get_knowledge_gaps":
+            from rekipedia.analysis.graph_analysis import _build_knowledge_gaps
+            class _R:
+                pass
+            r = _R()
+            r.symbols = cache.symbols
+            r.relationships = cache.rels
+            gaps = _build_knowledge_gaps(r)
+            return json.dumps({"knowledge_gaps": gaps})
+
+        elif name == "get_hub_nodes":
+            from rekipedia.analysis.graph_analysis import _build_hub_nodes
+            hubs = _build_hub_nodes(cache.rels, cache.symbols, top_n=args.get("top_n", 10))
+            return json.dumps({"hub_nodes": hubs})
+
+        elif name == "get_impact":
+            from rekipedia.analysis.impact import compute_impact
+            result = compute_impact(args.get("file", ""), cache.rels, cache.symbols, depth=args.get("depth", 2))
+            return json.dumps(result)
+
+        elif name == "ask":
+            question = args.get("question", "")
+            repo_path = Path(args.get("repo") or os.getcwd())
+            out_dir = repo_path / ".rekipedia"
+            if not out_dir.exists():
+                return json.dumps({"error": "No .rekipedia dir found. Run reki scan first."})
             from rekipedia.orchestrator.run_ask import run_ask
             from rekipedia.models.contracts import LLMConfig
-            cfg = LLMConfig()
-            answer = run_ask(question, Path(repo_path), out_dir, llm_config=cfg)
+            answer = run_ask(question, repo_path, out_dir, llm_config=LLMConfig())
             return json.dumps({"answer": answer})
-        except Exception as exc:
-            return json.dumps({"error": str(exc)})
-    
-    return json.dumps({'error': f'Unknown tool: {name}'})
+
+        return json.dumps({"error": f"Unknown tool: {name}"})
+
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+def write_mcp_json(repo_root: Path):
+    """Write / update .mcp.json at the repo root after a scan.
+
+    Idempotent — safe to call on every scan.
+    Skips silently if the file already exists with the correct content.
+    """
+    mcp_json_path = repo_root / ".mcp.json"
+    config = {
+        "mcpServers": {
+            "rekipedia": {
+                "command": "reki",
+                "args": ["mcp"],
+                "description": "rekipedia codebase knowledge — ask questions, search symbols, get impact analysis",
+            }
+        }
+    }
+    content = json.dumps(config, indent=2) + "\n"
+    try:
+        if mcp_json_path.exists() and mcp_json_path.read_text() == content:
+            return  # already up to date
+        mcp_json_path.write_text(content)
+    except OSError:
+        pass  # non-fatal — MCP server still works without the file
+
+
+def _write(obj: dict):
+    print(json.dumps(obj), flush=True)
 
 
 def run_mcp_server(output_dir: str = "."):
     """Run MCP JSON-RPC 2.0 stdio server."""
-    _, symbols, rels = _load_store(output_dir)
+    cache = _StoreCache(output_dir)
 
     for line in sys.stdin:
         line = line.strip()
@@ -132,29 +272,25 @@ def run_mcp_server(output_dir: str = "."):
             req = json.loads(line)
         except json.JSONDecodeError:
             continue
-        
-        req_id = req.get('id')
-        method = req.get('method', '')
-        params = req.get('params', {})
 
-        if method == 'initialize':
-            resp = {'jsonrpc': '2.0', 'id': req_id, 'result': {
-                'protocolVersion': '2024-11-05',
-                'capabilities': {'tools': {}},
-                'serverInfo': {'name': 'rekipedia', 'version': '1.0.0'},
-            }}
-        elif method == 'tools/list':
-            resp = {'jsonrpc': '2.0', 'id': req_id, 'result': {'tools': TOOLS}}
-        elif method == 'tools/call':
-            tool_name = params.get('name', '')
-            tool_args = params.get('arguments', {})
-            result_text = _handle_tool(tool_name, tool_args, symbols, rels)
-            resp = {'jsonrpc': '2.0', 'id': req_id, 'result': {
-                'content': [{'type': 'text', 'text': result_text}]
-            }}
-        elif method == 'notifications/initialized':
-            continue  # no response for notifications
+        req_id  = req.get("id")
+        method  = req.get("method", "")
+        params  = req.get("params", {})
+
+        if method == "initialize":
+            _write({"jsonrpc": "2.0", "id": req_id, "result": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {"tools": {}},
+                "serverInfo": {"name": "rekipedia", "version": "1.0.0"},
+            }})
+        elif method == "tools/list":
+            _write({"jsonrpc": "2.0", "id": req_id, "result": {"tools": TOOLS}})
+        elif method == "tools/call":
+            result_text = _handle_tool(params.get("name", ""), params.get("arguments", {}), cache)
+            _write({"jsonrpc": "2.0", "id": req_id, "result": {
+                "content": [{"type": "text", "text": result_text}]
+            }})
+        elif method == "notifications/initialized":
+            continue  # notifications require no response
         else:
-            resp = {'jsonrpc': '2.0', 'id': req_id, 'error': {'code': -32601, 'message': 'Method not found'}}
-        
-        print(json.dumps(resp), flush=True)
+            _write({"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": "Method not found"}})
