@@ -353,6 +353,10 @@ def run_ask(
     Raises:
         RuntimeError: If no successful scan exists for the repo.
     """
+    import os as _os
+    if _os.environ.get("REKIPEDIA_AGENT_ASK", "0") == "1":
+        from rekipedia.orchestrator.agent_ask import agent_run_ask  # noqa: PLC0415
+        return agent_run_ask(question, repo_root, output_dir, llm_config, history)
     client, full_system = _prepare_ask(question, repo_root, output_dir, llm_config, history)
     return client.call(question, system=full_system, history=history)
 

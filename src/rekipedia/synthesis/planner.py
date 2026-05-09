@@ -197,6 +197,11 @@ class PlannerAgent:
         """
         import threading  # noqa: PLC0415
 
+        import os as _os  # noqa: PLC0415
+        if _os.environ.get("REKIPEDIA_AGENT_PLANNER", "0") == "1":
+            from rekipedia.synthesis.agent_planner import AgentPlanner  # noqa: PLC0415
+            ap = AgentPlanner(caller=self._client)
+            return ap.plan(combined, diagrams=diagrams, progress_cb=progress_cb)
         summary = _build_planning_summary(combined, diagrams)
         n_files = summary["file_count"]
         n_symbols = summary["symbol_count"]
