@@ -1,220 +1,282 @@
 ---
 slug: architecture
-title: "Rekipedia Architectural Overview"
+title: "Deep Architectural Overview"
 section: general
 pin: false
 importance: 50
-created_at: 2026-05-07T04:05:04Z
-rekipedia_version: 0.10.9
+created_at: 2026-05-09T02:23:02Z
+rekipedia_version: 0.12.0
 ---
 
-# Rekipedia Architectural Overview
+# Deep Architectural Overview
 
 ## System Architecture
 
-Rekipedia is a repository-to-wiki knowledge system that combines a CLI, a persistent SQLite-backed store, a scanning/synthesis pipeline, a retrieval-augmented embedding subsystem, and a FastAPI web server. The core orchestration lives in the Python package, with a smaller Go-based storage/CLI implementation present in `go/` for a separate command-line path. The main Python runtime is centered around [`rekipedia.cli.__init__.py`](src/rekipedia/cli/__init__.py#L1) and the orchestration modules [`rekipedia.orchestrator.run_digest`](src/rekipedia/orchestrator/run_digest.py#L1), [`rekipedia.orchestrator.run_update`](src/rekipedia/orchestrator/run_update.py#L1), and [`rekipedia.orchestrator.run_ask`](src/rekipedia/orchestrator/run_ask.py#L1).
+`rekipedia` is a small but fairly rich question-answering and wiki-synthesis system. The observed codebase centers on two major workflows:
 
-Because no `pre_built_module_graph` was provided, the architecture diagram below is synthesized from the observed dependencies and call relationships.
+1. **Ask / answer**: load a prior scan, assemble contextual evidence, and answer questions grounded in the repo knowledge store.
+2. **Plan / synthesize**: generate a wiki structure from repository analysis, using either a deterministic planner or an agentic, tool-driven planner.
+
+The architecture is organized around a few high-leverage modules:
+- [`rekipedia.orchestrator.run_ask`](src/rekipedia/orchestrator/run_ask.py#L1) for the standard ask path
+- [`rekipedia.orchestrator.agent_ask`](src/rekipedia/orchestrator/agent_ask.py#L1) for the agentic ask fallback / variant
+- [`rekipedia.synthesis.planner`](src/rekipedia/synthesis/planner.py#L1) for wiki planning and fallback heuristics
+- [`rekipedia.synthesis.agent_planner`](src/rekipedia/synthesis/agent_planner.py#L1) for the tool-calling planner
+
+The relationship density is non-trivial for this repository size: the analysis reports **546 total relationships** with **62 imports** and **484 calls**. The strongest hub functions are [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155), [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208), [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186), and [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275), indicating a design built around orchestration and prompt assembly rather than many independent subsystems.
 
 ```mermaid
-flowchart TD
-  CLI[rekipedia.cli.__init__]
-  NoteCLI[rekipedia.cli.note]
-  EmbedCLI[rekipedia.cli.embed]
-  Digest[rekipedia.orchestrator.run_digest]
-  Update[rekipedia.orchestrator.run_update]
-  Ask[rekipedia.orchestrator.run_ask]
-  Server[rekipedia.server.app]
-  RAG[rekipedia.rag.embedder]
-  Store[rekipedia.storage.sqlite_store]
-  Notes[rekipedia.notes]
-  LLM[rekipedia.llm.client]
-  Synth[page/diagram builders]
-  Export[markdown/json exporters]
+flowchart LR
+  UserQuestion[User question]
+  RunAsk[run_ask]
+  PrepareAsk[_prepare_ask]
+  BuildSystem[_build_full_system]
+  Rewrite[_rewrite_query]
+  Rank[_rank_pages_by_query]
+  Rag[_rag_chunks]
+  AskAgent[AgentAsk]
+  ToolHandler[_ToolHandler]
+  Planner[PlannerAgent]
+  AgentPlanner[AgentPlanner]
+  WikiPlan[WikiPlan]
+  SqliteStore[SqliteStore]
+  LLMClient[LLMClient]
+  EmbedPipeline[EmbedPipeline]
 
-  CLI --> NoteCLI
-  CLI --> EmbedCLI
-  CLI --> Digest
-  CLI --> Update
-  CLI --> Ask
-
-  EmbedCLI --> RAG
-  EmbedCLI --> Store
-  NoteCLI --> Notes
-  NoteCLI --> Store
-
-  Digest --> Store
-  Digest --> RAG
-  Digest --> Synth
-  Digest --> Export
-  Digest --> LLM
-
-  Update --> Digest
-  Update --> Store
-  Update --> RAG
-  Update --> Synth
-  Update --> Export
-
-  Ask --> Store
-  Ask --> RAG
-  Ask --> LLM
-
-  Server --> Ask
-  Server --> Store
-  Server --> Notes
+  UserQuestion --> RunAsk
+  RunAsk --> PrepareAsk
+  PrepareAsk --> BuildSystem
+  BuildSystem --> Rewrite
+  BuildSystem --> Rank
+  BuildSystem --> Rag
+  BuildSystem --> SqliteStore
+  RunAsk --> AskAgent
+  AskAgent --> ToolHandler
+  AskAgent --> LLMClient
+  ToolHandler --> Rag
+  ToolHandler --> SqliteStore
+  Planner --> AgentPlanner
+  Planner --> WikiPlan
+  AgentPlanner --> WikiPlan
+  AgentPlanner --> LLMClient
+  Rag --> EmbedPipeline
 ```
 
-The architecture is strongly pipeline-oriented: scanning produces structured artifacts in the store, synthesis converts those artifacts into wiki pages and diagrams, and retrieval/QA layers reuse the same persisted state for interactive search and answering. The relationship volume reinforces this design: the analysis reports **1,996 total relationships**, dominated by **1,757 calls** and **222 imports** (`relationship_stats`). That balance is typical of a modular application with heavy orchestration and many helper functions.
-
-> **Sources:** `src/rekipedia/cli/__init__.py` · L1–L27 · [`main`](src/rekipedia/cli/__init__.py#L26) · `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45) · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) · `src/rekipedia/orchestrator/run_ask.py` · L304–L349 · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304)
+### Sources
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L1–L377 · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334), [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208) · `src/rekipedia/orchestrator/agent_ask.py` · L1–L382 · [`AgentAsk`](src/rekipedia/orchestrator/agent_ask.py#L253), [`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141) · `src/rekipedia/synthesis/planner.py` · L1–L495 · [`PlannerAgent`](src/rekipedia/synthesis/planner.py#L180), [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138) · `src/rekipedia/synthesis/agent_planner.py` · L1–L295 · [`AgentPlanner`](src/rekipedia/synthesis/agent_planner.py#L144)
 
 ## Component Breakdown
 
-### CLI Surface
+### Ask Orchestration Component
 
-The top-level Python CLI group is exposed by [`main`](src/rekipedia/cli/__init__.py#L26-L27), which composes the subcommands imported in [`rekipedia.cli.__init__`](src/rekipedia/cli/__init__.py#L1-L27). Two especially important subcommands in this analysis are [`embed_cmd`](src/rekipedia/cli/embed.py#L85-L201) and the notes command family in [`rekipedia.cli.note`](src/rekipedia/cli/note.py#L1-L153).
+The main ask pipeline lives in [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) and its helpers. This component is responsible for validating scan state, loading the knowledge store, assembling a system prompt, and invoking the LLM. The prompt construction is concentrated in [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208), which gathers wiki pages, symbol-line mappings, RAG chunks, repository notes, and query rewrites into one context bundle.
 
-- [`embed_cmd`](src/rekipedia/cli/embed.py#L85-L201) is the user-facing entry point for building or refreshing the RAG index. It validates optional dependencies through [`_check_rag_deps`](src/rekipedia/cli/embed.py#L22-L41), constructs [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443-L892), and updates scan metadata.
-- [`note_cmd`](src/rekipedia/cli/note.py#L27-L28) groups note-management subcommands such as [`note_add`](src/rekipedia/cli/note.py#L35-L42), [`note_list`](src/rekipedia/cli/note.py#L49-L64), [`note_remove`](src/rekipedia/cli/note.py#L70-L89), [`note_edit`](src/rekipedia/cli/note.py#L96-L120), and [`note_import`](src/rekipedia/cli/note.py#L127-L153).
+The ask module also includes [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L364), which provides the same preparation path but streams tokens instead of returning a single response string.
 
-### Notes Import and Parsing
+Files implementing this component:
+- [`src/rekipedia/orchestrator/run_ask.py`](src/rekipedia/orchestrator/run_ask.py#L1)
+- [`src/rekipedia/orchestrator/agent_ask.py`](src/rekipedia/orchestrator/agent_ask.py#L1)
 
-The notes subsystem is intentionally simple and file-driven. [`import_notes_from_file`](src/rekipedia/notes/__init__.py#L7-L19) dispatches based on file extension and delegates to [`_import_yaml`](src/rekipedia/notes/__init__.py#L22-L40) or [`_import_markdown`](src/rekipedia/notes/__init__.py#L43-L80). This gives users two import formats while preserving a normalized in-memory note dictionary shape.
+### Agentic Ask Component
 
-### Orchestration Pipeline
+The agentic ask path is implemented by [`AgentAsk`](src/rekipedia/orchestrator/agent_ask.py#L253) and its tool router [`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141). The class docstring explicitly describes it as a “ReAct agentic loop for answering codebase questions” with a fallback to single-shot mode when tool calling is not available.
 
-The scanning/synthesis pipeline is split into two execution modes:
+`_ToolHandler` exposes the operational tools used by the agent:
+- [`search_code`](src/rekipedia/orchestrator/agent_ask.py#L160)
+- [`get_symbol`](src/rekipedia/orchestrator/agent_ask.py#L173)
+- [`get_page`](src/rekipedia/orchestrator/agent_ask.py#L189)
+- [`get_relationships`](src/rekipedia/orchestrator/agent_ask.py#L208)
 
-- [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45-L433) performs a full scan.
-- [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244) performs an incremental scan/update based on changed files.
-- [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304-L349) performs retrieval-augmented question answering over the generated wiki and RAG index.
+These tools bridge the agent to repository artifacts on disk, the SQLite store, and the RAG index.
 
-Supporting helpers inside [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L1-L349) include [`_verify_scan`](src/rekipedia/orchestrator/run_ask.py#L37-L52), [`_load_wiki_pages`](src/rekipedia/orchestrator/run_ask.py#L55-L63), [`_load_symbol_lines`](src/rekipedia/orchestrator/run_ask.py#L66-L83), and [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208-L297), which assembles the prompt/context payload.
+Files implementing this component:
+- [`src/rekipedia/orchestrator/agent_ask.py`](src/rekipedia/orchestrator/agent_ask.py#L1)
 
-### Retrieval and Embedding
+### Planning Component
 
-The RAG subsystem is implemented in [`rekipedia.rag.embedder`](src/rekipedia/rag/embedder.py#L1-L901) with the main façade being [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443-L892). Its helpers include chunking and indexing primitives like [`_chunk_file`](src/rekipedia/rag/embedder.py#L160-L215), [`_symbol_chunk_file`](src/rekipedia/rag/embedder.py#L218-L232), and the ranking/diversification routine [`_mmr`](src/rekipedia/rag/embedder.py#L45-L84).
+The non-agentic wiki planner is centered on [`PlannerAgent`](src/rekipedia/synthesis/planner.py#L180). Its job is to analyze the combined repository summary and produce a [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138). The planner has a documented fallback path: if the LLM call fails, it returns a sensible default plan via [`_default_plan`](src/rekipedia/synthesis/planner.py#L400).
 
-### Persistence Layer
+Supporting helpers provide the underlying heuristics:
+- [`_classify_file_role`](src/rekipedia/synthesis/planner.py#L289)
+- [`_build_planning_summary`](src/rekipedia/synthesis/planner.py#L308)
+- [`_default_plan`](src/rekipedia/synthesis/planner.py#L400)
 
-The authoritative Python store is [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39-L827), which exposes methods for runs, snapshots, files, symbols, relationships, wiki pages, notes, QA history, and RAG provenance. It is initialized by [`SqliteStore.open`](src/rekipedia/storage/sqlite_store.py#L64-L67) and used as a context manager via [`__enter__`](src/rekipedia/storage/sqlite_store.py#L74-L76) / [`__exit__`](src/rekipedia/storage/sqlite_store.py#L78-L79).
+Files implementing this component:
+- [`src/rekipedia/synthesis/planner.py`](src/rekipedia/synthesis/planner.py#L1)
 
-### Web Server
+### Agentic Planning Component
 
-The HTTP interface is created by [`create_app`](src/rekipedia/server/app.py#L21-L663), a FastAPI app factory that exposes wiki browsing, notes management, and QA endpoints. It bridges to the same store and orchestrators used by the CLI, keeping the server as a thin presentation layer rather than a separate domain model.
+[`AgentPlanner`](src/rekipedia/synthesis/agent_planner.py#L144) is a tool-calling alternative to the standard planner. It follows the same public interface as [`PlannerAgent`](src/rekipedia/synthesis/planner.py#L180), returning a [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138) from `.plan()`.
 
-> **Sources:** `src/rekipedia/cli/embed.py` · L22–L201 · [`_check_rag_deps`](src/rekipedia/cli/embed.py#L22) · [`embed_cmd`](src/rekipedia/cli/embed.py#L85) · `src/rekipedia/cli/note.py` · L16–L153 · [`_get_store`](src/rekipedia/cli/note.py#L16) · [`note_import`](src/rekipedia/cli/note.py#L127) · `src/rekipedia/notes/__init__.py` · L7–L80 · [`import_notes_from_file`](src/rekipedia/notes/__init__.py#L7) · `src/rekipedia/orchestrator/run_ask.py` · L37–L349 · [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208) · `src/rekipedia/rag/embedder.py` · L45–L892 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443) · `src/rekipedia/storage/sqlite_store.py` · L39–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39) · `src/rekipedia/server/app.py` · L21–L663 · [`create_app`](src/rekipedia/server/app.py#L21)
+The architecture is notable for making planning itself agentic: rather than requiring one monolithic completion to generate the entire plan, the agent can issue structured actions during the planning loop. This is supported by the repeated use of `progress_cb`, `hasattr(...)`, and fallback logic in [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155).
+
+Files implementing this component:
+- [`src/rekipedia/synthesis/agent_planner.py`](src/rekipedia/synthesis/agent_planner.py#L1)
+
+### Shared Data Model Component
+
+The shared output structure is represented by [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138). Its methods include:
+- [`WikiPlan.get_page`](src/rekipedia/synthesis/planner.py#L166)
+- [`WikiPlan.get_section_for`](src/rekipedia/synthesis/planner.py#L169)
+- [`WikiPlan.__repr__`](src/rekipedia/synthesis/planner.py#L175)
+
+The test suite also exercises the model contract indirectly through [`AnalysisResult`](tests/test_agent_ask.py#L220) and [`LLMConfig`](tests/test_agent_ask.py#L20).
+
+Files implementing this component:
+- [`src/rekipedia/synthesis/planner.py`](src/rekipedia/synthesis/planner.py#L1)
+- [`tests/test_agent_ask.py`](tests/test_agent_ask.py#L1)
+
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L1–L377 · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334), [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L364), [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208) · `src/rekipedia/orchestrator/agent_ask.py` · L1–L382 · [`AgentAsk`](src/rekipedia/orchestrator/agent_ask.py#L253), [`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141) · `src/rekipedia/synthesis/planner.py` · L1–L495 · [`PlannerAgent`](src/rekipedia/synthesis/planner.py#L180), [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138) · `src/rekipedia/synthesis/agent_planner.py` · L1–L295 · [`AgentPlanner`](src/rekipedia/synthesis/agent_planner.py#L144)
 
 ## Entry Points
 
-The package metadata includes two console entry points in `evidence.entry_points`:
+The provided analysis data does not include any explicit package-level CLI entry points in the `entry_points` array, so there are no declared runtime entry points to list from that field. However, the repository evidence shows console-script metadata in the captured package information:
 
-| Entry Point | Trigger | What It Does | Source |
-|---|---|---|---|
-| `rekipedia` | User runs the installed console command | Invokes the Python CLI group exposed by [`main`](src/rekipedia/cli/__init__.py#L26-L27) | [`rekipedia = "rekipedia.cli:main"`](src/rekipedia/cli/__init__.py#L26) |
-| `reki` | User runs the alias console command | Same behavior as `rekipedia`, routed to the same [`main`](src/rekipedia/cli/__init__.py#L26-L27) function | [`reki = "rekipedia.cli:main"`](src/rekipedia/cli/__init__.py#L26) |
+```text
+rekipedia = "rekipedia.cli:main"
+reki = "rekipedia.cli:main"
+```
 
-The Go side also has a Cobra-based command structure in [`go/cmd/rekipedia/cmd/root.go`](go/cmd/rekipedia/cmd/root.go#L1-L78) and [`go/cmd/rekipedia/cmd/note.go`](go/cmd/rekipedia/cmd/note.go#L1-L116), but the task’s `entry_points` payload is empty, so no separate Go executable entry point is enumerated there.
+Because `rekipedia.cli` is not among the observed files, this documentation cannot trace the implementation of the CLI entry function itself. What is observable is that the command-line entry likely routes into the repository’s orchestration layer, which then selects either the standard ask path or the agentic variant. The test [`test_run_ask_uses_agent_when_env_set`](tests/test_agent_ask.py#L283) confirms that `run_ask` can delegate to [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) when the environment variable `REKIPEDIA_AGENT_ASK=1` is set.
 
-The `main` function is the dispatch root for the Python CLI, and the package-level imports in [`rekipedia.cli.__init__`](src/rekipedia/cli/__init__.py#L1-L27) wire in the command tree. A notable design choice is that `main` is intentionally thin: it composes Click decorators and defers all real work to dedicated modules.
+### Observable Runtime Triggers
+- **Standard ask flow**: calling [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334)
+- **Streaming ask flow**: calling [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L364)
+- **Agentic ask flow**: calling [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371)
+- **Planning flow**: calling [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186) or [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155)
 
-> **Sources:** `src/rekipedia/cli/__init__.py` · L1–L27 · [`main`](src/rekipedia/cli/__init__.py#L26) · `evidence.entry_points` in analysis data
+### Sources
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L334–L377 · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334), [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L364) · `src/rekipedia/orchestrator/agent_ask.py` · L371–L382 · [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) · `tests/test_agent_ask.py` · L283–L303 · [`test_run_ask_uses_agent_when_env_set`](tests/test_agent_ask.py#L283)
 
 ## Data Flow
 
-At a high level, data moves from repository files into a persistent run snapshot, then into derived wiki pages and embeddings, and finally back out through search, QA, and web presentation.
+The codebase has two closely related data flows: answer-time retrieval/generation and plan-time synthesis. The answer-time path is the more deeply evidenced one.
+
+### Ask Flow: from question to grounded answer
+
+1. A caller invokes [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) or [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L364).
+2. [`_prepare_ask`](src/rekipedia/orchestrator/run_ask.py#L310) validates that the latest scan exists using [`_verify_scan`](src/rekipedia/orchestrator/run_ask.py#L37).
+3. [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208) composes a large system prompt by:
+   - optionally rewriting the query via [`_rewrite_query`](src/rekipedia/orchestrator/run_ask.py#L149)
+   - loading wiki pages via [`_load_wiki_pages`](src/rekipedia/orchestrator/run_ask.py#L55)
+   - loading symbol line mappings via [`_load_symbol_lines`](src/rekipedia/orchestrator/run_ask.py#L66)
+   - retrieving code chunks from the embedding index via [`_rag_chunks`](src/rekipedia/orchestrator/run_ask.py#L86)
+   - ranking pages with [`_rank_pages_by_query`](src/rekipedia/orchestrator/run_ask.py#L137)
+   - collecting repository notes through [`SqliteStore`](src/rekipedia/orchestrator/run_ask.py#L208)
+4. The prepared prompt and client are handed to [`LLMClient`](src/rekipedia/orchestrator/run_ask.py#L310), which performs the final answer generation.
+5. If the agentic mode is enabled, [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) delegates to [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371), which instead runs an interactive tool loop through [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275).
+
+### Ask sequence diagram
 
 ```mermaid
 sequenceDiagram
-  participant User
-  participant CLI as CLI/Server
-  participant Orchestrator as run_digest/run_update/run_ask
+  participant Caller
+  participant RunAsk
+  participant PrepareAsk
+  participant BuildSystem
   participant Store as SqliteStore
-  participant Rag as EmbedPipeline
   participant LLM as LLMClient
-  participant Wiki as wiki pages/templates
 
-  User->>CLI: invoke scan/update/embed/ask
-  CLI->>Orchestrator: call pipeline function
-  Orchestrator->>Store: open run + snapshot + files
-  Orchestrator->>Store: save symbols/relationships/pages
-  Orchestrator->>Rag: build/update index
-  Rag->>Store: persist rag chunk provenance
-  Orchestrator->>Wiki: write markdown/json/diagram outputs
-  User->>CLI: ask question or browse UI
-  CLI->>Orchestrator: run_ask or server route
-  Orchestrator->>Store: load wiki/pages/symbol lines/notes/history
-  Orchestrator->>Rag: search chunks (optional)
-  Orchestrator->>LLM: generate answer
-  LLM-->>User: grounded markdown response
+  Caller->>RunAsk: run_ask(question, repo_root, output_dir, llm_config, history)
+  RunAsk->>PrepareAsk: _prepare_ask(...)
+  PrepareAsk->>BuildSystem: _build_full_system(...)
+  BuildSystem->>Store: load notes / relationships / scan state
+  BuildSystem->>BuildSystem: _rewrite_query / _rank_pages_by_query / _rag_chunks
+  PrepareAsk->>LLM: create client
+  RunAsk->>LLM: call(prompt, history)
+  LLM-->>Caller: Markdown answer
 ```
 
-The incremental update path is especially important:
+### Planning Flow: from scan artifacts to wiki plan
 
-1. [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244) opens [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39-L827) and resolves the previous successful run with [`get_latest_run_id`](src/rekipedia/storage/sqlite_store.py#L463-L472).
-2. It snapshots the current repository and determines which files changed.
-3. For unchanged files, it reuses persisted symbols/relationships/pages where possible through store copy/carry-forward methods such as [`copy_unchanged_symbols`](src/rekipedia/storage/sqlite_store.py#L484-L508), [`copy_unchanged_relationships`](src/rekipedia/storage/sqlite_store.py#L510-L530), and page-source helpers like [`carry_forward_page_sources`](src/rekipedia/storage/sqlite_store.py#L567-L583).
-4. It then re-synthesizes only impacted wiki pages using the synthesis pipeline and updates RAG provenance through [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733-L892) when an index already exists.
+1. [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186) or [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155) receives combined analysis data.
+2. [`_build_planning_summary`](src/rekipedia/synthesis/planner.py#L308) creates a compact, structured description of files, roles, and observed relationships.
+3. The LLM is asked to produce a structured wiki plan.
+4. The returned JSON-like result is parsed into [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138).
+5. If the call fails, both planners can fall back to [`_default_plan`](src/rekipedia/synthesis/planner.py#L400), preserving progress rather than aborting.
 
-The question-answering path is similarly layered:
-
-1. [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304-L349) first validates that a successful scan exists with [`_verify_scan`](src/rekipedia/orchestrator/run_ask.py#L37-L52).
-2. It loads wiki page content, symbol line mappings, and notes via [`_load_wiki_pages`](src/rekipedia/orchestrator/run_ask.py#L55-L63), [`_load_symbol_lines`](src/rekipedia/orchestrator/run_ask.py#L66-L83), and store access.
-3. It optionally fetches top-k RAG chunks with [`_rag_chunks`](src/rekipedia/orchestrator/run_ask.py#L86-L101).
-4. It assembles the system prompt and context in [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208-L297).
-5. It invokes [`LLMClient`](src/rekipedia/orchestrator/run_ask.py#L1-L349) to produce the final grounded answer.
-
-> **Sources:** `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) · `src/rekipedia/storage/sqlite_store.py` · L463–L583 · [`get_latest_run_id`](src/rekipedia/storage/sqlite_store.py#L463) · [`copy_unchanged_symbols`](src/rekipedia/storage/sqlite_store.py#L484) · `src/rekipedia/rag/embedder.py` · L733–L892 · [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733) · `src/rekipedia/orchestrator/run_ask.py` · L37–L349 · [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208) · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304)
+### Sources
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L37–L377 · [`_verify_scan`](src/rekipedia/orchestrator/run_ask.py#L37), [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208), [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) · `src/rekipedia/orchestrator/agent_ask.py` · L253–L382 · [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275), [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) · `src/rekipedia/synthesis/planner.py` · L186–L495 · [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186), [`_build_planning_summary`](src/rekipedia/synthesis/planner.py#L308), [`_default_plan`](src/rekipedia/synthesis/planner.py#L400) · `src/rekipedia/synthesis/agent_planner.py` · L155–L295 · [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155)
 
 ## Key Design Decisions
 
-### 1) Pipeline-Oriented Architecture
+### 1. Deterministic orchestration with optional agentic escalation
 
-The system is intentionally split into discrete stages: scan, snapshot, analyze, synthesize, export, embed, and query. This is visible in [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45-L433) and [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244), both of which coordinate many specialized modules rather than embedding domain logic directly. The store methods such as [`upsert_run`](src/rekipedia/storage/sqlite_store.py#L137-L160), [`upsert_snapshot`](src/rekipedia/storage/sqlite_store.py#L173-L192), [`upsert_symbols`](src/rekipedia/storage/sqlite_store.py#L223-L261), and [`upsert_page`](src/rekipedia/storage/sqlite_store.py#L305-L331) reflect this staged persistence model.
+A major architectural choice is that the repository prefers a deterministic top-level orchestration path, but can escalate into an agentic loop when needed. This is evidenced by:
+- [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) delegating to [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) under a feature flag, as verified by [`test_run_ask_uses_agent_when_env_set`](tests/test_agent_ask.py#L283)
+- [`AgentAsk`](src/rekipedia/orchestrator/agent_ask.py#L253) explicitly falling back to single-shot mode if tool calling is unavailable
 
-### 2) Incremental Rebuilds with Change Reuse
+This pattern reduces operational risk: the system can answer without requiring tool-call support, while still enabling richer multi-step retrieval when supported.
 
-A notable design choice is the incremental update path in [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244). Rather than recomputing the entire corpus, it reuses unchanged artifacts through copy/carry-forward helpers in [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L484-L604) and the RAG carry-forward helpers [`carry_forward_rag_chunks`](src/rekipedia/storage/sqlite_store.py#L766-L800). This supports faster updates and reduces churn across downstream wiki pages and indices.
+### 2. Prompt assembly as a synthetic retrieval layer
 
-### 3) Symbol-Aware Chunking with Fallbacks
+[`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208) is not a thin wrapper; it is a mini retrieval and ranking pipeline. It combines:
+- rewritten vocabulary via [`_rewrite_query`](src/rekipedia/orchestrator/run_ask.py#L149)
+- page ranking via [`_rank_pages_by_query`](src/rekipedia/orchestrator/run_ask.py#L137)
+- semantic chunk retrieval via [`_rag_chunks`](src/rekipedia/orchestrator/run_ask.py#L86)
+- repository notes from [`SqliteStore`](src/rekipedia/orchestrator/run_ask.py#L208)
 
-The embedding subsystem uses AST-aware chunking when possible. [`_symbol_chunk_file`](src/rekipedia/rag/embedder.py#L218-L232) tries to split files along symbol boundaries, while [`_symbol_chunk_file_inner`](src/rekipedia/rag/embedder.py#L235-L409) contains the actual parser-backed implementation. The docstring explicitly states it falls back to character chunking if tree-sitter is missing, the language is unsupported, or parsing fails. This is a pragmatic hybrid design: structure-first when available, safe fallback always.
+That design indicates the LLM is expected to work from a curated evidence package rather than raw repository contents.
 
-### 4) Maximal Marginal Relevance for Result Diversity
+### 3. Heuristic fallback paths are first-class
 
-[`_mmr`](src/rekipedia/rag/embedder.py#L45-L84) implements Maximal Marginal Relevance, which diversifies retrieval results instead of returning only nearest-neighbor duplicates. That choice is consistent with the “knowledge assistant” use case, where context variety is often more valuable than raw similarity.
+Both planning modules include fallback behavior:
+- [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186) falls back to [`_default_plan`](src/rekipedia/synthesis/planner.py#L400)
+- [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155) also falls back to a default plan on LLM failure
+- [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) falls back to direct completion if tool support is absent or the loop cannot continue
 
-### 5) Typed SQLite Store with Migration-Backed Schema Evolution
+This is a resilient architecture: correctness is preferred, but progress is preserved.
 
-[`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39-L827) applies schema migrations during open via [`_apply_migrations`](src/rekipedia/storage/sqlite_store.py#L117-L131), and the repository includes migration files such as `003_tech_lead_notes.sql`, `004_rag_chunk_provenance.sql`, and `005_page_sources.sql`. This indicates an explicit schema evolution strategy rather than ad hoc table creation.
+### 4. Tool-calling and ReAct-style loops
 
-### 6) Server and CLI Share the Same Domain Core
+The agentic ask path is clearly tool-oriented. [`_ToolHandler.dispatch`](src/rekipedia/orchestrator/agent_ask.py#L236) maps tool names to concrete repository actions, and [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) iterates over model responses, dispatching tool calls as they appear. The tests model exactly this behavior, including:
+- direct answer without tool calls
+- a tool call followed by a final answer
+- explicit finish-tool usage
+- max-iteration fallback
+- exception-based fallback
 
-The FastAPI factory [`create_app`](src/rekipedia/server/app.py#L21-L663) consumes the same store and orchestration primitives as the CLI. This reduces duplication and makes the web UI a thin projection of the same canonical state used by the command line.
+That test matrix is strong evidence for a ReAct-like control loop.
 
-> **Sources:** `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45) · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) · `src/rekipedia/storage/sqlite_store.py` · L117–L331 · [`_apply_migrations`](src/rekipedia/storage/sqlite_store.py#L117) · [`upsert_page`](src/rekipedia/storage/sqlite_store.py#L305) · `src/rekipedia/rag/embedder.py` · L45–L409 · [`_mmr`](src/rekipedia/rag/embedder.py#L45) · [`_symbol_chunk_file_inner`](src/rekipedia/rag/embedder.py#L235) · `src/rekipedia/server/app.py` · L21–L663 · [`create_app`](src/rekipedia/server/app.py#L21)
+### 5. Shared structured output objects
+
+The use of [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138) as a structured output container lets both the standard planner and the agentic planner share downstream expectations. This is a good separation of concerns: prompt strategy can vary, but the output contract remains stable.
+
+### Sources
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L149–L377 · [`_rewrite_query`](src/rekipedia/orchestrator/run_ask.py#L149), [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208), [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) · `src/rekipedia/orchestrator/agent_ask.py` · L141–L364 · [`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141), [`AgentAsk`](src/rekipedia/orchestrator/agent_ask.py#L253), [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) · `src/rekipedia/synthesis/planner.py` · L138–L495 · [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138), [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186), [`_default_plan`](src/rekipedia/synthesis/planner.py#L400) · `src/rekipedia/synthesis/agent_planner.py` · L144–L295 · [`AgentPlanner`](src/rekipedia/synthesis/agent_planner.py#L144) · `tests/test_agent_ask.py` · L112–L303 · [`test_agent_ask_direct_answer`](tests/test_agent_ask.py#L112), [`test_agent_ask_tool_then_finish`](tests/test_agent_ask.py#L133), [`test_agent_ask_max_iterations`](tests/test_agent_ask.py#L173), [`test_agent_ask_fallback_on_error`](tests/test_agent_ask.py#L198), [`test_run_ask_uses_agent_when_env_set`](tests/test_agent_ask.py#L283)
 
 ## Inter-Module Dependencies
 
-No `pre_built_dependency_graph` was provided, so the following table summarizes the major observed module relationships from `cross_module_summary`.
+No `pre_built_dependency_graph` was provided, so the dependency view is derived from the recorded cross-module relationships. The core topology is:
+
+- [`rekipedia.orchestrator.run_ask`](src/rekipedia/orchestrator/run_ask.py#L1) imports [`rekipedia.orchestrator.agent_ask`](src/rekipedia/orchestrator/agent_ask.py#L1)
+- [`rekipedia.orchestrator.agent_ask`](src/rekipedia/orchestrator/agent_ask.py#L1) imports [`rekipedia.orchestrator.run_ask`](src/rekipedia/orchestrator/run_ask.py#L1), forming a bidirectional orchestration dependency
+- [`rekipedia.synthesis.planner`](src/rekipedia/synthesis/planner.py#L1) imports [`rekipedia.synthesis.agent_planner`](src/rekipedia/synthesis/agent_planner.py#L1)
+- [`rekipedia.synthesis.agent_planner`](src/rekipedia/synthesis/agent_planner.py#L1) imports [`rekipedia.synthesis.planner`](src/rekipedia/synthesis/planner.py#L1), another bidirectional pair
+- both orchestration and planning depend on shared infrastructure such as [`LLMClient`](src/rekipedia/orchestrator/run_ask.py#L310), [`SqliteStore`](src/rekipedia/orchestrator/run_ask.py#L208), and the shared model contract [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138)
+
+### Major cross-module dependency table
 
 | Module | Imports From | Called By | Calls Into | Inherits From |
 |--------|-------------|-----------|------------|---------------|
-| `rekipedia.cli.__init__` | `click` | package consumers | `rekipedia.cli.note`, `rekipedia.cli.embed`, other CLI submodules | — |
-| `rekipedia.cli.embed` | `rekipedia.rag.embedder`, `rekipedia.storage.sqlite_store`, `rekipedia.rag.scan_meta` | `rekipedia.cli.__init__` | `EmbedPipeline`, `SqliteStore`, dependency checks | — |
-| `rekipedia.cli.note` | `rekipedia.storage.sqlite_store`, `rekipedia.notes.importer` | `rekipedia.cli.__init__` | notes CRUD helpers, import parser | — |
-| `rekipedia.orchestrator.run_digest` | `rekipedia.storage.sqlite_store`, `rekipedia.rag.embedder`, synthesis/export modules | `rekipedia.orchestrator.run_update`, CLI/server flows | `SqliteStore`, `LLMClient`, `PageBuilder`, `DiagramBuilder`, exporters | — |
-| `rekipedia.orchestrator.run_update` | `rekipedia.orchestrator.run_digest`, `rekipedia.rag.embedder`, `rekipedia.storage.sqlite_store` | CLI/server update flow | `SqliteStore`, `PageBuilder`, `DiagramBuilder`, `EmbedPipeline` | — |
-| `rekipedia.orchestrator.run_ask` | `rekipedia.storage.sqlite_store`, `rekipedia.rag.embedder`, `rekipedia.llm.client` | `rekipedia.server.app` | `EmbedPipeline`, `SqliteStore`, `LLMClient` | — |
-| `rekipedia.rag.embedder` | `faiss`, `numpy`, `litellm`, tree-sitter packages | CLI/orchestrators/tests | FAISS, LiteLLM, chunking/provenance helpers | — |
-| `rekipedia.storage.sqlite_store` | `sqlite3`, `turso`, `rekipedia.analysis.graph_analysis` | CLI/orchestrators/server/tests | SQL persistence, migration execution, copy/carry-forward helpers | — |
-| `rekipedia.server.app` | `fastapi`, `markdown`, `rekipedia.orchestrator.run_ask`, `rekipedia.storage.sqlite_store` | HTTP runtime | store, ask flow, templates, notes endpoints | — |
+| `rekipedia.orchestrator.run_ask` | `rekipedia.orchestrator.agent_ask`, `rekipedia.llm.client`, `rekipedia.models.contracts`, `rekipedia.storage.sqlite_store`, `rekipedia.rag.embedder` | `rekipedia.orchestrator.agent_ask` | `LLMClient`, `SqliteStore`, `EmbedPipeline`, `_prepare_ask`, `agent_run_ask` | — |
+| `rekipedia.orchestrator.agent_ask` | `rekipedia.orchestrator.run_ask`, `rekipedia.llm.client`, `rekipedia.models.contracts`, `rekipedia.storage.sqlite_store` | `rekipedia.orchestrator.run_ask`, `tests.test_agent_ask` | `_rag_chunks`, `SqliteStore`, `_verify_scan`, `LLMClient` | — |
+| `rekipedia.synthesis.planner` | `rekipedia.synthesis.agent_planner`, `rekipedia.synthesis.slug_utils`, `rekipedia.orchestrator.snapshotter`, `rekipedia.llm.client`, `rekipedia.models.contracts` | `rekipedia.synthesis.agent_planner`, `tests.test_agent_ask` | `AgentPlanner`, `WikiPlan`, `_default_plan`, `_build_planning_summary` | — |
+| `rekipedia.synthesis.agent_planner` | `rekipedia.synthesis.planner`, `rekipedia.llm.client`, `rekipedia.models.contracts` | `rekipedia.synthesis.planner`, `tests.test_agent_ask` | `_build_planning_summary`, `WikiPlan`, `LLMClient` | — |
+| `tests.test_agent_ask` | `rekipedia.orchestrator.agent_ask`, `rekipedia.orchestrator`, `rekipedia.synthesis.agent_planner`, `rekipedia.synthesis.planner`, `rekipedia.models.contracts` | — | `AgentAsk`, `AgentPlanner`, `PlannerAgent`, `run_ask` | — |
 
-Two coupling observations stand out:
+### Coupling observations
 
-- **Tightly coupled pair:** [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45-L433) and [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244). The update pipeline reuses the full scan pipeline as a fallback and shares most downstream synthesis/export dependencies.
-- **Bridge module:** [`rekipedia.rag.embedder`](src/rekipedia/rag/embedder.py#L1-L901) is a major bridge node. The analysis marks it as imported by CLI, orchestration, and tests, and it has enough outgoing edges to sit between repository scanning and user-facing retrieval.
+- **Tightly coupled pairs**
+  - [`rekipedia.orchestrator.run_ask`](src/rekipedia/orchestrator/run_ask.py#L1) ↔ [`rekipedia.orchestrator.agent_ask`](src/rekipedia/orchestrator/agent_ask.py#L1)
+  - [`rekipedia.synthesis.planner`](src/rekipedia/synthesis/planner.py#L1) ↔ [`rekipedia.synthesis.agent_planner`](src/rekipedia/synthesis/agent_planner.py#L1)
 
-There is no evidence of explicit inheritance hierarchies in the core Python modules; the design is composition-heavy, with orchestration functions composing helper modules and a few long-lived service objects such as [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443-L892) and [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39-L827).
+- **Bridge / hub functions**
+  - [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208) is explicitly flagged as a bridge node in the analysis
+  - [`_build_planning_summary`](src/rekipedia/synthesis/planner.py#L308) is also a bridge node
 
-> **Sources:** `cross_module_summary` in analysis data · `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45) · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) · `src/rekipedia/rag/embedder.py` · L1–L901 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443) · `src/rekipedia/storage/sqlite_store.py` · L39–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39)
+- **Potential circular dependencies**
+  - The cross-module summary shows mutual imports between orchestration modules and between planning modules. This is manageable because the import graph is intentional, but it is still a design pressure point.
+
+### Sources
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L1–L377 · [`rekipedia.orchestrator.run_ask`](src/rekipedia/orchestrator/run_ask.py#L1), [`_prepare_ask`](src/rekipedia/orchestrator/run_ask.py#L310), [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208) · `src/rekipedia/orchestrator/agent_ask.py` · L1–L382 · [`rekipedia.orchestrator.agent_ask`](src/rekipedia/orchestrator/agent_ask.py#L1), [`AgentAsk`](src/rekipedia/orchestrator/agent_ask.py#L253) · `src/rekipedia/synthesis/planner.py` · L1–L495 · [`rekipedia.synthesis.planner`](src/rekipedia/synthesis/planner.py#L1), [`PlannerAgent`](src/rekipedia/synthesis/planner.py#L180), [`_build_planning_summary`](src/rekipedia/synthesis/planner.py#L308), [`_default_plan`](src/rekipedia/synthesis/planner.py#L400) · `src/rekipedia/synthesis/agent_planner.py` · L1–L295 · [`rekipedia.synthesis.agent_planner`](src/rekipedia/synthesis/agent_planner.py#L1), [`AgentPlanner`](src/rekipedia/synthesis/agent_planner.py#L144) · `tests/test_agent_ask.py` · L1–L303 · [`tests.test_agent_ask`](tests/test_agent_ask.py#L1)

@@ -1,61 +1,61 @@
 {
-  "run_id": "10182866-8f53-441f-9886-52b67b17eec6",
-  "generated_at": "2026-05-07T04:13:30.278361+00:00",
-  "file_count": 297,
-  "symbol_count": 207,
-  "relationship_count": 1996,
+  "run_id": "68bef709-9cf1-4f7f-9388-89e3d52471ca",
+  "generated_at": "2026-05-09T02:24:27.629556+00:00",
+  "file_count": 300,
+  "symbol_count": 61,
+  "relationship_count": 546,
   "nav_order": [
-    "index",
-    "architecture",
-    "core-modules",
     "algorithms",
-    "cli-and-api",
+    "technical-debt",
+    "core-modules",
+    "index",
     "installation-and-setup",
+    "architecture",
     "configuration",
-    "testing",
+    "cli-and-api",
     "ecosystem-and-integrations",
-    "technical-debt"
+    "testing"
   ],
   "pages": [
     {
-      "slug": "index",
-      "title": "Project Overview"
+      "slug": "algorithms",
+      "title": "Core Algorithms and Data Processing"
     },
     {
-      "slug": "architecture",
-      "title": "Rekipedia Architectural Overview"
+      "slug": "technical-debt",
+      "title": "Technical Debt Inventory and Refactoring Assessment"
     },
     {
       "slug": "core-modules",
-      "title": "Core Modules"
+      "title": "Module Reference: Significant Packages and Modules"
     },
     {
-      "slug": "algorithms",
-      "title": "Core Algorithms and Data Processing Logic"
-    },
-    {
-      "slug": "cli-and-api",
-      "title": "CLI Reference and Programmatic API"
+      "slug": "index",
+      "title": "Project Overview"
     },
     {
       "slug": "installation-and-setup",
       "title": "Installation and Setup Guide"
     },
     {
+      "slug": "architecture",
+      "title": "Deep Architectural Overview"
+    },
+    {
       "slug": "configuration",
       "title": "Configuration Reference"
     },
     {
-      "slug": "testing",
-      "title": "Testing Strategy and How to Run Tests"
+      "slug": "cli-and-api",
+      "title": "CLI Reference and Programmatic API"
     },
     {
       "slug": "ecosystem-and-integrations",
       "title": "External Integrations, Plugins, and Ecosystem"
     },
     {
-      "slug": "technical-debt",
-      "title": "Technical Debt Audit"
+      "slug": "testing",
+      "title": "Testing Strategy and Test Execution"
     }
   ],
   "diagrams": [

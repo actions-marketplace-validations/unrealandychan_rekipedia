@@ -4,567 +4,460 @@ title: "CLI Reference and Programmatic API"
 section: general
 pin: false
 importance: 50
-created_at: 2026-05-07T04:11:47Z
-rekipedia_version: 0.10.9
+created_at: 2026-05-09T02:23:44Z
+rekipedia_version: 0.12.0
 ---
 
 # CLI Reference and Programmatic API
 
 ## Overview
 
-This page documents the public command-line interface and the external-facing Python APIs that are clearly visible in the repository analysis. The primary entry point for the Python CLI is [`main`](src/rekipedia/cli/__init__.py#L26), which is exposed via the package entry points `rekipedia = "rekipedia.cli:main"` and `reki = "rekipedia.cli:main"` in the project metadata. The CLI is built with Click and dispatches into subcommands defined under `src/rekipedia/cli/`, including the notes management commands in [`rekipedia.cli.note`](src/rekipedia/cli/note.py#L1-L153) and the RAG embedding command in [`rekipedia.cli.embed`](src/rekipedia/cli/embed.py#L1-L201).
+This page documents the externally useful command-line and Python entry points that are visible in the analyzed repository snapshot. The package metadata in `package.json` and `pyproject.toml` shows the project name/version as `rekipedia 0.13.0`, and the installed console scripts are:
 
-On the programmatic side, the main external APIs surfaced by the analysis are the orchestrator functions [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45-L433), [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244), and [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304-L349), plus the storage and RAG APIs [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39-L827) and [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443-L892).
+```text
+rekipedia = "rekipedia.cli:main"
+reki = "rekipedia.cli:main"
+```
 
-> **Sources:** `src/rekipedia/cli/__init__.py` · L26–L27 · [`main`](src/rekipedia/cli/__init__.py#L26)  
-> **Sources:** `src/rekipedia/cli/note.py` · L1–L153 · [`note_cmd`](src/rekipedia/cli/note.py#L27), [`note_add`](src/rekipedia/cli/note.py#L35), [`note_list`](src/rekipedia/cli/note.py#L49), [`note_remove`](src/rekipedia/cli/note.py#L70), [`note_edit`](src/rekipedia/cli/note.py#L96), [`note_import`](src/rekipedia/cli/note.py#L127)  
-> **Sources:** `src/rekipedia/cli/embed.py` · L22–L201 · [`embed_cmd`](src/rekipedia/cli/embed.py#L85), [`_check_rag_deps`](src/rekipedia/cli/embed.py#L22)  
-> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L304–L349 · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304), [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L333)  
-> **Sources:** `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45)  
-> **Sources:** `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27)  
-> **Sources:** `src/rekipedia/storage/sqlite_store.py` · L39–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39)  
-> **Sources:** `src/rekipedia/rag/embedder.py` · L443–L892 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443)
+Those entry points are declared, but the actual CLI implementation file (`rekipedia/cli.py`) is not present in the provided analysis set, so this page can only document the command surface that is evidenced indirectly by the repository metadata and the APIs exposed in the implementation files. The most concrete public programmatic APIs available in the analyzed code are the question-answering and planning functions/classes in `src/rekipedia/orchestrator/run_ask.py`, `src/rekipedia/orchestrator/agent_ask.py`, `src/rekipedia/synthesis/planner.py`, and `src/rekipedia/synthesis/agent_planner.py`.
+
+The test file [`tests/test_agent_ask.py`](tests/test_agent_ask.py#L1) also provides behavioral evidence for how these APIs are intended to be used, especially the environment-controlled agentic ask path (`REKIPEDIA_AGENT_ASK=1`) and the planner fallback behavior.
+
+> **Sources:** `package.json` · `pyproject.toml` · `src/rekipedia/orchestrator/run_ask.py` · `src/rekipedia/orchestrator/agent_ask.py` · `src/rekipedia/synthesis/planner.py` · `src/rekipedia/synthesis/agent_planner.py`
 
 ## CLI Reference
 
-### `rekipedia` / `reki`
+The repository metadata proves that the CLI is invoked via `rekipedia` or `reki`, both bound to `rekipedia.cli:main`, but the command parser itself is not included in the analyzed files. As a result, the specific subcommands and flags cannot be enumerated from the source evidence available here. What can be stated safely is that the CLI entry point exists and is meant to front the core orchestration APIs documented below.
 
-The top-level Click group is implemented by [`main`](src/rekipedia/cli/__init__.py#L26). The analysis shows it is decorated with a version option and acts as the umbrella entry point for all subcommands imported by `src/rekipedia/cli/__init__.py`.
-
-Because the analysis does not include the exact Click option declarations for the root command, the observable behavior is limited to the existence of the group and version support.
+### `rekipedia`
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--version` | flag | package version (`0.10.9`) | Display the CLI version and exit |
+| *(unknown from analyzed sources)* |  |  | The CLI entry point exported as `rekipedia.cli:main` in package metadata. The actual subcommands/flags are not present in the analysis payload, so no verified option list can be reconstructed. |
 
-**Usage example**
+Usage example:
 
 ```bash
-rekipedia --version
+rekipedia --help
 ```
 
-> **Sources:** `src/rekipedia/cli/__init__.py` · L26–L27 · [`main`](src/rekipedia/cli/__init__.py#L26)
-
----
-
-### `rekipedia note`
-
-The notes command group is defined by [`note_cmd`](src/rekipedia/cli/note.py#L27). It exposes note lifecycle operations backed by [`_get_store`](src/rekipedia/cli/note.py#L16), which opens a [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39).
-
-#### `rekipedia note add`
-
-Implemented by [`note_add`](src/rekipedia/cli/note.py#L35). This command inserts a new tech lead note using [`SqliteStore.upsert_note`](src/rekipedia/storage/sqlite_store.py#L631).
+### `reki`
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `content` | argument | required | Note body to store |
-| `--tag` | option | none | Attach a note tag |
+| *(unknown from analyzed sources)* |  |  | Alias entry point for the same `rekipedia.cli:main` function. |
 
-**Usage example**
-
-```bash
-rekipedia note add "Investigate caching behavior in the update pipeline" --tag followup
-```
-
-#### `rekipedia note list`
-
-Implemented by [`note_list`](src/rekipedia/cli/note.py#L49). It loads notes through [`SqliteStore.list_notes`](src/rekipedia/storage/sqlite_store.py#L658) and can emit JSON.
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--tag` | option | none | Filter notes by tag |
-| `--json` | flag | `false` | Emit JSON instead of human-readable output |
-
-**Usage example**
+Usage example:
 
 ```bash
-rekipedia note list --tag followup --json
+reki --help
 ```
 
-#### `rekipedia note remove`
+### Practical CLI-to-API mapping
 
-Implemented by [`note_remove`](src/rekipedia/cli/note.py#L70). It accepts an ID or ID prefix, searches notes via [`SqliteStore.list_notes`](src/rekipedia/storage/sqlite_store.py#L658), and deletes the matching row with [`SqliteStore.delete_note`](src/rekipedia/storage/sqlite_store.py#L687).
+Although the parser is not visible, the exported console scripts almost certainly wrap the same internal workflows exposed by:
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `note_id` | argument | required | Note ID or prefix |
+- [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334)
+- [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L364)
+- [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371)
 
-**Usage example**
+This is supported by the test [`test_run_ask_uses_agent_when_env_set`](tests/test_agent_ask.py#L283), which verifies that `run_ask` delegates to [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) when the environment variable `REKIPEDIA_AGENT_ASK=1` is set.
 
-```bash
-rekipedia note remove 1a2b3c
-```
-
-#### `rekipedia note edit`
-
-Implemented by [`note_edit`](src/rekipedia/cli/note.py#L96). It supports direct content replacement or interactive editing via `$EDITOR`, and persists via [`SqliteStore.upsert_note`](src/rekipedia/storage/sqlite_store.py#L631). The implementation uses a temporary file and external editor process.
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `note_id` | argument | required | Note ID or prefix |
-| `--content` | option | none | New content; if omitted, opens editor |
-
-**Usage example**
-
-```bash
-rekipedia note edit 1a2b3c --content "Revised note text"
-```
-
-#### `rekipedia note import`
-
-Implemented by [`note_import`](src/rekipedia/cli/note.py#L127). This command imports notes from a YAML or Markdown file through [`import_notes_from_file`](src/rekipedia/notes/__init__.py#L7).
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `file` | argument | required | Input file path |
-| `--dry-run` | flag | `false` | Parse and report without writing notes |
-
-**Usage example**
-
-```bash
-rekipedia note import ./notes.yml
-```
-
-> **Sources:** `src/rekipedia/cli/note.py` · L16–L153 · [`_get_store`](src/rekipedia/cli/note.py#L16), [`note_cmd`](src/rekipedia/cli/note.py#L27), [`note_add`](src/rekipedia/cli/note.py#L35), [`note_list`](src/rekipedia/cli/note.py#L49), [`note_remove`](src/rekipedia/cli/note.py#L70), [`note_edit`](src/rekipedia/cli/note.py#L96), [`note_import`](src/rekipedia/cli/note.py#L127)  
-> **Sources:** `src/rekipedia/storage/sqlite_store.py` · L631–L693 · [`SqliteStore.upsert_note`](src/rekipedia/storage/sqlite_store.py#L631), [`SqliteStore.list_notes`](src/rekipedia/storage/sqlite_store.py#L658), [`SqliteStore.delete_note`](src/rekipedia/storage/sqlite_store.py#L687)  
-> **Sources:** `src/rekipedia/notes/__init__.py` · L7–L80 · [`import_notes_from_file`](src/rekipedia/notes/__init__.py#L7), [`_import_yaml`](src/rekipedia/notes/__init__.py#L22), [`_import_markdown`](src/rekipedia/notes/__init__.py#L43)
-
----
-
-### `rekipedia embed`
-
-Implemented by [`embed_cmd`](src/rekipedia/cli/embed.py#L85). This command builds or refreshes the repository RAG index, validates optional RAG dependencies via [`_check_rag_deps`](src/rekipedia/cli/embed.py#L22), configures an [`LLMConfig`](src/rekipedia/models/contracts.py) instance, and delegates indexing to [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443).
-
-The analysis does not provide the exact Click decorator parameter list for `embed_cmd`, but the function signature and call graph show the externally relevant arguments.
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `repo_path` | argument | required | Repository root to embed |
-| `--output-dir` | option | `.rekipedia/` under repo | Directory for index and metadata |
-| `--model` | option | configured model | Embedding model name |
-| `--provider` | option | configured provider | LLM/embedding provider |
-| `--api-key` | option | none | API key for remote providers |
-| `--base-url` | option | none | Custom LiteLLM API base URL |
-| `--top-k` | option | implementation-defined | Number of chunks to retain/query |
-| `--verbose` | flag | `false` | Enable verbose logging |
-
-**Usage example**
-
-```bash
-rekipedia embed . --output-dir .rekipedia --top-k 8 --verbose
-```
-
-> **Sources:** `src/rekipedia/cli/embed.py` · L22–L201 · [`_check_rag_deps`](src/rekipedia/cli/embed.py#L22), [`embed_cmd`](src/rekipedia/cli/embed.py#L85)  
-> **Sources:** `src/rekipedia/rag/embedder.py` · L443–L892 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443), [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477), [`EmbedPipeline.search`](src/rekipedia/rag/embedder.py#L610)
+> **Sources:** `package.json` · `pyproject.toml` · `src/rekipedia/orchestrator/run_ask.py` · `src/rekipedia/orchestrator/agent_ask.py` · [`test_run_ask_uses_agent_when_env_set`](tests/test_agent_ask.py#L283)
 
 ## Programmatic API
 
-### `import_notes_from_file(path)`
+The following functions and classes are the documented external-facing APIs evidenced by the repository. They are the main integration points for application code.
 
-Defined in [`rekipedia.notes.__init__`](src/rekipedia/notes/__init__.py#L7). It parses either YAML or Markdown and returns a list of note dictionaries.
+### [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334)
 
-- **Signature:** [`import_notes_from_file(path)`](src/rekipedia/notes/__init__.py#L7)
-- **Parameters**
-  
-  | Parameter | Type | Description |
-  |-----------|------|-------------|
-  | `path` | path-like | Input file to parse |
+**Signature:** `run_ask(question, repo_root, output_dir, llm_config, history)`
 
-- **Return value**
-  
-  A list of note dictionaries parsed from the file. The exact keys are inferred from the importer logic and CLI usage, but the analysis only confirms that it returns a list of dict-like note records.
+Answers a free-text question against the indexed repository knowledge store and returns a Markdown response string. The docstring explicitly says it is grounded in the knowledge store and raises `RuntimeError` when no successful scan exists.
 
-**Example usage**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `question` | string | User’s free-text question. |
+| `repo_root` | path/string | Absolute path to the repository being queried. |
+| `output_dir` | path/string | `.rekipedia/` directory containing `store.db` and `wiki/`. |
+| `llm_config` | `LLMConfig`-like | LLM settings; defaults are implied by `LLMConfig()`. |
+| `history` | list of `{role, content}` | Previous conversation turns. |
 
-```python
-from pathlib import Path
-from rekipedia.notes import import_notes_from_file
+**Return value:** Markdown string containing the assistant answer.
 
-notes = import_notes_from_file(Path("notes.md"))
-for note in notes:
-    print(note)
-```
-
-> **Sources:** `src/rekipedia/notes/__init__.py` · L7–L19 · [`import_notes_from_file`](src/rekipedia/notes/__init__.py#L7), [`_import_yaml`](src/rekipedia/notes/__init__.py#L22), [`_import_markdown`](src/rekipedia/notes/__init__.py#L43)
-
----
-
-### `SqliteStore`
-
-[`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39) is the primary persistence abstraction for Python code. It wraps a database connection and supports both explicit open/close usage and context-manager usage.
-
-- **Signature:** class [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39)
-- **Parameters**
-  
-  | Parameter | Type | Description |
-  |-----------|------|-------------|
-  | `path` | path-like | Database path, typically `.rekipedia/store.db` |
-
-- **Return value**
-  
-  The class represents a persistent store object; methods generally return row counts, booleans, IDs, or plain dicts depending on the operation.
-
-**Example usage**
+Example:
 
 ```python
-from pathlib import Path
-from rekipedia.storage.sqlite_store import SqliteStore
-
-with SqliteStore(Path(".rekipedia/store.db")) as store:
-    store.upsert_note("Remember to refresh the index", ["ops"], source="cli", note_id=None)
-```
-
-#### `SqliteStore.open()`
-
-- **Signature:** [`open(self)`](src/rekipedia/storage/sqlite_store.py#L64)
-- **Parameters:** none
-- **Return value:** opens the backing DB connection and applies migrations
-
-#### `SqliteStore.close()`
-
-- **Signature:** [`close(self)`](src/rekipedia/storage/sqlite_store.py#L69)
-- **Parameters:** none
-- **Return value:** closes the DB connection
-
-#### `SqliteStore.upsert_note(content, tags, source, note_id)`
-
-- **Signature:** [`upsert_note(self, content, tags, source, note_id)`](src/rekipedia/storage/sqlite_store.py#L631)
-- **Parameters**
-  
-  | Parameter | Type | Description |
-  |-----------|------|-------------|
-  | `content` | string | Note body |
-  | `tags` | list-like / serialized tags | Note tags |
-  | `source` | string | Provenance/source label |
-  | `note_id` | string or null | Existing note ID to update, or null to insert |
-
-- **Return value:** the persisted note ID
-
-#### `SqliteStore.list_notes(tags)`
-
-- **Signature:** [`list_notes(self, tags)`](src/rekipedia/storage/sqlite_store.py#L658)
-- **Parameters**
-  
-  | Parameter | Type | Description |
-  |-----------|------|-------------|
-  | `tags` | string or iterable | Filter selector; may be empty for all notes |
-
-- **Return value:** list of note rows
-
-#### `SqliteStore.delete_note(note_id)`
-
-- **Signature:** [`delete_note(self, note_id)`](src/rekipedia/storage/sqlite_store.py#L687)
-- **Parameters**
-  
-  | Parameter | Type | Description |
-  |-----------|------|-------------|
-  | `note_id` | string | ID of the note to delete |
-
-- **Return value:** `True` if deleted, otherwise `False`
-
-**Example usage**
-
-```python
-from pathlib import Path
-from rekipedia.storage.sqlite_store import SqliteStore
-
-store = SqliteStore(Path(".rekipedia/store.db"))
-store.open()
-try:
-    notes = store.list_notes(tags=None)
-    print(notes)
-finally:
-    store.close()
-```
-
-> **Sources:** `src/rekipedia/storage/sqlite_store.py` · L39–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39), [`SqliteStore.open`](src/rekipedia/storage/sqlite_store.py#L64), [`SqliteStore.close`](src/rekipedia/storage/sqlite_store.py#L69), [`SqliteStore.upsert_note`](src/rekipedia/storage/sqlite_store.py#L631), [`SqliteStore.list_notes`](src/rekipedia/storage/sqlite_store.py#L658), [`SqliteStore.delete_note`](src/rekipedia/storage/sqlite_store.py#L687)
-
----
-
-### `EmbedPipeline`
-
-[`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443) builds and queries a FAISS index over repository source files. It is the core reusable RAG abstraction behind the CLI embed command and the incremental update path.
-
-- **Signature:** class [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443)
-- **Parameters**
-  
-  | Parameter | Type | Description |
-  |-----------|------|-------------|
-  | `output_dir` | path-like | Directory where `index.faiss`, chunk metadata, and model metadata are stored |
-  | `llm_config` | `LLMConfig` | Embedding/LLM configuration |
-  | `store` | `SqliteStore` or `None` | Optional DB handle for persisting chunk provenance |
-  | `run_id` | string | Scan run identifier |
-
-- **Return value**
-  
-  Instances expose `build`, `search`, `update`, `meta`, and `is_built`.
-
-#### `EmbedPipeline.build(repo_root, progress_cb)`
-
-- **Signature:** [`build(self, repo_root, progress_cb)`](src/rekipedia/rag/embedder.py#L477)
-- **Parameters**
-  
-  | Parameter | Type | Description |
-  |-----------|------|-------------|
-  | `repo_root` | path-like | Repository root to index |
-  | `progress_cb` | callable or null | Status callback |
-
-- **Return value:** number of chunks embedded
-
-#### `EmbedPipeline.search(query, top_k, mmr)`
-
-- **Signature:** [`search(self, query, top_k, mmr)`](src/rekipedia/rag/embedder.py#L610)
-- **Parameters**
-  
-  | Parameter | Type | Description |
-  |-----------|------|-------------|
-  | `query` | string | Search query |
-  | `top_k` | int | Number of results requested |
-  | `mmr` | bool | Whether to apply Maximal Marginal Relevance diversification |
-
-- **Return value:** list of chunk result dictionaries
-
-#### `EmbedPipeline.update(repo_root, changed_files, last_run_id, new_run_id, progress_cb)`
-
-- **Signature:** [`update(self, repo_root, changed_files, last_run_id, new_run_id, progress_cb)`](src/rekipedia/rag/embedder.py#L733)
-- **Parameters**
-  
-  | Parameter | Type | Description |
-  |-----------|------|-------------|
-  | `repo_root` | path-like | Repository root |
-  | `changed_files` | list/path set | Paths that changed since the prior run |
-  | `last_run_id` | string | Previous successful run ID |
-  | `new_run_id` | string | New scan run ID |
-  | `progress_cb` | callable or null | Status callback |
-
-- **Return value:** number of chunks re-embedded
-
-**Example usage**
-
-```python
-from pathlib import Path
-from rekipedia.rag.embedder import EmbedPipeline
-from rekipedia.storage.sqlite_store import SqliteStore
-from rekipedia.models.contracts import LLMConfig
-
-store = SqliteStore(Path(".rekipedia/store.db"))
-store.open()
-try:
-    pipeline = EmbedPipeline(Path(".rekipedia"), LLMConfig(), store=store, run_id="scan-123")
-    count = pipeline.build(Path("."), progress_cb=None)
-    print("Embedded chunks:", count)
-finally:
-    store.close()
-```
-
-> **Sources:** `src/rekipedia/rag/embedder.py` · L443–L892 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443), [`EmbedPipeline.__init__`](src/rekipedia/rag/embedder.py#L446), [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477), [`EmbedPipeline.search`](src/rekipedia/rag/embedder.py#L610), [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733)
-
----
-
-### `run_ask(question, repo_root, output_dir, llm_config, history)`
-
-[`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304) answers a question grounded in the repository knowledge store.
-
-- **Signature:** [`run_ask(question, repo_root, output_dir, llm_config, history)`](src/rekipedia/orchestrator/run_ask.py#L304)
-- **Parameters**
-  
-  | Parameter | Type | Description |
-  |-----------|------|-------------|
-  | `question` | string | User question |
-  | `repo_root` | path-like | Repository root |
-  | `output_dir` | path-like | `.rekipedia/` directory containing DB and wiki |
-  | `llm_config` | `LLMConfig` | LLM settings |
-  | `history` | list of turns | Prior conversation messages |
-
-- **Return value:** Markdown string answer
-- **Raises:** `RuntimeError` if no successful scan exists
-
-**Example usage**
-
-```python
-from pathlib import Path
 from rekipedia.orchestrator.run_ask import run_ask
 from rekipedia.models.contracts import LLMConfig
 
 answer = run_ask(
-    "How does note import work?",
-    repo_root=Path("."),
-    output_dir=Path(".rekipedia"),
+    question="What does the planner do when the LLM fails?",
+    repo_root="/path/to/repo",
+    output_dir="/path/to/repo/.rekipedia",
     llm_config=LLMConfig(),
     history=[],
 )
 print(answer)
 ```
 
-#### `stream_ask(question, repo_root, output_dir, llm_config, history)`
+Implementation notes visible in the source:
+- It uses [`_prepare_ask`](src/rekipedia/orchestrator/run_ask.py#L310) to validate the scan and build the prompt.
+- It conditionally delegates to [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) if agent mode is enabled.
+- The test [`test_run_ask_uses_agent_when_env_set`](tests/test_agent_ask.py#L283) confirms that environment-based switch.
 
-- **Signature:** [`stream_ask(question, repo_root, output_dir, llm_config, history)`](src/rekipedia/orchestrator/run_ask.py#L333)
-- **Parameters:** same as `run_ask`
-- **Return value:** streamed token/chunk iterator
-- **Notes:** same grounding/context assembly as `run_ask`, but streams the final model response
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L334–L361 · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) · [`_prepare_ask`](src/rekipedia/orchestrator/run_ask.py#L310) · [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) · [`test_run_ask_uses_agent_when_env_set`](tests/test_agent_ask.py#L283)
 
-> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L304–L349 · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304), [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L333)
+### [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L364)
 
----
+**Signature:** `stream_ask(question, repo_root, output_dir, llm_config, history)`
 
-### `run_digest(repo_root, output_dir, llm_config)`
+Streaming variant of `run_ask`. The docstring says it is identical to `run_ask` except the final LLM call uses streaming and yields text chunks rather than returning one string.
 
-[`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45) performs the full scan pipeline: repository snapshotting, analysis, wiki synthesis, diagram generation, exports, and RAG index build. The docstring notes additional runtime controls such as `force_local`, `verbose`, `progress`, `languages`, `no_llm`, and `stdout_refactor`, but the symbol index exposes the exported callable as the three-argument function below.
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `question` | string | User question. |
+| `repo_root` | path/string | Repository root path. |
+| `output_dir` | path/string | Knowledge store directory. |
+| `llm_config` | `LLMConfig`-like | LLM settings. |
+| `history` | list of `{role, content}` | Prior turns. |
 
-- **Signature:** [`run_digest(repo_root, output_dir, llm_config)`](src/rekipedia/orchestrator/run_digest.py#L45)
-- **Parameters**
-  
-  | Parameter | Type | Description |
-  |-----------|------|-------------|
-  | `repo_root` | path-like | Repository root to scan |
-  | `output_dir` | path-like | `.rekipedia/` output directory |
-  | `llm_config` | `LLMConfig` | LLM settings |
+**Return value:** A streaming iterator/generator of text chunks.
 
-- **Return value:** not explicitly documented in the analysis; it persists results to storage and output files
-
-**Example usage**
+Example:
 
 ```python
-from pathlib import Path
-from rekipedia.orchestrator.run_digest import run_digest
+from rekipedia.orchestrator.run_ask import stream_ask
 from rekipedia.models.contracts import LLMConfig
 
-run_digest(Path("."), Path(".rekipedia"), LLMConfig())
+for chunk in stream_ask(
+    "Summarize the ask pipeline.",
+    "/path/to/repo",
+    "/path/to/repo/.rekipedia",
+    LLMConfig(),
+    [],
+):
+    print(chunk, end="")
 ```
 
-> **Sources:** `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45)
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L364–L377 · [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L364)
 
----
+### [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371)
 
-### `run_update(repo_root, output_dir, llm_config)`
+**Signature:** `agent_run_ask(question, repo_root, output_dir, llm_config, history)`
 
-[`run_update`](src/rekipedia/orchestrator/run_update.py#L27) performs incremental rescan and resynthesis. The docstring states it re-extracts only changed files, reuses unchanged symbols/relationships, and regenerates wiki pages with the combined symbol index.
+Agentic version of `run_ask`. The function delegates to [`AgentAsk`](src/rekipedia/orchestrator/agent_ask.py#L253), which runs a ReAct-style tool-using loop.
 
-- **Signature:** [`run_update(repo_root, output_dir, llm_config)`](src/rekipedia/orchestrator/run_update.py#L27)
-- **Parameters**
-  
-  | Parameter | Type | Description |
-  |-----------|------|-------------|
-  | `repo_root` | path-like | Repository root |
-  | `output_dir` | path-like | `.rekipedia/` output directory |
-  | `llm_config` | `LLMConfig` | LLM settings |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `question` | string | User question. |
+| `repo_root` | path/string | Repository root. |
+| `output_dir` | path/string | `.rekipedia/` directory. |
+| `llm_config` | `LLMConfig`-like | LLM configuration. |
+| `history` | list of `{role, content}` | Conversation history. |
 
-- **Return value:** not explicitly documented in the analysis; it updates the existing run state and outputs
-- **Notes:** may fall back to [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45) if no prior successful scan exists
+**Return value:** Markdown answer string.
 
-**Example usage**
+Example:
 
 ```python
-from pathlib import Path
-from rekipedia.orchestrator.run_update import run_update
+from rekipedia.orchestrator.agent_ask import agent_run_ask
 from rekipedia.models.contracts import LLMConfig
 
-run_update(Path("."), Path(".rekipedia"), LLMConfig())
+answer = agent_run_ask(
+    "Where are relationships loaded from?",
+    "/path/to/repo",
+    "/path/to/repo/.rekipedia",
+    LLMConfig(),
+    [],
+)
+print(answer)
 ```
 
-> **Sources:** `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27)
+Behavioral evidence:
+- [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) implements the loop.
+- Tests cover direct-answer mode, tool-call mode, finish-tool mode, max-iteration fallback, and error fallback.
+
+> **Sources:** `src/rekipedia/orchestrator/agent_ask.py` · L371–L382 · [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) · [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) · [`tests/test_agent_ask.py`](tests/test_agent_ask.py#L112)
+
+### [`AgentAsk`](src/rekipedia/orchestrator/agent_ask.py#L253)
+
+**Signature:** `class AgentAsk`
+
+ReAct agentic loop for answering codebase questions. The class docstring notes that it falls back to single-shot mode if the model does not support tool calling.
+
+#### Constructor
+
+**Signature:** `__init__(self, output_dir, llm_config)`
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `output_dir` | path/string | Knowledge store directory. |
+| `llm_config` | `LLMConfig`-like | LLM settings. |
+
+#### `run`
+
+**Signature:** `run(self, question, history, max_iter)`
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `question` | string | User question to answer. |
+| `history` | list | Prior conversation turns. |
+| `max_iter` | integer | Maximum tool-use iterations before final fallback. |
+
+**Return value:** Markdown string.
+
+Example:
+
+```python
+from rekipedia.orchestrator.agent_ask import AgentAsk
+from rekipedia.models.contracts import LLMConfig
+
+agent = AgentAsk("/path/to/repo/.rekipedia", LLMConfig())
+answer = agent.run("How do I inspect symbol relationships?", [], max_iter=4)
+print(answer)
+```
+
+#### Internal tool handler
+
+The agent uses a private helper [`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141) with methods:
+
+- [`search_code`](src/rekipedia/orchestrator/agent_ask.py#L160)
+- [`get_symbol`](src/rekipedia/orchestrator/agent_ask.py#L173)
+- [`get_page`](src/rekipedia/orchestrator/agent_ask.py#L189)
+- [`get_relationships`](src/rekipedia/orchestrator/agent_ask.py#L208)
+- [`dispatch`](src/rekipedia/orchestrator/agent_ask.py#L236)
+
+These are not public APIs, but they explain what the agent can do: search RAG chunks, retrieve symbol metadata from `symbols.json`, read wiki pages, and inspect stored relationships through [`SqliteStore`](src/rekipedia/orchestrator/agent_ask.py#L141).
+
+> **Sources:** `src/rekipedia/orchestrator/agent_ask.py` · L141–L364 · [`AgentAsk`](src/rekipedia/orchestrator/agent_ask.py#L253) · [`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141) · [`_ToolHandler.search_code`](src/rekipedia/orchestrator/agent_ask.py#L160) · [`_ToolHandler.get_symbol`](src/rekipedia/orchestrator/agent_ask.py#L173) · [`_ToolHandler.get_page`](src/rekipedia/orchestrator/agent_ask.py#L189) · [`_ToolHandler.get_relationships`](src/rekipedia/orchestrator/agent_ask.py#L208)
+
+### [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138)
+
+**Signature:** `class WikiPlan`
+
+Structured output of the planner used to drive wiki generation.
+
+#### Constructor
+
+**Signature:** `__init__(self, data)`
+
+The constructor normalizes the supplied data into internal page and section structures.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `data` | mapping/dict | Raw plan payload produced by planner logic or LLM output. |
+
+#### Methods
+
+- [`get_page`](src/rekipedia/synthesis/planner.py#L166)
+- [`get_section_for`](src/rekipedia/synthesis/planner.py#L169)
+- [`__repr__`](src/rekipedia/synthesis/planner.py#L175)
+
+**Return value:** Object-oriented access to the wiki plan, with convenience lookup helpers.
+
+Example:
+
+```python
+from rekipedia.synthesis.planner import WikiPlan
+
+plan = WikiPlan({
+    "pages": [{"slug": "architecture", "title": "Architecture"}],
+    "sections": [{"page_slug": "architecture", "title": "Overview"}],
+})
+print(plan.get_page("architecture"))
+print(plan.get_section_for("architecture"))
+```
+
+Note: the analysis reveals that [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138) has no dedicated test coverage in `tests/test_agent_ask.py`, which is tracked as a knowledge gap.
+
+> **Sources:** `src/rekipedia/synthesis/planner.py` · L138–L177 · [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138) · [`WikiPlan.get_page`](src/rekipedia/synthesis/planner.py#L166) · [`WikiPlan.get_section_for`](src/rekipedia/synthesis/planner.py#L169) · [`WikiPlan.__repr__`](src/rekipedia/synthesis/planner.py#L175)
+
+### [`PlannerAgent`](src/rekipedia/synthesis/planner.py#L180)
+
+**Signature:** `class PlannerAgent`
+
+One-shot LLM planner that designs the entire wiki structure.
+
+#### Constructor
+
+**Signature:** `__init__(self, llm_config)`
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `llm_config` | `LLMConfig`-like | LLM settings used by the client. |
+
+#### `plan`
+
+**Signature:** `plan(self, combined, diagrams, progress_cb)`
+
+The docstring says this analyses the combined repository snapshot and returns a [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138). It accepts a progress callback to support UI spinners during the blocking LLM call and falls back to a sensible default plan if the LLM call fails.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `combined` | mapping/dict | Repository snapshot/analysis payload. |
+| `diagrams` | list | Diagram metadata or diagram descriptions. |
+| `progress_cb` | callable | Called with status strings during planning. |
+
+**Return value:** [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138)
+
+Example:
+
+```python
+from rekipedia.synthesis.planner import PlannerAgent
+from rekipedia.models.contracts import LLMConfig
+
+planner = PlannerAgent(LLMConfig())
+plan = planner.plan(
+    combined={"files_seen": ["src/foo.py"]},
+    diagrams=[],
+    progress_cb=lambda msg: print(msg),
+)
+print(plan)
+```
+
+The implementation evidence shows this method may call [`_default_plan`](src/rekipedia/synthesis/planner.py#L400) when the model fails. The test [`test_agent_planner_fallback_on_error`](tests/test_agent_ask.py#L263) verifies that fallback behavior.
+
+> **Sources:** `src/rekipedia/synthesis/planner.py` · L180–L286 · [`PlannerAgent`](src/rekipedia/synthesis/planner.py#L180) · [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186) · [`_default_plan`](src/rekipedia/synthesis/planner.py#L400) · [`tests/test_agent_ask.py`](tests/test_agent_ask.py#L263)
+
+### [`AgentPlanner`](src/rekipedia/synthesis/agent_planner.py#L144)
+
+**Signature:** `class AgentPlanner`
+
+Tool-calling planner for wiki structure design. Its class docstring says it has the same interface as `PlannerAgent`: constructor takes `llm_config`, and `.plan()` returns [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138).
+
+#### Constructor
+
+**Signature:** `__init__(self, llm_config)`
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `llm_config` | `LLMConfig`-like | LLM configuration. |
+
+#### `plan`
+
+**Signature:** `plan(self, combined, diagrams, progress_cb)`
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `combined` | mapping/dict | Repository snapshot or combined analysis payload. |
+| `diagrams` | list | Diagram metadata. |
+| `progress_cb` | callable | Progress update callback. |
+
+**Return value:** [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138)
+
+Example:
+
+```python
+from rekipedia.synthesis.agent_planner import AgentPlanner
+from rekipedia.models.contracts import LLMConfig
+
+planner = AgentPlanner(LLMConfig())
+plan = planner.plan(
+    combined={"files_seen": ["src/foo.py"]},
+    diagrams=[],
+    progress_cb=print,
+)
+print(plan)
+```
+
+The tests show this agent can emit tool-driven pages/sections and still return a valid [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138).
+
+> **Sources:** `src/rekipedia/synthesis/agent_planner.py` · L144–L295 · [`AgentPlanner`](src/rekipedia/synthesis/agent_planner.py#L144) · [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155) · [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138) · [`tests/test_agent_ask.py`](tests/test_agent_ask.py#L220)
 
 ## Integration Examples
 
-### Typical end-to-end workflow: scan, enrich, ask
+The repository’s structure suggests a clean split between orchestration and planning. A practical workflow is:
 
-A realistic workflow uses the CLI and programmatic APIs together:
+1. Run a scan/build phase externally to create `.rekipedia/store.db` and wiki pages.
+2. Use [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) for standard Q&A.
+3. Switch to [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) or set `REKIPEDIA_AGENT_ASK=1` when you want iterative tool use.
+4. Use [`PlannerAgent`](src/rekipedia/synthesis/planner.py#L180) or [`AgentPlanner`](src/rekipedia/synthesis/agent_planner.py#L144) when constructing or regenerating the wiki structure.
 
-1. Run a full scan with the CLI to create the store, wiki pages, and index.
-2. Add tech lead notes through the CLI or via the store API.
-3. Ask questions from Python using [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304), which automatically incorporates the stored wiki pages, symbol snippets, RAG chunks, and notes.
-4. When the repository changes, use [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) to do an incremental refresh rather than rebuilding from scratch.
-
-```bash
-rekipedia embed . --output-dir .rekipedia
-rekipedia note add "Remember to review the incremental update path" --tag ops
-```
+### End-to-end example: generate, then ask
 
 ```python
-from pathlib import Path
+from rekipedia.synthesis.planner import PlannerAgent
 from rekipedia.orchestrator.run_ask import run_ask
-from rekipedia.storage.sqlite_store import SqliteStore
 from rekipedia.models.contracts import LLMConfig
 
-repo_root = Path(".")
-output_dir = Path(".rekipedia")
+repo_root = "/path/to/repo"
+output_dir = "/path/to/repo/.rekipedia"
+llm_config = LLMConfig()
 
-# Add a note programmatically
-with SqliteStore(output_dir / "store.db") as store:
-    store.upsert_note(
-        content="Check whether page source attribution survives updates",
-        tags=["ops"],
-        source="api",
-        note_id=None,
-    )
+# Step 1: plan wiki structure
+planner = PlannerAgent(llm_config)
+plan = planner.plan(
+    combined={"files_seen": ["src/rekipedia/orchestrator/run_ask.py"]},
+    diagrams=[],
+    progress_cb=lambda msg: print(f"[plan] {msg}"),
+)
 
-# Ask a grounded question
+# Step 2: answer a question against the generated knowledge store
 answer = run_ask(
-    "What changes when only one source file changes?",
+    question="How does ask mode build its context?",
     repo_root=repo_root,
     output_dir=output_dir,
-    llm_config=LLMConfig(),
+    llm_config=llm_config,
     history=[],
+)
+
+print(plan)
+print(answer)
+```
+
+### Agentic ask workflow
+
+If you need the assistant to inspect symbols/pages/relationships interactively, use the agentic API:
+
+```python
+from rekipedia.orchestrator.agent_ask import agent_run_ask
+from rekipedia.models.contracts import LLMConfig
+
+answer = agent_run_ask(
+    "Show me the relationship-loading path.",
+    "/path/to/repo",
+    "/path/to/repo/.rekipedia",
+    LLMConfig(),
+    [],
 )
 print(answer)
 ```
 
-### Notes import pipeline: file → CLI → store
+This path is particularly relevant because [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) can call internal tools like `get_symbol`, `get_page`, and `get_relationships`, which are backed by `symbols.json`, wiki markdown, and [`SqliteStore`](src/rekipedia/orchestrator/agent_ask.py#L141).
 
-If notes are maintained in a Markdown or YAML file, the import path is:
+### CLI + API combined pattern
 
-- parse with [`import_notes_from_file`](src/rekipedia/notes/__init__.py#L7)
-- persist through [`SqliteStore.upsert_note`](src/rekipedia/storage/sqlite_store.py#L631)
-- verify with `rekipedia note list`
+Even though the CLI parser is not available in the analysis snapshot, the likely operational pattern is:
 
-```python
-from pathlib import Path
-from rekipedia.notes import import_notes_from_file
-from rekipedia.storage.sqlite_store import SqliteStore
-
-notes = import_notes_from_file(Path("tech-notes.md"))
-with SqliteStore(Path(".rekipedia/store.db")) as store:
-    for note in notes:
-        store.upsert_note(
-            content=note["content"],
-            tags=note.get("tags", []),
-            source="import",
-            note_id=note.get("id"),
-        )
+```bash
+rekipedia <scan-or-build-command>
 ```
 
-### RAG-first workflow: build index, then query
-
-The embedding CLI and `EmbedPipeline` class can be combined directly if you need a custom pipeline around the stored index.
+followed by Python integration against the resulting `.rekipedia` directory:
 
 ```python
-from pathlib import Path
-from rekipedia.rag.embedder import EmbedPipeline
-from rekipedia.storage.sqlite_store import SqliteStore
+from rekipedia.orchestrator.run_ask import stream_ask
 from rekipedia.models.contracts import LLMConfig
 
-output_dir = Path(".rekipedia")
-with SqliteStore(output_dir / "store.db") as store:
-    pipeline = EmbedPipeline(output_dir, LLMConfig(), store=store, run_id="custom-run")
-    pipeline.build(Path("."), progress_cb=lambda msg: print(msg))
-    chunks = pipeline.search("incremental update", top_k=5, mmr=True)
-    for chunk in chunks:
-        print(chunk["file"], chunk["score"])
+for token in stream_ask(
+    "Summarize the current repository architecture.",
+    "/path/to/repo",
+    "/path/to/repo/.rekipedia",
+    LLMConfig(),
+    [],
+):
+    print(token, end="")
 ```
 
-### Workflow summary
+This pattern is consistent with the tests and with the internal use of `output_dir` throughout the ask/planning APIs.
 
-| Step | CLI | API |
-|------|-----|-----|
-| Initial indexing | `rekipedia embed` | [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477) |
-| Add a note | `rekipedia note add` | [`SqliteStore.upsert_note`](src/rekipedia/storage/sqlite_store.py#L631) |
-| Import notes | `rekipedia note import` | [`import_notes_from_file`](src/rekipedia/notes/__init__.py#L7) |
-| Ask a question | not shown in this task’s CLI slice | [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304) |
-| Incremental refresh | not shown in this task’s CLI slice | [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) |
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · `src/rekipedia/orchestrator/agent_ask.py` · `src/rekipedia/synthesis/planner.py` · `src/rekipedia/synthesis/agent_planner.py` · [`tests/test_agent_ask.py`](tests/test_agent_ask.py)
 
-> **Sources:** `src/rekipedia/cli/embed.py` · L85–L201 · [`embed_cmd`](src/rekipedia/cli/embed.py#L85)  
-> **Sources:** `src/rekipedia/cli/note.py` · L35–L153 · [`note_add`](src/rekipedia/cli/note.py#L35), [`note_import`](src/rekipedia/cli/note.py#L127)  
-> **Sources:** `src/rekipedia/notes/__init__.py` · L7–L80 · [`import_notes_from_file`](src/rekipedia/notes/__init__.py#L7)  
-> **Sources:** `src/rekipedia/rag/embedder.py` · L443–L892 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443)  
-> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L304–L349 · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304)  
-> **Sources:** `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27)
+## Notes on Coverage and Gaps
+
+The provided analysis snapshot contains strong evidence for the ask and planning APIs, but it does not include the actual `rekipedia.cli` module. Therefore, no verified list of CLI subcommands, flags, or positional arguments can be given without speculation. If you need CLI documentation with full option tables, the next step should be to inspect `src/rekipedia/cli.py` or the package’s console entry module directly.
+
+The most important tested integration behavior is the agentic ask fallback controlled by `REKIPEDIA_AGENT_ASK=1` and the planner’s fallback behavior when the LLM fails. The tests in [`tests/test_agent_ask.py`](tests/test_agent_ask.py#L60) demonstrate that the system is designed to stay usable even when indexes are missing or external model calls fail.
+
+> **Sources:** `tests/test_agent_ask.py` · `src/rekipedia/orchestrator/run_ask.py` · `src/rekipedia/orchestrator/agent_ask.py` · `src/rekipedia/synthesis/planner.py` · `src/rekipedia/synthesis/agent_planner.py`

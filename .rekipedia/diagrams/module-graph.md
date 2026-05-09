@@ -1,6 +1,5 @@
 ```mermaid
 flowchart LR
-  CliRunner["CliRunner"]
   LLMConfig["LLMConfig"]
   Path["Path"]
   __future__["__future__"]
@@ -9,6 +8,7 @@ flowchart LR
   exists["exists"]
   get["get"]
   invoke["invoke"]
+  join["join"]
   len["len"]
   loads["loads"]
   lower["lower"]
@@ -25,6 +25,7 @@ flowchart LR
   create_app -.->|calls| append
   create_app -.->|calls| exists
   create_app -.->|calls| get
+  create_app -.->|calls| join
   create_app -.->|calls| len
   create_app -.->|calls| loads
   create_app -.->|calls| lower
@@ -36,6 +37,5 @@ flowchart LR
   run_digest -.->|calls| get
   run_digest -.->|calls| len
   run_digest -.->|calls| lower
-  run_digest -.->|calls| str
 
 ```

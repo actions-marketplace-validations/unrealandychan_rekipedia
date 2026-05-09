@@ -4,167 +4,214 @@ title: "Configuration Reference"
 section: general
 pin: false
 importance: 50
-created_at: 2026-05-07T04:12:19Z
-rekipedia_version: 0.10.9
+created_at: 2026-05-09T02:23:19Z
+rekipedia_version: 0.12.0
 ---
 
 # Configuration Reference
 
+## Overview
+
+This repository’s observable configuration surface is relatively small and is split across **package metadata**, **runtime environment variables**, and **test scaffolding**. Based on the analysis data, there are no dedicated YAML, TOML, JSON, or `.env` application config files beyond the project metadata files [`package.json`](package.json) and [`pyproject.toml`](pyproject.toml). The code paths in [`rekipedia.orchestrator.run_ask`](src/rekipedia/orchestrator/run_ask.py#L1) and [`rekipedia.orchestrator.agent_ask`](src/rekipedia/orchestrator/agent_ask.py#L1) also read environment variables directly, most notably `REKIPEDIA_AGENT_ASK`.
+
+The configuration model is therefore “hybrid”:
+- **Static project/package config** for build/runtime packaging
+- **Programmatic configuration objects** such as `LLMConfig` passed into orchestration functions
+- **Environment overrides** for toggling agentic ask mode
+
+Because the actual contents of `pyproject.toml` and `package.json` were not included in the analysis payload, this page documents only what is directly evidenced by code and metadata relationships, and explicitly marks gaps where the values are not observable.
+
+---
+
 ## Configuration Files
 
-Based on the repository analysis, there are only two files that appear to be configuration-bearing in the top level set:
+| File | Format | Purpose |
+|------|--------|---------|
+| [`pyproject.toml`](pyproject.toml) | TOML | Python package/build configuration. The analysis confirms it exists and that the build command is `uv build`, but the detailed keys are not visible in the payload. |
+| [`package.json`](package.json) | JSON | Node/npm package metadata. The analysis shows package identity metadata: `rekipedia` version `0.13.0`. |
+| [`README.md`](README.md) | Markdown | Documentation, likely describing usage and configuration, but not a machine-readable config file. Included here only because it may contain user-facing setup guidance. |
+| [`RELEASE-NOTES.md`](RELEASE-NOTES.md) | Markdown | Release history; not runtime configuration. |
+| Environment variables | N/A | Runtime overrides, most importantly `REKIPEDIA_AGENT_ASK`, which changes ask-mode behavior in [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334). |
 
-| File | Purpose | Notes |
-|------|---------|-------|
-| [`package.json`](package.json) | Node/package metadata and JavaScript ecosystem configuration | Listed as `config` in the analysis data. No config-key inventory was provided in the symbol data, so the specific settings cannot be enumerated from the static analysis alone. |
-| [`pyproject.toml`](pyproject.toml) | Python project metadata and tooling configuration | Listed as `config` in the analysis data. The analysis payload does not include the TOML contents or symbols, so the exact options are not observable here. |
+### Observable file purposes
 
-### What is and is not visible
+- [`package.json`](package.json) is the only confirmed non-Python config file with explicit metadata in the analysis payload; the `evidence` block identifies npm package name and version.
+- [`pyproject.toml`](pyproject.toml) is the project’s Python build/config file. The build command [`uv build`](#build-and-test-context) implies it participates in packaging, but no concrete keys were exposed.
+- No `.env`, YAML, or JSON application config files were present in `files_seen`.
 
-The repository scan did **not** surface any explicit YAML, JSON, `.env`, or TOML application-specific runtime configuration files beyond `pyproject.toml` and `package.json`. No `config.yaml`, `settings.toml`, `.env`, or similar files were present in `files_seen`.
+> **Sources:** `package.json` · metadata via `evidence` (`npm_name=rekipedia`, `npm_version=0.13.0`) · [`pyproject.toml`](pyproject.toml) · build command [`uv build`](#build-and-test-context)
 
-The practical implication is that the runtime configuration for the application is likely defined in code, via CLI parameters, or through environment-variable inspection, rather than through a dedicated config file. That matches the observed CLI and runtime modules such as [`rekipedia.cli.embed`](src/rekipedia/cli/embed.py), [`rekipedia.cli.note`](src/rekipedia/cli/note.py), [`run_digest`](src/rekipedia/orchestrator/run_digest.py), [`run_update`](src/rekipedia/orchestrator/run_update.py), and [`create_app`](src/rekipedia/server/app.py#L21).
-
-> **Sources:** `package.json` · `pyproject.toml` · `src/rekipedia/cli/embed.py` · `src/rekipedia/cli/note.py` · `src/rekipedia/orchestrator/run_digest.py` · `src/rekipedia/orchestrator/run_update.py` · `src/rekipedia/server/app.py#L21-L663`
+---
 
 ## Configuration Reference
 
-Because the analysis data does not expose the contents of `package.json` or `pyproject.toml`, a key-by-key configuration table cannot be reconstructed faithfully without inventing values. The repository snapshot only proves that these files exist and are treated as configuration files.
+Because the file contents are not available, this section distinguishes between:
+1. **Directly observable configuration keys**
+2. **Programmatic runtime parameters**
+3. **Unknown file-backed keys** that exist but are not visible in analysis
 
 ### `package.json`
 
+The analysis indicates:
+- package name: `rekipedia`
+- version: `0.13.0`
+- entry points: `rekipedia = "rekipedia.cli:main"` and `reki = "rekipedia.cli:main"`
+
 | Key | Type | Default | Required | Description |
 |-----|------|---------|----------|-------------|
-| _Not observable from analysis_ | — | — | — | The file exists and is classified as configuration, but its contents were not included in the analysis payload. |
+| `name` | string | `rekipedia` | yes | npm package name, captured in analysis evidence. |
+| `version` | string | `0.13.0` | yes | Published package version in the analysis evidence. |
+| `bin.rekipedia` / `bin.reki` | string | `rekipedia.cli:main` | yes | CLI entry points exposed by the package. |
+
+> **Sources:** `package.json` · package metadata from `evidence` (`npm_name`, `npm_version`, `entry_points`) · [`rekipedia`](package.json) · [`reki`](package.json)
 
 ### `pyproject.toml`
 
+The file exists and is part of the repository config surface, but the analysis payload does not include its content. As a result, we can only document what the code/build metadata implies:
+
 | Key | Type | Default | Required | Description |
 |-----|------|---------|----------|-------------|
-| _Not observable from analysis_ | — | — | — | The file exists and is classified as configuration, but its contents were not included in the analysis payload. |
+| Unknown (not visible in analysis) | — | — | — | `pyproject.toml` is used for Python packaging/build configuration. The build command `uv build` suggests standard PEP 517/518 metadata is present. |
 
-### Runtime configuration inferred from code
+> **Sources:** `pyproject.toml` · build command `uv build`
 
-Although file-based settings are not visible, the codebase clearly consumes runtime configuration objects and parameters:
+### Runtime configuration objects
 
-- [`embed_cmd(repo_path, output_dir, model, provider, api_key, base_url, top_k, verbose)`](src/rekipedia/cli/embed.py#L85-L201) accepts explicit CLI parameters for RAG embedding.
-- [`run_ask(question, repo_root, output_dir, llm_config, history)`](src/rekipedia/orchestrator/run_ask.py#L304-L330) accepts an [`LLMConfig`](src/rekipedia/orchestrator/run_ask.py) object and conversation history.
-- [`run_digest(repo_root, output_dir, llm_config)`](src/rekipedia/orchestrator/run_digest.py#L45-L433) and [`run_update(repo_root, output_dir, llm_config)`](src/rekipedia/orchestrator/run_update.py#L27-L244) both take an [`LLMConfig`](src/rekipedia/orchestrator/run_digest.py) runtime object.
-- [`create_app(repo_root, output_dir, llm_config)`](src/rekipedia/server/app.py#L21-L663) uses the same pattern for server startup.
+Several runtime functions accept `llm_config` and other parameters, but these are **not file-backed config keys**. They are still important for operational configuration:
 
-This suggests that configuration is primarily injected through arguments and objects rather than loaded from a persistent settings file.
+| Key / Parameter | Type | Default | Required | Description |
+|-----------------|------|---------|----------|-------------|
+| `llm_config` in [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) | `LLMConfig` | `LLMConfig()` | no | LLM settings passed into the answer flow. |
+| `llm_config` in [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L364) | `LLMConfig` | `LLMConfig()` | no | Same as above, but used for streaming responses. |
+| `llm_config` in [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) | `LLMConfig` | `LLMConfig()` | no | Agentic answer mode uses the same configuration object. |
+| `llm_config` in [`PlannerAgent`](src/rekipedia/synthesis/planner.py#L180) and [`AgentPlanner`](src/rekipedia/synthesis/agent_planner.py#L144) | `LLMConfig` | caller-provided | yes | Controls planner LLM calls. |
 
-> **Sources:** `src/rekipedia/cli/embed.py#L85-L201` · [`embed_cmd`](src/rekipedia/cli/embed.py#L85-L201) · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304-L330) · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45-L433) · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244) · [`create_app`](src/rekipedia/server/app.py#L21-L663)
+> **Sources:** [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) · [`stream_ask`](src/rekipedia/orchestrator/run_ask.py#L364) · [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) · [`PlannerAgent`](src/rekipedia/synthesis/planner.py#L180) · [`AgentPlanner`](src/rekipedia/synthesis/agent_planner.py#L144)
+
+---
 
 ## Configuration Examples
 
-Because the file contents are not available, I can only provide **shape-level examples** that reflect the observed runtime model, not exact repository values.
+### Minimal config
 
-### Minimal runtime configuration example
+Because no explicit application config file schema is visible, the smallest meaningful runtime configuration is the default package metadata plus no environment overrides:
 
-This is the minimal shape implied by the API surface for the main flows:
-
-```python
-from pathlib import Path
-
-repo_root = Path(".")
-output_dir = Path(".rekipedia")
-llm_config = {
-    "model": "default-model",
-}
+```bash
+# No config file required
+export REKIPEDIA_AGENT_ASK=0
+reki ask "What does the planner do?"
 ```
 
-### Full-featured runtime configuration example
+This keeps the system on the standard path through [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) rather than delegating to [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371).
 
-The embedding CLI and orchestration functions indicate a broader configuration surface:
+### Full-featured config
 
-```python
-from pathlib import Path
+A “full-featured” configuration, based on what is evidenced in code, would include:
+- package installation/entry points from `package.json`
+- a normal Python package build via `pyproject.toml`
+- explicit LLM settings passed programmatically
+- the agentic ask override enabled via environment variable
 
-config = {
-    "repo_root": Path("/path/to/repo"),
-    "output_dir": Path("/path/to/repo/.rekipedia"),
-    "llm_config": {
-        "model": "llama4",
-        "provider": "ollama",
-        "api_key": None,
-        "base_url": None,
-    },
-    "embed": {
-        "top_k": 10,
-        "verbose": False,
-    },
-    "notes": {
-        "tag": "tech-lead",
-    },
-}
+```bash
+export REKIPEDIA_AGENT_ASK=1
+
+python - <<'PY'
+from rekipedia.models.contracts import LLMConfig
+from rekipedia.orchestrator.run_ask import run_ask
+
+config = LLMConfig()
+answer = run_ask(
+    question="Trace the answer flow end-to-end.",
+    repo_root="/path/to/repo",
+    output_dir="/path/to/repo/.rekipedia",
+    llm_config=config,
+    history=[],
+)
+print(answer)
+PY
 ```
 
-These examples are intentionally generic: the analysis confirms the existence of these inputs, but not the exact field names inside `LLMConfig` or any hidden file format.
+This setup drives the agentic path into [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) when the environment flag is enabled.
 
-> **Sources:** [`embed_cmd`](src/rekipedia/cli/embed.py#L85-L201) · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304-L330) · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45-L433) · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27-L244) · [`create_app`](src/rekipedia/server/app.py#L21-L663)
+> **Sources:** [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) · [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) · [`LLMConfig`](src/rekipedia/orchestrator/run_ask.py#L310) · [`package.json`](package.json) · [`pyproject.toml`](pyproject.toml)
+
+---
 
 ## Runtime Configuration
 
-### CLI flags and command parameters
+The only explicitly evidenced runtime override is:
 
-The clearest runtime overrides in the codebase are the CLI arguments accepted by [`embed_cmd`](src/rekipedia/cli/embed.py#L85-L201):
+| Env var | Type | Effect | Observed in |
+|---------|------|--------|-------------|
+| `REKIPEDIA_AGENT_ASK` | boolean-like string (`"1"`/other) | When set to `1`, [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) delegates to [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371). | [`tests/test_agent_ask.py`](tests/test_agent_ask.py#L283) |
 
-| Parameter | Role |
-|-----------|------|
-| `repo_path` | Repository to index |
-| `output_dir` | Output location for `.rekipedia/` artifacts |
-| `model` | Embedding model name |
-| `provider` | Model provider name |
-| `api_key` | API key for the embedding backend |
-| `base_url` | Custom LiteLLM/OpenAI-compatible endpoint |
-| `top_k` | Number of nearest results to retrieve |
-| `verbose` | Enables verbose logging |
+### Behavior details
 
-The notes CLI also exposes runtime behavior through command parameters, as seen in [`note_add`](src/rekipedia/cli/note.py#L35-L42), [`note_list`](src/rekipedia/cli/note.py#L49-L64), [`note_remove`](src/rekipedia/cli/note.py#L70-L89), [`note_edit`](src/rekipedia/cli/note.py#L96-L120), and [`note_import`](src/rekipedia/cli/note.py#L127-L153). These command options control filtering, JSON output, edit behavior, file import, and dry-run semantics.
+- In [`test_run_ask_uses_agent_when_env_set`](tests/test_agent_ask.py#L283), the test sets `REKIPEDIA_AGENT_ASK=1` and verifies that `run_ask` routes to the agentic implementation.
+- This implies the environment variable acts as a **runtime feature flag** rather than a static configuration value.
+- No other env vars are visible in the analysis payload.
 
-### Environment-variable overrides
+### CLI flags
 
-The analysis data confirms at least one explicit env-var override in the RAG layer:
+No CLI flag definitions are visible in the analysis data. The repository does expose CLI entry points via `package.json` (`rekipedia` and `reki`), and the package appears to have a CLI main function at `rekipedia.cli:main`, but the actual flag set is not present in the provided files list. Therefore, no concrete flag-to-config mapping can be documented here.
 
-- [`EmbedPipeline.search`](src/rekipedia/rag/embedder.py#L610-L711) documents `REKIPEDIA_RAG_MMR=0` to disable Maximal Marginal Relevance diversification.
+> **Sources:** [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) · [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) · [`test_run_ask_uses_agent_when_env_set`](tests/test_agent_ask.py#L283)
 
-The payload also shows imports of `os` in several modules, including [`rekipedia.cli.embed`](src/rekipedia/cli/embed.py), [`rekipedia.cli.note`](src/rekipedia/cli/note.py), [`rekipedia.orchestrator.run_ask`](src/rekipedia/orchestrator/run_ask.py), and [`rekipedia.rag.embedder`](src/rekipedia/rag/embedder.py), which strongly suggests additional environment-variable usage may exist, but the actual env-var names are not observable from the provided data.
-
-### File-based config vs runtime override precedence
-
-What can be stated with confidence is:
-
-1. CLI parameters are accepted directly by the main entry points.
-2. Runtime objects such as `LLMConfig` are passed into orchestration and server layers.
-3. At least one env var (`REKIPEDIA_RAG_MMR`) overrides a default behavior in the embedding search path.
-
-What cannot be stated from the current analysis is the exact precedence order for `package.json` or `pyproject.toml` settings, because their contents are not available.
-
-> **Sources:** [`embed_cmd`](src/rekipedia/cli/embed.py#L85-L201) · [`note_add`](src/rekipedia/cli/note.py#L35-L42) · [`note_list`](src/rekipedia/cli/note.py#L49-L64) · [`note_remove`](src/rekipedia/cli/note.py#L70-L89) · [`note_edit`](src/rekipedia/cli/note.py#L96-L120) · [`note_import`](src/rekipedia/cli/note.py#L127-L153) · [`EmbedPipeline.search`](src/rekipedia/rag/embedder.py#L610-L711)
+---
 
 ## Validation
 
-### What is observable
+There is no visible Pydantic model or JSON schema for file-based configuration in the provided analysis. Validation is therefore **partially observable** and appears to be handled in two ways:
 
-No dedicated Pydantic model, JSON schema, or TOML/YAML schema validator is visible in the analysis payload for configuration files. There is also no direct evidence of a `Settings` class, `BaseSettings`, or a file-backed config loader.
+### 1. Runtime existence checks and guardrails
 
-Instead, validation appears to happen in three ways:
+The code validates the operational environment before executing ask flows:
 
-1. **Typed runtime objects**  
-   The orchestration layer uses [`LLMConfig`](src/rekipedia/orchestrator/run_ask.py), which implies structured validation via the config object itself, even though the class definition is not present in the payload.
+- [`_verify_scan`](src/rekipedia/orchestrator/run_ask.py#L37) checks that a successful scan exists by consulting [`SqliteStore`](src/rekipedia/storage/sqlite_store.py) and its `get_latest_run_id` method.
+- [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) has fallback behavior when tool-calling is unavailable or the model call fails.
+- [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186) and [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155) both have fallback paths to `_default_plan` if LLM planning fails.
 
-2. **CLI argument validation**  
-   The Click-based commands in [`rekipedia.cli.embed`](src/rekipedia/cli/embed.py) and [`rekipedia.cli.note`](src/rekipedia/cli/note.py) enforce types and required/optional argument handling at the command boundary.
+These are not configuration validators in the strict sense, but they enforce runtime preconditions around configuration use.
 
-3. **Operational checks / graceful fallback**  
-   - [`_check_rag_deps()`](src/rekipedia/cli/embed.py#L22-L41) validates that `faiss-cpu` and `numpy` are installed before proceeding.
-   - [`_verify_scan(output_dir, repo_root)`](src/rekipedia/orchestrator/run_ask.py#L37-L52) validates that a successful scan exists before answering questions.
-   - [`SqliteStore._apply_migrations()`](src/rekipedia/storage/sqlite_store.py#L117-L131) validates and advances schema state by applying migration files.
-   - [`EmbedPipeline.meta`](src/rekipedia/rag/embedder.py#L717-L724) and [`EmbedPipeline.is_built`](src/rekipedia/rag/embedder.py#L726-L727) validate index state via filesystem presence.
+### 2. Object-based configuration validation
 
-### Practical conclusion
+The repository clearly uses an `LLMConfig` type from [`rekipedia.models.contracts`](src/rekipedia/models/contracts) as the primary configuration object passed into orchestrator and planner functions. However, the analysis payload does not expose the class definition, so we cannot confirm whether it is:
+- a Pydantic model
+- a dataclass
+- a simple typed contract
 
-From the evidence available, configuration validation is mostly **implicit and runtime-driven**, rather than driven by a centralized schema file. The strongest candidate for structured validation is the [`LLMConfig`](src/rekipedia/orchestrator/run_ask.py) object, but the exact validation mechanism cannot be confirmed from the current dataset.
+What is observable is that tests construct it directly via [`_make_config`](tests/test_agent_ask.py#L20), and runtime functions accept it as the canonical settings object.
 
-> **Sources:** [`_check_rag_deps`](src/rekipedia/cli/embed.py#L22-L41) · [`_verify_scan`](src/rekipedia/orchestrator/run_ask.py#L37-L52) · [`SqliteStore._apply_migrations`](src/rekipedia/storage/sqlite_store.py#L117-L131) · [`EmbedPipeline.meta`](src/rekipedia/rag/embedder.py#L717-L724) · [`EmbedPipeline.is_built`](src/rekipedia/rag/embedder.py#L726-L727)
+### What is not observable
+
+- No schema file
+- No config validation library import is visible in the analysed files
+- No explicit `BaseModel` or `pydantic` symbol is present in the analysis payload
+
+So the safest conclusion is: **configuration validation is mostly implicit and runtime-driven, with `LLMConfig` as the typed boundary, but the exact validation mechanism is not exposed in the current snapshot**.
+
+> **Sources:** [`_verify_scan`](src/rekipedia/orchestrator/run_ask.py#L37) · [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) · [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186) · [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155) · [`LLMConfig`](src/rekipedia/models/contracts) · [`_make_config`](tests/test_agent_ask.py#L20)
+
+---
+
+## Build and Test Context
+
+Although not configuration files themselves, the repository metadata establishes the operational context:
+
+| Command | Purpose |
+|---------|---------|
+| `uv build` | Build/package the Python project. |
+| `pytest` | Run the test suite, including configuration-related behavior such as `REKIPEDIA_AGENT_ASK`. |
+
+These commands suggest the configuration surface is validated primarily through tests rather than schema enforcement.
+
+> **Sources:** build command `uv build` · test command `pytest` · [`tests/test_agent_ask.py`](tests/test_agent_ask.py#L283)
+
+## Gaps and Unknowns
+
+The repository snapshot is missing the contents of the main configuration files, so the following cannot be enumerated precisely:
+- exact TOML keys in [`pyproject.toml`](pyproject.toml)
+- any npm scripts or additional metadata in [`package.json`](package.json)
+- any CLI flags exposed by `rekipedia.cli:main`
+
+If you want, I can produce a second-pass documentation page focused specifically on **runtime/env configuration behavior** once the raw file contents for `pyproject.toml` and `package.json` are available.

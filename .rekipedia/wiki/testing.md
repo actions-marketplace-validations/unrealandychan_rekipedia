@@ -1,93 +1,57 @@
 ---
 slug: testing
-title: "Testing Strategy and How to Run Tests"
+title: "Testing Strategy and Test Execution"
 section: general
 pin: false
 importance: 50
-created_at: 2026-05-07T04:12:37Z
-rekipedia_version: 0.10.9
+created_at: 2026-05-09T02:24:27Z
+rekipedia_version: 0.12.0
 ---
 
-# Testing Strategy and How to Run Tests
+# Testing Strategy and Test Execution
 
 ## Testing Philosophy
 
-The repository’s test suite is organised around the main user-facing workflows and the persistence layer that supports them. The current tests emphasize:
+The testing approach in this repository is intentionally focused on the highest-value behavior: orchestrating LLM-backed workflows, handling tool calls, and preserving safe fallback paths when external services fail. The visible test suite centers on [`tests.test_agent_ask`](tests/test_agent_ask.py#L1), which exercises the orchestration layer in [`rekipedia.orchestrator.agent_ask`](src/rekipedia/orchestrator/agent_ask.py#L1), the query path in [`rekipedia.orchestrator.run_ask`](src/rekipedia/orchestrator/run_ask.py#L1), and the planning layer in [`rekipedia.synthesis.planner`](src/rekipedia/synthesis/planner.py#L1) and [`rekipedia.synthesis.agent_planner`](src/rekipedia/synthesis/agent_planner.py#L1).
 
-- **CLI behavior** for the notes workflow via [`tests.test_notes_cli`](tests/test_notes_cli.py#L1)
-- **SQLite storage correctness** via [`tests.test_notes_store`](tests/test_notes_store.py#L1) and RAG persistence tests in [`tests.test_rag`](tests/test_rag.py#L1)
-- **HTTP/API and template behavior** via [`tests.test_notes_server`](tests/test_notes_server.py#L1)
-- **Incremental update behavior** via [`tests.test_update`](tests/test_update.py#L1)
-- **RAG chunking and embedding mechanics** in [`rekipedia.rag.embedder`](src/rekipedia/rag/embedder.py#L443) and its tests
+The tests are predominantly unit tests with heavy mocking. This is a sensible fit for the codebase because many core paths depend on LLM calls, local file-system state, and a SQLite-backed knowledge store. Instead of relying on live model calls or a fully built repository index, the tests validate deterministic behavior under controlled conditions. For example, the helper mocks [`_mock_direct_response`](tests/test_agent_ask.py#L24) and [`_mock_tool_call_response`](tests/test_agent_ask.py#L35) simulate direct model answers and tool-calling responses respectively, allowing the suite to validate the agent loop in [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275).
 
-This is a pragmatic, workflow-driven test strategy: instead of trying to exhaustively unit-test every line, the suite focuses on the system boundaries where regressions are most expensive:
+There is also a clear emphasis on fallback behavior. Both [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186) and [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155) explicitly promise a sensible default when LLM planning fails, and the tests verify that behavior. Likewise, [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) can delegate to [`agent_run_ask`](src/rekipedia/orchestrator/agent_ask.py#L371) when the agentic mode is enabled, and this delegation is covered by [`test_run_ask_uses_agent_when_env_set`](tests/test_agent_ask.py#L283).
 
-- command-line interaction
-- database persistence and migrations
-- document/chunk provenance
-- incremental update semantics
-- page regeneration after changes
+Coverage goals are not stated explicitly in the repository evidence, but the shape of the tests suggests a practical goal: cover all branches that are hard to reproduce manually, especially:
+- tool dispatch and lookup behavior in [`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141),
+- direct-answer vs tool-call paths in [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275),
+- planner fallback and structured-output handling in [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186) and [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155),
+- environment-driven switching in [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334).
 
-The evidence also suggests a deliberate emphasis on **fixture-driven, isolated tests**. The test files use temporary directories and lightweight fake responses such as [`_fake_embed_response`](tests/test_rag.py#L65) and [`_fake_llm_response`](tests/test_update.py#L19) to avoid network and external service dependencies. For example, embedding-related tests verify the behavior of [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477) and [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733) without calling a real model backend.
-
-A few implementation gaps are visible in the analysis data:
-
-- [`_now`](src/rekipedia/storage/sqlite_store.py#L832) has no direct test coverage
-- [`_get_store`](src/rekipedia/cli/note.py#L16) is not directly tested
-- [`_embed_batch`](src/rekipedia/rag/embedder.py#L416) is not directly tested
-- [`_combine_results`](src/rekipedia/orchestrator/run_digest.py#L436) is not directly tested
-
-These are not necessarily defects; they simply indicate where the suite currently relies on higher-level tests rather than direct unit tests.
-
-> **Sources:** `tests/test_notes_cli.py` · `tests/test_notes_store.py` · `tests/test_notes_server.py` · `tests/test_notes_rag.py` · `tests/test_rag.py` · `tests/test_update.py` · `src/rekipedia/rag/embedder.py` · L443–L892 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443)
+> **Sources:** `tests/test_agent_ask.py` · L1–L303 · [`tests.test_agent_ask`](tests/test_agent_ask.py#L1) · [`_mock_direct_response`](tests/test_agent_ask.py#L24) · [`_mock_tool_call_response`](tests/test_agent_ask.py#L35) · [`test_agent_ask_direct_answer`](tests/test_agent_ask.py#L112) · [`test_agent_planner_fallback_on_error`](tests/test_agent_ask.py#L263)
 
 ## Test Structure
 
-### Directory Layout
+The analysis data shows a very compact test layout: all observed tests live in a single file, [`tests/test_agent_ask.py`](tests/test_agent_ask.py#L1). There are no additional test directories or CI-specific test files in the evidence, so the current structure appears to be:
 
-The repository’s tests are all under a single top-level `tests/` directory:
+| Directory / File | Contents | Observed Purpose |
+|---|---|---|
+| `tests/test_agent_ask.py` | Unit tests, fixtures, helper mocks | Exercise agent tool handling, question answering, planner behavior, and environment-based routing |
 
-| Path | Purpose |
-|------|---------|
-| `tests/test_notes_cli.py` | CLI behavior for note management |
-| `tests/test_notes_store.py` | Store-level CRUD and filtering for notes |
-| `tests/test_notes_server.py` | FastAPI route behavior for note pages/API |
-| `tests/test_notes_rag.py` | Notes integration with the assembled RAG/system context |
-| `tests/test_rag.py` | RAG chunking, provenance, embedding, and store round-trips |
-| `tests/test_update.py` | Incremental scan/update pipeline behavior |
+Within that file, the tests are organized by behavior rather than by module. The early helpers build reusable test inputs:
+- [`_make_config`](tests/test_agent_ask.py#L20) constructs an [`LLMConfig`](tests/test_agent_ask.py#L20) tailored for temporary test directories.
+- [`_mock_direct_response`](tests/test_agent_ask.py#L24) returns a mock LLM response without tool calls.
+- [`_mock_tool_call_response`](tests/test_agent_ask.py#L35) returns a mock response that requests a single tool invocation.
 
-This structure is intentionally flat. Rather than splitting by package, the suite groups by **feature area** and **integration surface**:
+The test bodies then group naturally into sections:
+- tool handler behavior: [`test_tool_handler_search_code_no_index`](tests/test_agent_ask.py#L60), [`test_tool_handler_get_symbol_not_found`](tests/test_agent_ask.py#L67), [`test_tool_handler_get_page_not_found`](tests/test_agent_ask.py#L74), [`test_tool_handler_get_symbol_found`](tests/test_agent_ask.py#L81), [`test_tool_handler_get_page_found`](tests/test_agent_ask.py#L97),
+- agent execution modes: [`test_agent_ask_direct_answer`](tests/test_agent_ask.py#L112), [`test_agent_ask_tool_then_finish`](tests/test_agent_ask.py#L133), [`test_agent_ask_finish_tool`](tests/test_agent_ask.py#L155), [`test_agent_ask_max_iterations`](tests/test_agent_ask.py#L173), [`test_agent_ask_fallback_on_error`](tests/test_agent_ask.py#L198),
+- planning behavior: [`test_agent_planner_add_pages_and_finalize`](tests/test_agent_ask.py#L220), [`test_agent_planner_fallback_on_error`](tests/test_agent_ask.py#L263),
+- runtime routing: [`test_run_ask_uses_agent_when_env_set`](tests/test_agent_ask.py#L283).
 
-- **CLI tests** validate commands and output formatting
-- **Store tests** validate database methods and migration-backed schema
-- **Server tests** validate HTTP endpoints and rendered note pages
-- **RAG tests** validate chunking, indexing, and provenance
-- **Update tests** validate orchestration and incremental refresh logic
+This structure suggests a deliberately behavior-driven suite with shared helper functions and no apparent split between unit and integration test directories yet.
 
-### What Each Test File Covers
-
-- [`tests.test_notes_cli`](tests/test_notes_cli.py#L1): note add/list/remove/edit/import commands, including YAML and Markdown import paths
-- [`tests.test_notes_store`](tests/test_notes_store.py#L1): note persistence, tag filtering, update semantics, deletion, and lookup
-- [`tests.test_notes_server`](tests/test_notes_server.py#L1): FastAPI routes for notes and notes page rendering
-- [`tests.test_notes_rag`](tests/test_notes_rag.py#L1): ensuring notes are injected into assembled system context only when present
-- [`tests.test_rag`](tests/test_rag.py#L1): scan metadata, chunk provenance, symbol chunking fallback behavior, FAISS-backed search, and incremental chunk updates
-- [`tests.test_update`](tests/test_update.py#L1): fallback from update to full scan, no-op behavior when unchanged, targeted page resynthesis, page source tracking, and incremental RAG re-embedding
-
-> **Sources:** `tests/test_notes_cli.py` · `tests/test_notes_store.py` · `tests/test_notes_server.py` · `tests/test_notes_rag.py` · `tests/test_rag.py` · `tests/test_update.py`
+> **Sources:** `tests/test_agent_ask.py` · L1–L303 · [`_make_config`](tests/test_agent_ask.py#L20) · [`_mock_direct_response`](tests/test_agent_ask.py#L24) · [`_mock_tool_call_response`](tests/test_agent_ask.py#L35)
 
 ## Running Tests
 
-The only test command recorded in the analysis data is:
-
-```bash
-pytest
-```
-
-Because the repository exposes a Python package and CLI entry point via [`rekipedia.cli:main`](README.md) and has a `pytest` test suite, the documented test runner is straightforward.
-
-### Recommended Invocations
-
-The task asks for unit, integration, and coverage examples. The analysis data only confirms `pytest`, so the following commands are the safest documented forms while still aligning with standard pytest usage:
+The only test command surfaced in the repository evidence is `pytest` from [`test_commands`](analysis payload). That is the canonical entry point for running the suite.
 
 ```bash
 # unit tests
@@ -97,164 +61,107 @@ pytest
 pytest
 
 # with coverage
-pytest --cov=rekipedia --cov-report=term-missing
+pytest
 ```
 
-The suite does not currently advertise separate test markers such as `unit` or `integration`, so the same base command is used for both categories. If you add markers later, you can refine these commands without changing the overall test workflow.
+The evidence does not provide separate unit/integration commands, nor does it show a coverage tool such as `pytest-cov` configured in `pyproject.toml` or `package.json`. So, based on what is visible, the repository currently exposes a single generalized test command rather than a categorized matrix of commands.
 
-### Running a Single Test
-
-You can run a single test module or test case using standard pytest selection syntax:
+If you want to run a single test or a subset, standard `pytest` selection patterns should work, even though they are not explicitly documented in the repository evidence:
 
 ```bash
-pytest tests/test_rag.py
-pytest tests/test_update.py::test_update_no_changes_exits_early
-pytest tests/test_notes_cli.py::test_note_add
+pytest tests/test_agent_ask.py::test_agent_ask_direct_answer
+pytest tests/test_agent_ask.py -k "planner"
+pytest tests/test_agent_ask.py -k "tool_handler"
 ```
 
-### Practical Notes
+Because the test file relies heavily on monkeypatching and temporary directories, these invocations should be fast and deterministic. The suite appears designed to avoid requiring a fully built scan or external network access.
 
-Because many tests use temporary directories and fakes, they should be deterministic and not require external services. That said, the codebase includes features that can depend on optional packages such as FAISS, numpy, and tree-sitter in production paths; the tests are written to avoid requiring those services directly when possible.
-
-> **Sources:** `pytest` test command from analysis data · `tests/test_rag.py` · `tests/test_update.py` · `tests/test_notes_cli.py`
+> **Sources:** `pyproject.toml` · build/test command evidence inferred from `test_commands` · [`tests/test_agent_ask.py`](tests/test_agent_ask.py#L1)
 
 ## Test Categories
 
 ### Unit Tests
 
-The suite contains several strong unit-test clusters around pure or near-pure logic:
+Most of the observed suite is unit-level and isolates the class or function under test using mocks.
 
-#### Notes Store
-[`tests.test_notes_store`](tests/test_notes_store.py#L1) exercises the methods behind [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39), including:
+The main units exercised are:
 
-- note creation and listing
-- tag filtering
-- update-in-place behavior
-- deletion and lookup
-- alias behavior such as `get_notes`
+- [`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141), especially:
+  - [`_ToolHandler.search_code`](src/rekipedia/orchestrator/agent_ask.py#L160),
+  - [`_ToolHandler.get_symbol`](src/rekipedia/orchestrator/agent_ask.py#L173),
+  - [`_ToolHandler.get_page`](src/rekipedia/orchestrator/agent_ask.py#L189),
+  - [`_ToolHandler.get_relationships`](src/rekipedia/orchestrator/agent_ask.py#L208),
+  - [`_ToolHandler.dispatch`](src/rekipedia/orchestrator/agent_ask.py#L236).
+- [`AgentAsk`](src/rekipedia/orchestrator/agent_ask.py#L253), especially [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275).
+- [`AgentPlanner`](src/rekipedia/synthesis/agent_planner.py#L144) and [`PlannerAgent`](src/rekipedia/synthesis/planner.py#L180), especially their `plan()` methods.
+- [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) in the environment-switching case.
 
-These tests are especially valuable because they validate the storage contract without involving the CLI or HTTP layers.
+The key fixture/mocking strategy is visible in the test file:
+- [`_make_config`](tests/test_agent_ask.py#L20) builds a minimal [`LLMConfig`](tests/test_agent_ask.py#L20),
+- [`_mock_direct_response`](tests/test_agent_ask.py#L24) emulates a normal completion,
+- [`_mock_tool_call_response`](tests/test_agent_ask.py#L35) emulates tool-calling behavior,
+- `patch` is used throughout to override `litellm` behavior and isolate the agent loop.
 
-#### RAG Chunking and Provenance
-[`tests.test_rag`](tests/test_rag.py#L1) checks chunking and provenance behavior for helpers in [`rekipedia.rag.embedder`](src/rekipedia/rag/embedder.py#L1), including:
+This means the suite verifies internal orchestration logic and contract handling without requiring live model tokens or actual RAG index contents.
 
-- [`_is_implementation`](src/rekipedia/rag/embedder.py#L132) heuristic classification
-- [`_chunk_file`](src/rekipedia/rag/embedder.py#L160) line-provenance generation
-- [`_symbol_chunk_file`](src/rekipedia/rag/embedder.py#L218) and fallback behavior
-- [`EmbedPipeline.search`](src/rekipedia/rag/embedder.py#L610) search output shape
-- store round-trips for [`SqliteStore.upsert_rag_chunks`](src/rekipedia/storage/sqlite_store.py#L710) and [`SqliteStore.get_rag_chunks_by_file`](src/rekipedia/storage/sqlite_store.py#L739)
-
-#### Fixtures and Mocks
-A few key test fixtures and fake responses are visible:
-
-| Fixture / helper | File | Role |
-|---|---|---|
-| [`_fake_embed_response`](tests/test_rag.py#L65) | `tests/test_rag.py` | Produces deterministic embedding responses |
-| [`_make_test_repo`](tests/test_rag.py#L75) | `tests/test_rag.py` | Builds a small synthetic repository |
-| [`mock_llm`](tests/test_update.py#L34) | `tests/test_update.py` | Replaces LLM behavior in update tests |
-| [`_fake_llm_response`](tests/test_update.py#L19) | `tests/test_update.py` | Supplies stable LLM output |
-| [`runner`](tests/test_notes_cli.py#L14) | `tests/test_notes_cli.py` | Click command runner fixture |
-| [`store`](tests/test_notes_store.py#L12) | `tests/test_notes_store.py` | Temporary SQLite-backed store |
-
-The strong pattern here is that tests isolate code under test from model calls, the filesystem beyond a temp tree, and network dependencies.
-
-> **Sources:** `tests/test_notes_store.py` · `tests/test_rag.py` · `tests/test_update.py` · `src/rekipedia/storage/sqlite_store.py` · L39–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39) · `src/rekipedia/rag/embedder.py` · L132–L232 · [`_chunk_file`](src/rekipedia/rag/embedder.py#L160) · [`EmbedPipeline.search`](src/rekipedia/rag/embedder.py#L610)
+> **Sources:** `tests/test_agent_ask.py` · L20–L303 · [`_ToolHandler`](tests/test_agent_ask.py#L60) · [`AgentAsk`](tests/test_agent_ask.py#L112) · [`AgentPlanner`](tests/test_agent_ask.py#L220) · [`PlannerAgent`](tests/test_agent_ask.py#L220)
 
 ### Integration Tests
 
-Integration coverage focuses on behavior across module boundaries.
+No dedicated integration test directory or file is visible in the evidence, so there is no clearly separated integration suite yet. However, some tests do exercise multi-component behavior:
+- [`test_agent_ask_tool_then_finish`](tests/test_agent_ask.py#L133) verifies a tool-call round-trip from the mock model through [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) and back to a final answer.
+- [`test_agent_planner_add_pages_and_finalize`](tests/test_agent_ask.py#L220) verifies the planner’s end-to-end use of structured tool calls and finalization into a [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138).
+- [`test_run_ask_uses_agent_when_env_set`](tests/test_agent_ask.py#L283) checks that the public [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334) API delegates to the agent path when `REKIPEDIA_AGENT_ASK=1`.
 
-#### CLI → Store
-[`tests.test_notes_cli`](tests/test_notes_cli.py#L1) drives the note commands from the CLI layer into the store layer via [`note_add`](src/rekipedia/cli/note.py#L35), [`note_list`](src/rekipedia/cli/note.py#L49), [`note_remove`](src/rekipedia/cli/note.py#L70), [`note_edit`](src/rekipedia/cli/note.py#L96), and [`note_import`](src/rekipedia/cli/note.py#L127). This validates the full user-facing behavior rather than just individual store calls.
+These are “integration-like” in the sense that they cover interactions between functions and modules, but they still use mocks heavily and do not appear to rely on a live SQLite database, real embeddings, or a real model backend.
 
-#### Update Orchestration
-[`tests.test_update`](tests/test_update.py#L1) verifies cross-module flows involving:
-
-- [`run_update`](src/rekipedia/orchestrator/run_update.py#L27)
-- [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45)
-- [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39)
-- [`PageBuilder`](src/rekipedia/orchestrator/run_digest.py#L1) as referenced by the scan pipeline
-- [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733)
-
-This suite checks that an update can:
-1. detect whether a previous scan exists,
-2. identify changed files,
-3. preserve unchanged symbols and relationships,
-4. refresh wiki pages,
-5. update the incremental RAG index when an index already exists.
-
-#### Server Routes
-[`tests.test_notes_server`](tests/test_notes_server.py#L1) exercises the FastAPI app produced by [`create_app`](src/rekipedia/server/app.py#L21). This covers:
-
-- `GET` notes listing
-- `POST` note creation
-- `DELETE` note removal
-- notes page rendering
-
-#### Notes in RAG Context
-[`tests.test_notes_rag`](tests/test_notes_rag.py#L1) validates that notes are included in the assembled system context used by [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L304) and excluded when there are no notes.
-
-> **Sources:** `tests/test_notes_cli.py` · `tests/test_notes_server.py` · `tests/test_notes_rag.py` · `tests/test_update.py` · `src/rekipedia/cli/note.py` · L35–L153 · [`note_add`](src/rekipedia/cli/note.py#L35) · [`note_import`](src/rekipedia/cli/note.py#L127) · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) · `src/rekipedia/server/app.py` · L21–L663 · [`create_app`](src/rekipedia/server/app.py#L21)
+> **Sources:** `tests/test_agent_ask.py` · L133–L303 · [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) · [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155) · [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334)
 
 ## Writing New Tests
 
-### Conventions to Follow
+When adding tests, follow the style already established in [`tests/test_agent_ask.py`](tests/test_agent_ask.py#L1):
 
-When adding new tests, follow the existing style:
+### Conventions
 
-1. **Put the test next to the feature area**
-   - CLI note behavior → `tests/test_notes_cli.py`
-   - storage behavior → `tests/test_notes_store.py`
-   - server routes → `tests/test_notes_server.py`
-   - RAG/chunking → `tests/test_rag.py`
-   - update pipeline → `tests/test_update.py`
-
-2. **Use temp directories and fakes**
-   - Prefer `tmp_path`, temporary stores, and mock responses over real external services
-   - Mirror the existing use of [`_fake_embed_response`](tests/test_rag.py#L65) and [`_fake_llm_response`](tests/test_update.py#L19)
-
-3. **Test outcomes, not internals**
-   - For example, assert that [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477) persisted chunk provenance or that [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) produced a new run, rather than checking every intermediate branch
-
-4. **Prefer deterministic assertions**
-   - The suite commonly checks lengths, returned rows, JSON payloads, and exact note contents
+- Prefer small helper factories like [`_make_config`](tests/test_agent_ask.py#L20) over repeating setup.
+- Mock external boundaries (`litellm`, file content, environment variables) instead of calling real services.
+- Keep test names descriptive and behavior-oriented, e.g. `test_agent_ask_fallback_on_error`.
+- Use `tmp_path` for filesystem state; several current tests create temporary wiki pages or `symbols.json` files this way.
+- Use `monkeypatch`/`patch` to control module behavior and isolate fallback branches.
 
 ### Where to Put New Tests
 
-| New behavior belongs to... | Suggested file |
-|---|---|
-| Note CLI command | `tests/test_notes_cli.py` |
-| Notes persistence or schema changes | `tests/test_notes_store.py` |
-| Notes API/view behavior | `tests/test_notes_server.py` |
-| Context assembly / RAG prompt injection | `tests/test_notes_rag.py` |
-| Embedding, chunking, provenance, search | `tests/test_rag.py` |
-| Scan/update orchestration | `tests/test_update.py` |
+At present, all observed tests are concentrated in `tests/test_agent_ask.py`. If you add coverage for adjacent modules, the existing layout suggests either:
+- extending `tests/test_agent_ask.py` for closely related orchestrator/planner behavior, or
+- introducing new files under `tests/` organized by area, such as `tests/test_run_ask.py` or `tests/test_planner.py`, if the suite grows.
 
-### Running a Single New Test
+The repository evidence does not show any enforced test layout policy, so this is a pragmatic recommendation rather than a documented rule.
 
-During development, run the narrowest possible selection:
+### Running a Single Test
+
+Use standard pytest node selection:
 
 ```bash
-pytest tests/test_update.py::test_my_new_behavior
-pytest tests/test_rag.py -k provenance
-pytest tests/test_notes_cli.py::test_note_import_markdown
+pytest tests/test_agent_ask.py::test_agent_ask_direct_answer
+pytest tests/test_agent_ask.py::test_agent_planner_fallback_on_error
+pytest tests/test_agent_ask.py -k "get_page"
 ```
 
-If your test targets a function such as [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) or [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733), it is often worth starting with a single scenario and then broadening to the whole file.
+If you are working on planner behavior, target the relevant test function directly; for tool behavior, choose the specific `_ToolHandler` case. This keeps iteration fast and ensures that mocking setup stays local to the failing path.
 
-> **Sources:** `tests/test_notes_cli.py` · `tests/test_notes_store.py` · `tests/test_notes_server.py` · `tests/test_notes_rag.py` · `tests/test_rag.py` · `tests/test_update.py` · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) · `src/rekipedia/rag/embedder.py` · L477–L892 · [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477) · [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733)
+> **Sources:** `tests/test_agent_ask.py` · L20–L303 · [`_make_config`](tests/test_agent_ask.py#L20) · [`test_agent_ask_direct_answer`](tests/test_agent_ask.py#L112) · [`test_agent_planner_add_pages_and_finalize`](tests/test_agent_ask.py#L220)
 
 ## CI/CD
 
-No CI configuration files were present in the analysis evidence (`ci_files` is empty), so there is **no observable CI/CD pipeline to document** from the repository snapshot.
+No CI configuration files were found in the provided evidence (`ci_files: []`), so there is no observable pipeline to document from the repository snapshot. In other words, there is currently no confirmed GitHub Actions, GitLab CI, or similar workflow file available to describe.
 
-What we can say from the available evidence:
+Given the absence of CI evidence, the safest statement is:
+- tests are run locally with `pytest`,
+- there is no visible automated CI/CD pipeline in the analyzed files.
 
-- The project has a standard Python packaging/test setup
-- The test command is `pytest`
-- The build command is `uv build`
-- The package exposes CLI entry points [`rekipedia = "rekipedia.cli:main"` and `reki = "rekipedia.cli:main"`](README.md)
+If CI is added later, a useful pipeline would likely:
+1. install dependencies,
+2. run `pytest`,
+3. optionally run packaging checks such as `uv build` (which is the observed build command).
 
-In other words, automated validation is clearly intended, but the concrete CI provider, workflow steps, and triggers are not visible in the current repository evidence.
-
-> **Sources:** `ci_files` empty in analysis data · `pytest` test command from analysis data · `uv build` build command from analysis data · `README.md` entry points for [`rekipedia.cli:main`](README.md)
+> **Sources:** `ci_files` empty in analysis data · `test_commands`: `pytest` · `build_commands`: `uv build`

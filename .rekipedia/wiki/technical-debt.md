@@ -1,264 +1,260 @@
 ---
 slug: technical-debt
-title: "Technical Debt Audit"
+title: "Technical Debt Inventory and Refactoring Assessment"
 section: general
 pin: false
 importance: 50
-created_at: 2026-05-07T04:13:30Z
-rekipedia_version: 0.10.9
+created_at: 2026-05-09T02:20:24Z
+rekipedia_version: 0.12.0
 ---
 
-# Technical Debt Audit
+# Technical Debt Inventory and Refactoring Assessment
 
 ## Summary
 
-This codebase is functionally broad and well-covered in several critical areas, especially around notes, RAG chunking, and update workflows, but it also shows signs of accumulating architectural and maintenance debt. The overall debt rating is **Medium**: the system has solid test coverage for key paths, yet a few large “orchestrator” and “server” modules have very high complexity, significant coupling, and repeated patterns that will slow future change.
+This codebase is functionally compact but shows a concentrated cluster of technical debt in its orchestration and planning paths, especially around LLM-driven control flow, prompt assembly, and fallback logic. The overall debt rating is **Medium-High**: the repository appears operational and has meaningful test coverage for one key path, but several core functions are highly coupled, difficult to maintain, and at elevated risk of regression due to large, monolithic implementations.
 
-The most notable risks are concentrated in [`create_app`](src/rekipedia/server/app.py#L21), [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45), [`run_update`](src/rekipedia/orchestrator/run_update.py#L27), [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443), and [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39). These components are highly connected hubs in the dependency graph, which means defects or design changes there will have outsized impact across the application.
+The most prominent risks are concentrated in [`rekipedia.orchestrator.run_ask`](src/rekipedia/orchestrator/run_ask.py#L1), [`rekipedia.orchestrator.agent_ask`](src/rekipedia/orchestrator/agent_ask.py#L1), and [`rekipedia.synthesis.planner`](src/rekipedia/synthesis/planner.py#L1), where the code relies on many inline heuristics, repeated parsing patterns, and large multi-responsibility functions. Test coverage exists, but it is narrow relative to the implementation surface, with notable gaps around planning fallback behavior and the default plan output model.
 
-> **Sources:** `src/rekipedia/server/app.py` · L21–L663 · [`create_app`](src/rekipedia/server/app.py#L21) · `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45) · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) · `src/rekipedia/rag/embedder.py` · L443–L892 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443) · `src/rekipedia/storage/sqlite_store.py` · L39–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39)
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · `src/rekipedia/orchestrator/agent_ask.py` · `src/rekipedia/synthesis/planner.py` · `tests/test_agent_ask.py`
 
 ## Debt Inventory
 
 | # | Area | Severity | Description | Files Affected | Effort to Fix |
 |---|------|----------|-------------|----------------|---------------|
-| 1 | `create_app` complexity | 🔴 Critical | Massive FastAPI factory with routing, rendering, note persistence, Q&A, wiki serving, streaming, and repo metadata logic all in one function. | `src/rekipedia/server/app.py` | XL |
-| 2 | `run_digest` pipeline monolith | 🔴 Critical | Large end-to-end scan pipeline handles snapshotting, sharding, extraction, page synthesis, diagrams, exports, RAG embedding, and status updates. | `src/rekipedia/orchestrator/run_digest.py` | XL |
-| 3 | `run_update` pipeline monolith | 🔴 Critical | Incremental update path duplicates much of the full scan orchestration and includes many responsibilities in one function. | `src/rekipedia/orchestrator/run_update.py` | XL |
-| 4 | `EmbedPipeline` size and branching | 🟠 High | One class owns chunking, embedding, FAISS index lifecycle, search, and incremental update logic. | `src/rekipedia/rag/embedder.py` | L |
-| 5 | `SqliteStore` god object | 🟠 High | Database wrapper exposes a very large API across runs, files, symbols, pages, QA, notes, and RAG provenance. | `src/rekipedia/storage/sqlite_store.py` | XL |
-| 6 | Complex Markdown/YAML import logic | 🟠 High | Note import parsing is split across multiple helpers with weak explicit schema validation. | `src/rekipedia/notes/__init__.py`, `src/rekipedia/cli/note.py` | M |
-| 7 | Duplicate note storage access patterns | 🟡 Medium | CLI and server both implement store-open / store-close workflows and similar filtering/selection logic. | `src/rekipedia/cli/note.py`, `src/rekipedia/server/app.py`, `src/rekipedia/storage/sqlite_store.py` | M |
-| 8 | Repeated “fallback” control flow | 🟡 Medium | Several functions include fallback-to-default behavior without shared helper abstraction. | `src/rekipedia/rag/embedder.py`, `src/rekipedia/orchestrator/run_ask.py`, `src/rekipedia/server/app.py` | M |
-| 9 | Low-level string parsing utilities | 🟡 Medium | Custom tag / comma / whitespace splitting utilities indicate schema normalization concerns are leaking into storage layer. | `src/rekipedia/storage/store.go` | S |
-| 10 | Sparse tests for core helpers | 🟡 Medium | A few frequently used helpers are not directly covered, especially internal store/pipeline helpers. | `src/rekipedia/storage/sqlite_store.py`, `src/rekipedia/cli/note.py`, `src/rekipedia/rag/embedder.py`, `src/rekipedia/orchestrator/run_digest.py` | S–M |
+| 1 | Query assembly / retrieval orchestration | 🔴 Critical | [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208) combines rewriting, wiki loading, symbol loading, RAG retrieval, page ranking, note scoring, and prompt composition in one large function. | `src/rekipedia/orchestrator/run_ask.py` | XL |
+| 2 | Agentic ask control flow | 🔴 Critical | [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) contains a long ReAct loop with tool dispatch, JSON parsing, fallback handling, and response post-processing in a single method. | `src/rekipedia/orchestrator/agent_ask.py` | L |
+| 3 | Planner implementation complexity | 🔴 Critical | [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186) and [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155) both implement long branching flows with LLM fallback logic and output normalization. | `src/rekipedia/synthesis/planner.py`, `src/rekipedia/synthesis/agent_planner.py` | L |
+| 4 | Heuristic scoring logic | 🟠 High | [`_score_page`](src/rekipedia/orchestrator/run_ask.py#L116) is a dense heuristic scorer with many token-level operations and implicit weighting rules. | `src/rekipedia/orchestrator/run_ask.py` | M |
+| 5 | Query rewrite logic | 🟠 High | [`_rewrite_query`](src/rekipedia/orchestrator/run_ask.py#L149) mixes filesystem reads, prompt construction, LLM calls, and parsing of rewritten output. | `src/rekipedia/orchestrator/run_ask.py` | M |
+| 6 | Tool handler responsibilities | 🟠 High | [`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141) bundles symbol lookup, page loading, relationship retrieval, and search tools into one class. | `src/rekipedia/orchestrator/agent_ask.py` | M |
+| 7 | Default planning heuristics | 🟠 High | [`_default_plan`](src/rekipedia/synthesis/planner.py#L400) is a large heuristic fallback that mirrors LLM output shape and encodes many assumptions. | `src/rekipedia/synthesis/planner.py` | M |
+| 8 | Large summary builder | 🟠 High | [`_build_planning_summary`](src/rekipedia/synthesis/planner.py#L308) has a high out-degree and combines classification, aggregation, and summarization responsibilities. | `src/rekipedia/synthesis/planner.py` | M |
+| 9 | Test coverage gaps in planning model | 🟠 High | [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138) and [`_default_plan`](src/rekipedia/synthesis/planner.py#L400) have no direct tests despite being central outputs. | `src/rekipedia/synthesis/planner.py`, `tests/test_agent_ask.py` | S |
+| 10 | Repeated “call LLM, parse JSON, fallback” pattern | 🟡 Medium | The same error-tolerant LLM invocation pattern appears in multiple modules, increasing duplication and inconsistency risk. | `src/rekipedia/orchestrator/agent_ask.py`, `src/rekipedia/synthesis/planner.py`, `src/rekipedia/synthesis/agent_planner.py` | M |
+| 11 | Broad import surface / coupling | 🟡 Medium | Modules import many internal dependencies, including cross-package links between orchestration and synthesis. | `src/rekipedia/orchestrator/run_ask.py`, `src/rekipedia/orchestrator/agent_ask.py`, `src/rekipedia/synthesis/planner.py`, `src/rekipedia/synthesis/agent_planner.py` | M |
+| 12 | Thin test surface | 🟡 Medium | Only one test file exists, which leaves many code paths and edge cases unverified. | `tests/test_agent_ask.py` | M |
 
-> **Sources:** `src/rekipedia/server/app.py` · L21–L663 · [`create_app`](src/rekipedia/server/app.py#L21) · `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45) · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) · `src/rekipedia/rag/embedder.py` · L443–L892 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443) · `src/rekipedia/storage/sqlite_store.py` · L39–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39) · `src/rekipedia/notes/__init__.py` · L7–L80 · [`import_notes_from_file`](src/rekipedia/notes/__init__.py#L7) · `src/rekipedia/cli/note.py` · L16–L153 · [`note_import`](src/rekipedia/cli/note.py#L127)
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · `src/rekipedia/orchestrator/agent_ask.py` · `src/rekipedia/synthesis/planner.py` · `src/rekipedia/synthesis/agent_planner.py` · `tests/test_agent_ask.py`
 
 ## Critical Issues
 
-### 1) `create_app` is doing too much
+### 1) Monolithic prompt assembly and retrieval in `_build_full_system`
 
-[`create_app`](src/rekipedia/server/app.py#L21) spans the entire FastAPI application setup and appears to inline route definitions, HTML rendering, note CRUD, Q&A persistence, wiki-page listing, streaming response handling, and metadata loading. The analysis reports an out-degree of **307** for this function, which is a strong indicator of an overloaded orchestration function.
+[`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208) is the most concerning technical debt item in the repository. The function imports and orchestrates wiki page loading, symbol metadata loading, query rewriting, RAG retrieval via [`_rag_chunks`](src/rekipedia/orchestrator/run_ask.py#L86), page ranking via [`_rank_pages_by_query`](src/rekipedia/orchestrator/run_ask.py#L137), note retrieval from `SqliteStore`, and prompt string assembly.
 
-**Why this is a problem**
+This is a problem because:
+- the function is a bridge node with high out-degree and many hidden assumptions,
+- failures in any sub-step affect the entire ask flow,
+- changes to ranking or retrieval can unintentionally break prompt formatting,
+- it is hard to test in isolation due to its broad responsibilities.
 
-- Hard to reason about or safely modify.
-- Very expensive to test in isolation.
-- Changes to one route can accidentally affect unrelated behavior.
-- Increases merge conflict risk because many concerns share one file/function.
+A concrete refactor is to split it into smaller composable builders:
+- `load_context_sources(...)`
+- `rank_context(...)`
+- `format_system_prompt(...)`
 
-**Concrete fix**
-
-Split the factory into route registration helpers and service-level helpers, for example:
-
-```python
-def create_app(repo_root, output_dir, llm_config):
-    app = FastAPI()
-    register_wiki_routes(app, repo_root, output_dir, llm_config)
-    register_note_routes(app, output_dir)
-    register_qa_routes(app, repo_root, output_dir, llm_config)
-    return app
-```
-
-Then move the route bodies into dedicated functions or submodules, such as `server/routes/wiki.py`, `server/routes/notes.py`, and `server/routes/qa.py`.
-
-> **Sources:** `src/rekipedia/server/app.py` · L21–L663 · [`create_app`](src/rekipedia/server/app.py#L21) · `tests/test_notes_server.py` · L15–L66 · [`app`](tests/test_notes_server.py#L15)
-
-### 2) `run_digest` is a pipeline monolith
-
-[`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45) orchestrates nearly every major subsystem: snapshotting, sharding, sandbox execution, analysis aggregation, page synthesis, diagram generation, export, scan metadata, agent hints, MCP JSON, gitignore updates, refactor outputs, and RAG embedding. The function spans hundreds of lines and is the central bridge node in the dependency graph.
-
-**Why this is a problem**
-
-- Extremely high cognitive load.
-- Difficult to reuse parts of the pipeline.
-- Any failure path is likely to be entangled with cleanup/status logic.
-- The function is effectively the “application kernel,” but without clear phase boundaries.
-
-**Concrete fix**
-
-Introduce explicit pipeline stages with a coordinator object:
+Example direction:
 
 ```python
-class DigestPipeline:
-    def snapshot(self): ...
-    def analyze(self): ...
-    def synthesize(self): ...
-    def export(self): ...
-    def embed(self): ...
+def load_context_sources(question, output_dir, llm_config):
+    rewritten = _rewrite_query(question, output_dir, llm_config)
+    pages = _load_wiki_pages(output_dir)
+    symbols = _load_symbol_lines(output_dir)
+    rag = _rag_chunks(rewritten, output_dir, llm_config, top_k=8)
+    return rewritten, pages, symbols, rag
+
+def format_system_prompt(question, rewritten, pages, symbols, rag, notes):
+    parts = []
+    # assemble incrementally
+    return "\n".join(parts)
 ```
 
-Keep `run_digest()` as a thin wrapper around a stage runner. This also makes it easier to parallelize or mock stages independently.
+This would preserve behavior while dramatically lowering cognitive load.
 
-> **Sources:** `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45) · `src/rekipedia/storage/sqlite_store.py` · L137–L217 · [`SqliteStore.upsert_run`](src/rekipedia/storage/sqlite_store.py#L137) · [`SqliteStore.upsert_file`](src/rekipedia/storage/sqlite_store.py#L194)
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L208–L303 · [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208) · [`_rewrite_query`](src/rekipedia/orchestrator/run_ask.py#L149) · [`_load_wiki_pages`](src/rekipedia/orchestrator/run_ask.py#L55) · [`_load_symbol_lines`](src/rekipedia/orchestrator/run_ask.py#L66) · [`_rag_chunks`](src/rekipedia/orchestrator/run_ask.py#L86) · [`_rank_pages_by_query`](src/rekipedia/orchestrator/run_ask.py#L137)
 
-### 3) `run_update` duplicates orchestration concerns
+### 2) ReAct loop complexity in `AgentAsk.run`
 
-[`run_update`](src/rekipedia/orchestrator/run_update.py#L27) mirrors many responsibilities from the digest pipeline: it opens the store, checks the latest run, snapshots, reuses or copies unchanged data, rebuilds pages and diagrams, performs exports, and conditionally updates RAG embeddings. It is smaller than `run_digest`, but still too large for a single function.
+[`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) implements the agentic conversation loop, tool invocation, message accumulation, fallback-to-single-shot behavior, and final answer extraction. The supporting [`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141) exposes several tools, and `run` is responsible for coordinating them all.
 
-**Why this is a problem**
+Why this is problematic:
+- the control flow is long and stateful,
+- tool call handling and final answer assembly are mixed together,
+- there are many branches for direct completion, tool completion, max-iteration fallback, and exception fallback,
+- the method depends on brittle JSON model output parsing.
 
-- Incremental logic is split between two large orchestration functions.
-- Hard to ensure parity between full scan and update behavior.
-- Changes to one pipeline likely need changes in the other.
+Suggested fix:
+- extract a `ToolExecutionLoop` helper,
+- separate “decide next action” from “apply tool result”,
+- create a small response normalization helper for the various completion types.
 
-**Concrete fix**
+> **Sources:** `src/rekipedia/orchestrator/agent_ask.py` · L253–L364 · [`AgentAsk`](src/rekipedia/orchestrator/agent_ask.py#L253) · [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) · [`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141)
 
-Extract shared orchestration primitives like:
+### 3) Planning fallback and output normalization are overly complex
 
-- `load_previous_scan_state()`
-- `build_wiki_for_run()`
-- `refresh_rag_index()`
-- `persist_pipeline_status()`
+Both [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186) and [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155) implement broad LLM orchestration flows. They rely on a multi-step sequence: building planning summaries, calling the LLM, parsing JSON, normalizing returned pages/sections, and falling back to [`_default_plan`](src/rekipedia/synthesis/planner.py#L400) on failure.
 
-Then let both `run_digest()` and `run_update()` compose those primitives.
+This is a debt hotspot because:
+- the fallback path is as complex as the “happy path,”
+- the same conceptual work appears twice across two planners,
+- normalization code is spread across large functions rather than encapsulated in a model validator.
 
-> **Sources:** `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) · `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45)
+A better approach is to define a single planning pipeline with:
+- summary generation,
+- output schema validation,
+- normalized page/section construction,
+- fallback plan generation.
 
-### 4) `EmbedPipeline` combines too many concerns
+Potential refactor:
 
-[`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443) owns file iteration, chunking, AST-aware chunking fallback, embedding API access, FAISS indexing, metadata persistence, search, and incremental update behavior. This is a classic “pipeline class” that has grown into a mini-framework.
+```python
+def parse_plan_payload(payload) -> WikiPlan:
+    data = json.loads(payload)
+    return WikiPlan(data)
 
-**Why this is a problem**
+def safe_plan(combined, diagrams):
+    try:
+        payload = llm_call(...)
+        return parse_plan_payload(payload)
+    except Exception:
+        return _default_plan(combined)
+```
 
-- Too many reasons to change.
-- Hard to test chunking independent from FAISS or remote embedding APIs.
-- Search/update logic is interwoven with persistence and file-system behavior.
-
-**Concrete fix**
-
-Split into smaller collaborators:
-
-- `RepoChunker`
-- `EmbeddingClient`
-- `VectorIndexStore`
-- `RagSearchService`
-
-Keep `EmbedPipeline` as a façade only if needed.
-
-> **Sources:** `src/rekipedia/rag/embedder.py` · L443–L892 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443) · [`EmbedPipeline.build`](src/rekipedia/rag/embedder.py#L477) · [`EmbedPipeline.search`](src/rekipedia/rag/embedder.py#L610) · [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733)
-
-### 5) `SqliteStore` is a database god object
-
-[`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39) exposes a very wide API: run lifecycle, snapshot files, symbols, relationships, pages, diagrams, Q&A history, notes, RAG provenance, page-source mappings, and incremental copy/carry-forward methods. The breadth is reflected in the symbol list and in the dependency graph, where it is one of the most central classes.
-
-**Why this is a problem**
-
-- Very high surface area for regressions.
-- Database schema and domain logic are tightly coupled.
-- Schema evolution becomes risky because the class is responsible for too many tables and operations.
-
-**Concrete fix**
-
-Split the store by bounded contexts:
-
-- `RunStore`
-- `WikiStore`
-- `NotesStore`
-- `RagStore`
-
-Then compose them from a connection manager. This preserves the current persistence backend while reducing the class size dramatically.
-
-> **Sources:** `src/rekipedia/storage/sqlite_store.py` · L39–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39)
+> **Sources:** `src/rekipedia/synthesis/planner.py` · `src/rekipedia/synthesis/agent_planner.py` · [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186) · [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155) · [`_build_planning_summary`](src/rekipedia/synthesis/planner.py#L308) · [`_default_plan`](src/rekipedia/synthesis/planner.py#L400) · [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138)
 
 ## Code Smell Patterns
 
-### God objects / mega-functions
+### God-function / multi-responsibility orchestration
 
-The clearest recurring smell is “everything in one place.” [`create_app`](src/rekipedia/server/app.py#L21), [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45), [`run_update`](src/rekipedia/orchestrator/run_update.py#L27), [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443), and [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39) all act as hubs with very high out-degree or massive method counts.
+Real examples:
+- [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208)
+- [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275)
+- [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186)
+- [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155)
 
-**Recommended refactor:** split by responsibility and expose smaller composable services.
+These functions combine I/O, ranking, prompt building, JSON parsing, and fallback behavior. The result is high coupling and difficult unit testing.
 
-> **Sources:** `src/rekipedia/server/app.py` · L21–L663 · [`create_app`](src/rekipedia/server/app.py#L21) · `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45) · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) · `src/rekipedia/rag/embedder.py` · L443–L892 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443) · `src/rekipedia/storage/sqlite_store.py` · L39–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39)
+Recommended refactor:
+- extract pure helpers for scoring, parsing, and formatting,
+- keep top-level methods as orchestration-only wrappers,
+- move schema normalization into the data models where possible.
 
-### Repeated fallback logic
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · `src/rekipedia/orchestrator/agent_ask.py` · `src/rekipedia/synthesis/planner.py` · `src/rekipedia/synthesis/agent_planner.py`
 
-Fallbacks are explicit in the RAG and query paths: [`_symbol_chunk_file`](src/rekipedia/rag/embedder.py#L218) falls back to [`_chunk_file`](src/rekipedia/rag/embedder.py#L160), [`_rewrite_query`](src/rekipedia/orchestrator/run_ask.py#L149) silently returns the original query if rewriting fails, and `EmbedPipeline.update()` falls back to `build()` when no existing index exists. The logic is sensible, but repeated, which makes behavior harder to reason about consistently.
+### Repeated heuristic parsing and ranking logic
 
-**Recommended refactor:** move fallback decisions into shared strategy helpers, and surface more explicit status values instead of silent branch changes.
+Real example:
+- [`_extract_keywords`](src/rekipedia/orchestrator/run_ask.py#L104)
+- [`_score_page`](src/rekipedia/orchestrator/run_ask.py#L116)
+- [`_rank_pages_by_query`](src/rekipedia/orchestrator/run_ask.py#L137)
 
-> **Sources:** `src/rekipedia/rag/embedder.py` · L160–L232 · [`_chunk_file`](src/rekipedia/rag/embedder.py#L160) · [`_symbol_chunk_file`](src/rekipedia/rag/embedder.py#L218) · `src/rekipedia/orchestrator/run_ask.py` · L149–L205 · [`_rewrite_query`](src/rekipedia/orchestrator/run_ask.py#L149) · `src/rekipedia/rag/embedder.py` · L733–L892 · [`EmbedPipeline.update`](src/rekipedia/rag/embedder.py#L733)
+These functions encode custom scoring with token counts, title boosts, and keyword filtering. The pattern is reasonable, but the scoring logic is tightly packed and likely to drift if expanded.
 
-### Manual parsing helpers in storage code
+Recommended refactor:
+- define a small scoring strategy object or config dataclass,
+- separate lexical extraction from ranking,
+- add tests around scoring outcomes rather than implementation details.
 
-The Go storage layer includes low-level helpers like [`splitTags`](go/internal/storage/store.go#L418), [`splitByComma`](go/internal/storage/store.go#L432), and [`trimSpace`](go/internal/storage/store.go#L445). These indicate the storage layer is compensating for normalization or formatting issues in upstream data.
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · L104–L146 · [`_extract_keywords`](src/rekipedia/orchestrator/run_ask.py#L104) · [`_score_page`](src/rekipedia/orchestrator/run_ask.py#L116) · [`_rank_pages_by_query`](src/rekipedia/orchestrator/run_ask.py#L137)
 
-**Recommended refactor:** normalize this data at the input boundary or use a typed representation before persistence.
+### Tool handler class with too many concerns
 
-> **Sources:** `go/internal/storage/store.go` · L418–L453 · [`splitTags`](go/internal/storage/store.go#L418) · [`splitByComma`](go/internal/storage/store.go#L432) · [`trimSpace`](go/internal/storage/store.go#L445)
+[`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141) exposes `search_code`, `get_symbol`, `get_page`, and `get_relationships`. Each method touches different storage or file-system concerns, and the class also owns tool dispatch.
 
-### Large helper clusters with no direct coverage
+Recommended refactor:
+- split into `SearchTools`, `WikiTools`, and `RelationshipTools`,
+- keep dispatching at the orchestrator layer,
+- consider a registry mapping tool name to callable to reduce branching.
 
-Several helpers are exercised indirectly but are not directly covered by dedicated tests, including [`_get_store`](src/rekipedia/cli/note.py#L16), [`_embed_batch`](src/rekipedia/rag/embedder.py#L416), [`_combine_results`](src/rekipedia/orchestrator/run_digest.py#L436), and [`_now`](src/rekipedia/storage/sqlite_store.py#L832). These are small, but they sit on core paths and are vulnerable to regression.
+> **Sources:** `src/rekipedia/orchestrator/agent_ask.py` · L141–L246 · [`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141) · [`_ToolHandler.dispatch`](src/rekipedia/orchestrator/agent_ask.py#L236)
 
-**Recommended refactor:** add focused unit tests for edge cases and failure modes.
+### Repeated fallback-on-exception pattern
 
-> **Sources:** `src/rekipedia/cli/note.py` · L16–L23 · [`_get_store`](src/rekipedia/cli/note.py#L16) · `src/rekipedia/rag/embedder.py` · L416–L436 · [`_embed_batch`](src/rekipedia/rag/embedder.py#L416) · `src/rekipedia/orchestrator/run_digest.py` · L436–L450 · [`_combine_results`](src/rekipedia/orchestrator/run_digest.py#L436) · `src/rekipedia/storage/sqlite_store.py` · L832–L833 · [`_now`](src/rekipedia/storage/sqlite_store.py#L832)
+The code repeatedly catches LLM failures and falls back to defaults:
+- [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275)
+- [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186)
+- [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155)
+- [`_rewrite_query`](src/rekipedia/orchestrator/run_ask.py#L149)
+
+This is robust, but the implementation is repetitive and easy to get inconsistent.
+
+Recommended refactor:
+- centralize LLM call wrappers with shared retry/fallback policy,
+- standardize telemetry/logging for failures.
+
+> **Sources:** `src/rekipedia/orchestrator/agent_ask.py` · `src/rekipedia/orchestrator/run_ask.py` · `src/rekipedia/synthesis/planner.py` · `src/rekipedia/synthesis/agent_planner.py`
 
 ## Missing Tests
 
-The repository’s visible test suite is reasonably strong around notes, RAG, and update behavior, but the analysis explicitly identifies several untested helpers with real call counts. Based on `test_file_count` vs. `impl_file_count` and the provided `knowledge_gaps`, the most obvious gaps are:
+Test coverage is limited relative to the implementation footprint. The analysis indicates **5 implementation files** and **1 test file**, which is a thin ratio for the number of control-flow-heavy functions present.
 
-| Function | File | Reason |
-|---|---|---|
-| `_now` | `src/rekipedia/storage/sqlite_store.py` | Called 7 times, no direct test coverage |
-| `_get_store` | `src/rekipedia/cli/note.py` | Called 5 times, no direct test coverage |
-| `_embed_batch` | `src/rekipedia/rag/embedder.py` | Called 4 times, no direct test coverage |
-| `_combine_results` | `src/rekipedia/orchestrator/run_digest.py` | Called 3 times, no direct test coverage |
+Specific under-tested areas:
+- [`_default_plan`](src/rekipedia/synthesis/planner.py#L400) — explicitly identified as called multiple times with no test coverage.
+- [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138) — central output type, but not directly tested.
+- [`_rewrite_query`](src/rekipedia/orchestrator/run_ask.py#L149) — no dedicated tests visible.
+- [`_score_page`](src/rekipedia/orchestrator/run_ask.py#L116) and [`_rank_pages_by_query`](src/rekipedia/orchestrator/run_ask.py#L137) — heuristic logic is unverified.
+- [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208) — high-risk prompt builder with no direct tests.
+- [`PlannerAgent.plan`](src/rekipedia/synthesis/planner.py#L186) and [`AgentPlanner.plan`](src/rekipedia/synthesis/agent_planner.py#L155) — happy path and fallback path are partially covered, but normalization edge cases are not.
 
-The test suite does cover many neighboring behaviors, such as note CRUD, RAG chunking, and update flows, but these helpers are good candidates for small, fast unit tests because they are logic-heavy and easy to isolate.
+Current test strengths:
+- [`tests/test_agent_ask.py`](tests/test_agent_ask.py#L1) covers tool handler behavior and basic agent/planner flows.
+- There is direct coverage for agent fallback and the environment-driven path in [`run_ask`](src/rekipedia/orchestrator/run_ask.py#L334).
 
-**Specific modules/functions that would benefit from tests**
-- `src/rekipedia/cli/note.py`: `_get_store`, `note_edit`, `note_import`
-- `src/rekipedia/rag/embedder.py`: `_embed_batch`, `_mmr`, `EmbedPipeline.search`
-- `src/rekipedia/orchestrator/run_digest.py`: `_combine_results`
-- `src/rekipedia/storage/sqlite_store.py`: `_now`, migration/application behavior in `_apply_migrations`
+Recommended additions:
+- direct tests for `WikiPlan` construction and lookup methods,
+- tests for `_default_plan` with representative `combined` data,
+- tests for `_score_page` ranking behavior,
+- tests for `_rewrite_query` when rewrite is disabled or malformed.
 
-> **Sources:** `src/rekipedia/storage/sqlite_store.py` · L832–L833 · [`_now`](src/rekipedia/storage/sqlite_store.py#L832) · `src/rekipedia/cli/note.py` · L16–L23 · [`_get_store`](src/rekipedia/cli/note.py#L16) · `src/rekipedia/rag/embedder.py` · L416–L436 · [`_embed_batch`](src/rekipedia/rag/embedder.py#L416) · `src/rekipedia/orchestrator/run_digest.py` · L436–L450 · [`_combine_results`](src/rekipedia/orchestrator/run_digest.py#L436)
+> **Sources:** `tests/test_agent_ask.py` · `src/rekipedia/synthesis/planner.py` · `src/rekipedia/orchestrator/run_ask.py` · `src/rekipedia/orchestrator/agent_ask.py`
 
 ## Dependency & Security Concerns
 
-No explicit dependency risk list was provided in the analysis payload, and the `risks` array is empty. The available metadata does, however, show a set of potentially security-sensitive or operationally risky dependencies:
+The available analysis includes `package.json` and `pyproject.toml`, but it does **not** include their dependency contents or version ranges, so no specific outdated package or CVE claim can be made responsibly from the provided evidence alone.
 
-| Dependency | Location | Concern |
-|---|---|---|
-| `faiss` / `faiss-cpu` | `src/rekipedia/cli/embed.py`, `src/rekipedia/rag/embedder.py` | Native dependency; versioning and binary compatibility can be fragile |
-| `tree_sitter*` parsers | `src/rekipedia/rag/embedder.py` | Native parsing stack increases install and runtime risk |
-| `litellm` | `src/rekipedia/orchestrator/run_ask.py`, `src/rekipedia/rag/embedder.py`, `src/rekipedia/orchestrator/run_digest.py` | External API routing and provider configuration must be carefully controlled |
-| `modernc.org/sqlite` | `go/internal/storage/store.go` | Embedded database driver; usually safe, but version drift matters |
-| `turso` / `pyturso` | `src/rekipedia/storage/sqlite_store.py` | Optional DB backend adds another supply-chain and compatibility surface |
+What is observable:
+- the project name/version is `rekipedia` `0.13.0`,
+- packaging is present for both npm and Python ecosystems,
+- build command is `uv build`,
+- test command is `pytest`.
 
-Because the actual `package.json` / `pyproject.toml` contents were not included in the analysis payload, I cannot safely name specific versions as outdated or CVE-prone. Likewise, I cannot claim known CVEs without package-version evidence. The best evidenced concern is that the codebase depends on a fairly large stack of native and networked libraries, so dependency pinning and periodic auditing should be treated as important operational work.
+Risk notes based on code patterns, not dependency versions:
+- heavy use of [`litellm`](src/rekipedia/orchestrator/agent_ask.py#L1) and LLM-driven execution means supply-chain trust and API failure handling are important,
+- the code relies on filesystem reads from `.rekipedia/` and JSON parsing from model outputs, which increases robustness requirements,
+- if dependency auditing is not already in CI, it should be added.
 
-**Recommended action**
-- Pin all runtime dependencies explicitly.
-- Add automated dependency scanning in CI.
-- Review optional native packages (`faiss`, `tree_sitter`, SQLite backends) for platform support and security posture.
+Recommended next step:
+- inspect `package.json` and `pyproject.toml` directly for pinned versions, then run the dependency audit toolchain appropriate to each ecosystem.
 
-> **Sources:** `src/rekipedia/cli/embed.py` · L1–L201 · [`embed_cmd`](src/rekipedia/cli/embed.py#L85) · `src/rekipedia/rag/embedder.py` · L1–L901 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443) · `src/rekipedia/orchestrator/run_digest.py` · L1–L450 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45) · `src/rekipedia/storage/sqlite_store.py` · L1–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39)
+> **Sources:** `package.json` · `pyproject.toml` · `src/rekipedia/orchestrator/agent_ask.py` · `src/rekipedia/orchestrator/run_ask.py` · `src/rekipedia/synthesis/planner.py`
 
 ## TODO / FIXME Tracker
 
-No TODO / FIXME / HACK / XXX comments were included in the analysis payload, so I cannot extract a verified tracker table without risking fabrication.
+No TODO, FIXME, HACK, or XXX comments were provided in the analysis data, so no tracker entries can be reported with confidence.
 
-If you want this section populated, the repo needs a comment scan pass that captures exact file/line text. Based on the current data, the correct answer is: **none evidenced**.
+| File | Line | Comment | Suggested Action |
+|------|------|---------|------------------|
+| — | — | No comments evidenced in provided analysis | Run a repository-wide search for `TODO|FIXME|HACK|XXX` to verify |
 
-> **Sources:** No TODO/FIXME comments were provided in the analysis payload.
+> **Sources:** `README.md` · `RELEASE-NOTES.md` · `package.json` · `pyproject.toml` · `src/rekipedia/__init__.py` · `src/rekipedia/orchestrator/agent_ask.py` · `src/rekipedia/orchestrator/run_ask.py` · `src/rekipedia/synthesis/agent_planner.py` · `src/rekipedia/synthesis/planner.py` · `tests/test_agent_ask.py`
 
 ## Refactoring Roadmap
 
 | Priority | Action | Rationale | Estimated Effort |
-|----------|--------|-----------|-----------------|
-| 1 | Split `create_app` into route modules | Largest maintainability win; immediately reduces complexity in the HTTP layer | XL |
-| 2 | Extract shared pipeline stages from `run_digest` and `run_update` | Removes duplication and aligns full/update workflows | XL |
-| 3 | Decompose `SqliteStore` into bounded-context stores | Big reduction in coupling and schema-management risk | XL |
-| 4 | Break `EmbedPipeline` into chunking, embedding, and index services | Lowers cognitive load and improves testability | L |
-| 5 | Add targeted tests for `_now`, `_get_store`, `_embed_batch`, `_combine_results` | Cheap, high-value coverage for core helper logic | S–M |
-| 6 | Centralize fallback/error-handling patterns | Makes failure behavior more predictable across RAG and query paths | M |
-| 7 | Formalize note import schema validation | Reduces ambiguity and hidden parsing edge cases | M |
-| 8 | Audit and pin native/network dependencies | Operational hardening; especially useful before wider deployment | M |
+|----------|--------|-----------|------------------|
+| 1 | Split [`_build_full_system`](src/rekipedia/orchestrator/run_ask.py#L208) into smaller pure helpers | Highest coupling and widest blast radius; easiest source of regressions | XL |
+| 2 | Extract a reusable LLM fallback wrapper for ask/planner/query-rewrite flows | Reduces duplicated error handling and makes failure behavior consistent | M |
+| 3 | Decompose [`AgentAsk.run`](src/rekipedia/orchestrator/agent_ask.py#L275) into loop, dispatch, and finalization helpers | Improves testability and makes tool-call handling easier to reason about | L |
+| 4 | Normalize planner output handling around [`WikiPlan`](src/rekipedia/synthesis/planner.py#L138) | Stabilizes core output shape and reduces parser brittleness | M |
+| 5 | Add direct unit tests for `_default_plan`, `WikiPlan`, `_score_page`, and `_rewrite_query` | Closes the most important coverage gaps with high value and low effort | S |
+| 6 | Split [`_ToolHandler`](src/rekipedia/orchestrator/agent_ask.py#L141) into domain-specific tool classes | Reduces class size and isolates filesystem vs storage responsibilities | M |
+| 7 | Replace ad hoc ranking heuristics with a configurable scoring strategy | Makes relevance tuning safer and more transparent | M |
 
-A good sequencing strategy is to start with the high-impact structural splits, then immediately back them with focused unit tests. That gives you safer refactoring for the rest of the codebase and reduces the chance that future changes just move complexity around instead of removing it.
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · `src/rekipedia/orchestrator/agent_ask.py` · `src/rekipedia/synthesis/planner.py` · `src/rekipedia/synthesis/agent_planner.py` · `tests/test_agent_ask.py`
 
-> **Sources:** `src/rekipedia/server/app.py` · L21–L663 · [`create_app`](src/rekipedia/server/app.py#L21) · `src/rekipedia/orchestrator/run_digest.py` · L45–L433 · [`run_digest`](src/rekipedia/orchestrator/run_digest.py#L45) · `src/rekipedia/orchestrator/run_update.py` · L27–L244 · [`run_update`](src/rekipedia/orchestrator/run_update.py#L27) · `src/rekipedia/storage/sqlite_store.py` · L39–L827 · [`SqliteStore`](src/rekipedia/storage/sqlite_store.py#L39) · `src/rekipedia/rag/embedder.py` · L443–L892 · [`EmbedPipeline`](src/rekipedia/rag/embedder.py#L443)
+## Closing Assessment
+
+The codebase is not in a state of immediate architectural failure, but its core ask/planning path has accumulated enough structural complexity that future feature work will become increasingly expensive unless it is paid down. The best ROI comes from extracting pure functions and shared wrappers around prompt assembly, LLM invocation, and fallback behavior, then expanding tests around the stable data models and heuristics.
+
+> **Sources:** `src/rekipedia/orchestrator/run_ask.py` · `src/rekipedia/orchestrator/agent_ask.py` · `src/rekipedia/synthesis/planner.py` · `src/rekipedia/synthesis/agent_planner.py`

@@ -1,284 +1,5 @@
 [
   {
-    "name": "openStore",
-    "kind": "function",
-    "file": "go/cmd/rekipedia/cmd/note.go",
-    "line_start": 101,
-    "line_end": 108,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "init",
-    "kind": "function",
-    "file": "go/cmd/rekipedia/cmd/note.go",
-    "line_start": 110,
-    "line_end": 116,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "printRootBanner",
-    "kind": "function",
-    "file": "go/cmd/rekipedia/cmd/root.go",
-    "line_start": 36,
-    "line_end": 41,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "Execute",
-    "kind": "function",
-    "file": "go/cmd/rekipedia/cmd/root.go",
-    "line_start": 44,
-    "line_end": 48,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "init",
-    "kind": "function",
-    "file": "go/cmd/rekipedia/cmd/root.go",
-    "line_start": 50,
-    "line_end": 78,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "Store",
-    "kind": "type",
-    "file": "go/internal/storage/store.go",
-    "line_start": 18,
-    "line_end": 21,
-    "signature": "struct Store",
-    "docstring": null
-  },
-  {
-    "name": "Open",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 24,
-    "line_end": 35,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "DefaultPath",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 38,
-    "line_end": 40,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).Close",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 43,
-    "line_end": 45,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).migrate",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 48,
-    "line_end": 119,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).CreateRun",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 124,
-    "line_end": 130,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).FinishRun",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 133,
-    "line_end": 139,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).LatestRunID",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 142,
-    "line_end": 152,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).SaveSymbols",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 157,
-    "line_end": 179,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).ListSymbols",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 182,
-    "line_end": 203,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).SaveRelationships",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 208,
-    "line_end": 228,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).ListRelationships",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 231,
-    "line_end": 250,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).UpsertWikiPage",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 255,
-    "line_end": 266,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).GetWikiPage",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 269,
-    "line_end": 275,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).ListWikiPages",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 278,
-    "line_end": 297,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "WikiPageRow",
-    "kind": "type",
-    "file": "go/internal/storage/store.go",
-    "line_start": 300,
-    "line_end": 306,
-    "signature": "struct WikiPageRow",
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).SaveQA",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 311,
-    "line_end": 317,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).UpsertManifest",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 322,
-    "line_end": 332,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).GetManifest",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 335,
-    "line_end": 343,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "NoteRow",
-    "kind": "type",
-    "file": "go/internal/storage/store.go",
-    "line_start": 348,
-    "line_end": 355,
-    "signature": "struct NoteRow",
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).UpsertNote",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 358,
-    "line_end": 374,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).ListNotes",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 377,
-    "line_end": 406,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "(s *Store).DeleteNote",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 409,
-    "line_end": 416,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "splitTags",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 418,
-    "line_end": 430,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "splitByComma",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 432,
-    "line_end": 443,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "trimSpace",
-    "kind": "function",
-    "file": "go/internal/storage/store.go",
-    "line_start": 445,
-    "line_end": 453,
-    "signature": null,
-    "docstring": null
-  },
-  {
     "name": "rekipedia.__init__",
     "kind": "module",
     "file": "src/rekipedia/__init__.py",
@@ -288,166 +9,130 @@
     "docstring": null
   },
   {
-    "name": "rekipedia.cli.__init__",
+    "name": "rekipedia.orchestrator.agent_ask",
     "kind": "module",
-    "file": "src/rekipedia/cli/__init__.py",
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
     "line_start": 1,
     "line_end": 1,
     "signature": null,
     "docstring": null
   },
   {
-    "name": "main",
-    "kind": "function",
-    "file": "src/rekipedia/cli/__init__.py",
-    "line_start": 26,
-    "line_end": 27,
-    "signature": "main()",
-    "docstring": "rekipedia — agentic repo-to-wiki knowledge store."
-  },
-  {
-    "name": "rekipedia.cli.embed",
-    "kind": "module",
-    "file": "src/rekipedia/cli/embed.py",
-    "line_start": 1,
-    "line_end": 1,
+    "name": "_ToolHandler",
+    "kind": "class",
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
+    "line_start": 141,
+    "line_end": 246,
     "signature": null,
     "docstring": null
   },
   {
-    "name": "_check_rag_deps",
+    "name": "_ToolHandler.__init__",
     "kind": "function",
-    "file": "src/rekipedia/cli/embed.py",
-    "line_start": 22,
-    "line_end": 41,
-    "signature": "_check_rag_deps()",
-    "docstring": "Raise a friendly error if faiss-cpu / numpy are not installed."
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
+    "line_start": 142,
+    "line_end": 146,
+    "signature": "__init__(self, output_dir, llm_config)",
+    "docstring": null
   },
   {
-    "name": "embed_cmd",
+    "name": "_ToolHandler._get_symbols",
     "kind": "function",
-    "file": "src/rekipedia/cli/embed.py",
-    "line_start": 85,
-    "line_end": 201,
-    "signature": "embed_cmd(repo_path, output_dir, model, provider, api_key, base_url, top_k, verbose)",
-    "docstring": "Build or refresh the RAG embed index for REPO_PATH."
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
+    "line_start": 148,
+    "line_end": 158,
+    "signature": "_get_symbols(self)",
+    "docstring": null
   },
   {
-    "name": "rekipedia.cli.note",
-    "kind": "module",
-    "file": "src/rekipedia/cli/note.py",
-    "line_start": 1,
-    "line_end": 1,
+    "name": "_ToolHandler.search_code",
+    "kind": "function",
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
+    "line_start": 160,
+    "line_end": 171,
+    "signature": "search_code(self, query, top_k)",
+    "docstring": null
+  },
+  {
+    "name": "_ToolHandler.get_symbol",
+    "kind": "function",
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
+    "line_start": 173,
+    "line_end": 187,
+    "signature": "get_symbol(self, name)",
+    "docstring": null
+  },
+  {
+    "name": "_ToolHandler.get_page",
+    "kind": "function",
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
+    "line_start": 189,
+    "line_end": 206,
+    "signature": "get_page(self, slug)",
+    "docstring": null
+  },
+  {
+    "name": "_ToolHandler.get_relationships",
+    "kind": "function",
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
+    "line_start": 208,
+    "line_end": 234,
+    "signature": "get_relationships(self, target)",
+    "docstring": null
+  },
+  {
+    "name": "_ToolHandler.dispatch",
+    "kind": "function",
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
+    "line_start": 236,
+    "line_end": 246,
+    "signature": "dispatch(self, tool_name, args)",
+    "docstring": null
+  },
+  {
+    "name": "AgentAsk",
+    "kind": "class",
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
+    "line_start": 253,
+    "line_end": 364,
     "signature": null,
+    "docstring": "ReAct agentic loop for answering codebase questions.\n\nFalls back to single-shot mode if the model doesn't support tool calling."
+  },
+  {
+    "name": "AgentAsk.__init__",
+    "kind": "function",
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
+    "line_start": 259,
+    "line_end": 263,
+    "signature": "__init__(self, output_dir, llm_config)",
     "docstring": null
   },
   {
-    "name": "_get_store",
+    "name": "AgentAsk._build_initial_system",
     "kind": "function",
-    "file": "src/rekipedia/cli/note.py",
-    "line_start": 16,
-    "line_end": 23,
-    "signature": "_get_store(ctx)",
-    "docstring": "Resolve the store from context or CWD."
-  },
-  {
-    "name": "note_cmd",
-    "kind": "function",
-    "file": "src/rekipedia/cli/note.py",
-    "line_start": 27,
-    "line_end": 28,
-    "signature": "note_cmd()",
-    "docstring": "Manage tech lead notes."
-  },
-  {
-    "name": "note_add",
-    "kind": "function",
-    "file": "src/rekipedia/cli/note.py",
-    "line_start": 35,
-    "line_end": 42,
-    "signature": "note_add(ctx, content, tag)",
-    "docstring": "Add a new tech lead note."
-  },
-  {
-    "name": "note_list",
-    "kind": "function",
-    "file": "src/rekipedia/cli/note.py",
-    "line_start": 49,
-    "line_end": 64,
-    "signature": "note_list(ctx, tag, as_json)",
-    "docstring": "List tech lead notes."
-  },
-  {
-    "name": "note_remove",
-    "kind": "function",
-    "file": "src/rekipedia/cli/note.py",
-    "line_start": 70,
-    "line_end": 89,
-    "signature": "note_remove(ctx, note_id)",
-    "docstring": "Remove a note by ID (or ID prefix)."
-  },
-  {
-    "name": "note_edit",
-    "kind": "function",
-    "file": "src/rekipedia/cli/note.py",
-    "line_start": 96,
-    "line_end": 120,
-    "signature": "note_edit(ctx, note_id, content)",
-    "docstring": "Edit a note. Opens $EDITOR if --content not provided."
-  },
-  {
-    "name": "note_import",
-    "kind": "function",
-    "file": "src/rekipedia/cli/note.py",
-    "line_start": 127,
-    "line_end": 153,
-    "signature": "note_import(ctx, file, dry_run)",
-    "docstring": "Import notes from a YAML or Markdown file."
-  },
-  {
-    "name": "rekipedia.notes.__init__",
-    "kind": "module",
-    "file": "src/rekipedia/notes/__init__.py",
-    "line_start": 1,
-    "line_end": 1,
-    "signature": null,
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
+    "line_start": 265,
+    "line_end": 273,
+    "signature": "_build_initial_system(self, question)",
     "docstring": null
   },
   {
-    "name": "import_notes_from_file",
+    "name": "AgentAsk.run",
     "kind": "function",
-    "file": "src/rekipedia/notes/__init__.py",
-    "line_start": 7,
-    "line_end": 19,
-    "signature": "import_notes_from_file(path)",
-    "docstring": "Parse a YAML or Markdown file and return list of note dicts."
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
+    "line_start": 275,
+    "line_end": 364,
+    "signature": "run(self, question, history, max_iter)",
+    "docstring": "Run agentic ReAct loop. Returns final answer string."
   },
   {
-    "name": "_import_yaml",
+    "name": "agent_run_ask",
     "kind": "function",
-    "file": "src/rekipedia/notes/__init__.py",
-    "line_start": 22,
-    "line_end": 40,
-    "signature": "_import_yaml(path)",
-    "docstring": null
-  },
-  {
-    "name": "_import_markdown",
-    "kind": "function",
-    "file": "src/rekipedia/notes/__init__.py",
-    "line_start": 43,
-    "line_end": 80,
-    "signature": "_import_markdown(path)",
-    "docstring": "Parse markdown: each ## Section becomes a note."
-  },
-  {
-    "name": "rekipedia.notes.importer",
-    "kind": "module",
-    "file": "src/rekipedia/notes/importer.py",
-    "line_start": 1,
-    "line_end": 1,
-    "signature": null,
-    "docstring": null
+    "file": "src/rekipedia/orchestrator/agent_ask.py",
+    "line_start": 371,
+    "line_end": 382,
+    "signature": "agent_run_ask(question, repo_root, output_dir, llm_config, history)",
+    "docstring": "Agentic version of run_ask."
   },
   {
     "name": "rekipedia.orchestrator.run_ask",
@@ -535,16 +220,25 @@
     "kind": "function",
     "file": "src/rekipedia/orchestrator/run_ask.py",
     "line_start": 208,
-    "line_end": 297,
+    "line_end": 303,
     "signature": "_build_full_system(question, output_dir, llm_config)",
     "docstring": "Assemble the system prompt + all context sources."
+  },
+  {
+    "name": "_prepare_ask",
+    "kind": "function",
+    "file": "src/rekipedia/orchestrator/run_ask.py",
+    "line_start": 310,
+    "line_end": 327,
+    "signature": "_prepare_ask(question, repo_root, output_dir, llm_config, history)",
+    "docstring": "Validate scan, build system prompt, and init LLM client.\n\nReturns:\n    (client, full_system_prompt) ready to pass to ``client.call`` /\n    ``client.stream``."
   },
   {
     "name": "run_ask",
     "kind": "function",
     "file": "src/rekipedia/orchestrator/run_ask.py",
-    "line_start": 304,
-    "line_end": 330,
+    "line_start": 334,
+    "line_end": 361,
     "signature": "run_ask(question, repo_root, output_dir, llm_config, history)",
     "docstring": "Answer *question* grounded in the knowledge store.\n\nArgs:\n    question: Free-text question from the user.\n    repo_root: Absolute path to the repository.\n    output_dir: `.rekipedia/` directory containing store.db + wiki/.\n    llm_config: LLM settings; defaults to LLMConfig().\n    history: Previous conversation turns as [{role, content}, ...].\n\nReturns:\n    The assistant's answer as a Markdown string.\n\nRaises:\n    RuntimeError: If no successful scan exists for the repo."
   },
@@ -552,1314 +246,306 @@
     "name": "stream_ask",
     "kind": "function",
     "file": "src/rekipedia/orchestrator/run_ask.py",
-    "line_start": 333,
-    "line_end": 349,
+    "line_start": 364,
+    "line_end": 377,
     "signature": "stream_ask(question, repo_root, output_dir, llm_config, history)",
     "docstring": "Answer *question* grounded in the knowledge store, streaming tokens.\n\nIdentical to :func:`run_ask` except the final LLM call uses streaming\nand yields text chunks instead of returning a single string."
   },
   {
-    "name": "rekipedia.orchestrator.run_digest",
+    "name": "rekipedia.synthesis.agent_planner",
     "kind": "module",
-    "file": "src/rekipedia/orchestrator/run_digest.py",
+    "file": "src/rekipedia/synthesis/agent_planner.py",
     "line_start": 1,
     "line_end": 1,
     "signature": null,
     "docstring": null
   },
   {
-    "name": "run_digest",
-    "kind": "function",
-    "file": "src/rekipedia/orchestrator/run_digest.py",
-    "line_start": 45,
-    "line_end": 433,
-    "signature": "run_digest(repo_root, output_dir, llm_config)",
-    "docstring": "Full scan pipeline.\n\nArgs:\n    repo_root: Absolute path to the repository to scan.\n    output_dir: `.rekipedia/` directory; DB + wiki output goes here.\n    llm_config: LLM settings; defaults to LLMConfig() which uses ollama/llama4.\n    force_local: Skip Docker even if available.\n    verbose: Enable debug logging (litellm, HTTP, stack traces).\n    progress: Optional callback that receives status strings for display.\n    languages: Optional list of language names to include (e.g. [\"python\"]).\n    no_llm: Skip LLM enrichment for refactoring issues (static analysis only).\n    stdout_refactor: When True, also print REFACTOR.md to stdout after writing."
-  },
-  {
-    "name": "_combine_results",
-    "kind": "function",
-    "file": "src/rekipedia/orchestrator/run_digest.py",
-    "line_start": 436,
-    "line_end": 450,
-    "signature": "_combine_results(results)",
-    "docstring": null
-  },
-  {
-    "name": "rekipedia.orchestrator.run_update",
-    "kind": "module",
-    "file": "src/rekipedia/orchestrator/run_update.py",
-    "line_start": 1,
-    "line_end": 1,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "run_update",
-    "kind": "function",
-    "file": "src/rekipedia/orchestrator/run_update.py",
-    "line_start": 27,
-    "line_end": 244,
-    "signature": "run_update(repo_root, output_dir, llm_config)",
-    "docstring": "Incremental update pipeline.\n\nRe-extracts only files whose SHA-256 has changed since the last\nsuccessful scan, then re-synthesises wiki pages with the full\ncombined symbol index.\n\nArgs:\n    repo_root: Absolute path to the repository to scan.\n    output_dir: `.rekipedia/` directory; DB + wiki output goes here.\n    llm_config: LLM settings; defaults to LLMConfig().\n    force_local: Skip Docker even if available.\n    progress: Optional callback that receives status strings for display."
-  },
-  {
-    "name": "rekipedia.rag.embedder",
-    "kind": "module",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 1,
-    "line_end": 1,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "_mmr",
-    "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 45,
-    "line_end": 84,
-    "signature": "_mmr(query_vec, candidate_vecs, top_k, lambda_)",
-    "docstring": "Maximal Marginal Relevance — diversify top-K results.\n\nIteratively picks the candidate that maximises:\n    lambda * sim(query, c) - (1-lambda) * max(sim(c, selected))"
-  },
-  {
-    "name": "_is_implementation",
-    "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 132,
-    "line_end": 141,
-    "signature": "_is_implementation(path)",
-    "docstring": "Heuristic: True for core logic files, False for tests/configs.\nBorrowed from deepwiki-open's data_pipeline.py."
-  },
-  {
-    "name": "_iter_repo_files",
-    "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
+    "name": "AgentPlanner",
+    "kind": "class",
+    "file": "src/rekipedia/synthesis/agent_planner.py",
     "line_start": 144,
-    "line_end": 157,
-    "signature": "_iter_repo_files(repo_root)",
-    "docstring": "Walk repo, yielding files eligible for embedding."
-  },
-  {
-    "name": "_chunk_file",
-    "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 160,
-    "line_end": 215,
-    "signature": "_chunk_file(path, repo_root)",
-    "docstring": "Split file into overlapping text chunks with metadata including line provenance."
-  },
-  {
-    "name": "_symbol_chunk_file",
-    "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 218,
-    "line_end": 232,
-    "signature": "_symbol_chunk_file(path, repo_root)",
-    "docstring": "Chunk a source file along AST symbol boundaries (functions, classes, methods).\n\nFalls back to character-based chunking if:\n- tree-sitter is not installed\n- the language is not supported\n- the file has no recognizable symbols\n- any tree-sitter error occurs\n\nReturns same dict format as _chunk_file() — fully compatible."
-  },
-  {
-    "name": "_symbol_chunk_file_inner",
-    "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 235,
-    "line_end": 409,
-    "signature": "_symbol_chunk_file_inner(path, repo_root)",
-    "docstring": "Inner implementation — raises on error so caller can fall back."
-  },
-  {
-    "name": "_embed_batch",
-    "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 416,
-    "line_end": 436,
-    "signature": "_embed_batch(texts, model, llm_config)",
-    "docstring": "Call embedding API and return (N, D) float32 array.\n\nAlways uses litellm.embedding().  When a custom base_url is configured\n(e.g. a LiteLLM proxy), it is passed as ``api_base`` so litellm routes\ndirectly to that endpoint without overriding the model prefix."
-  },
-  {
-    "name": "EmbedPipeline",
-    "kind": "class",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 443,
-    "line_end": 892,
+    "line_end": 295,
     "signature": null,
-    "docstring": "Build and query a FAISS index over a repository's source files."
+    "docstring": "Tool-calling agentic planner for wiki structure design.\n\nSame interface as PlannerAgent: constructor takes llm_config + caller=,\nand .plan() returns WikiPlan."
   },
   {
-    "name": "EmbedPipeline.__init__",
+    "name": "AgentPlanner.__init__",
     "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 446,
-    "line_end": 471,
-    "signature": "__init__(self, output_dir, llm_config, store, run_id)",
-    "docstring": null
-  },
-  {
-    "name": "EmbedPipeline.build",
-    "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 477,
-    "line_end": 604,
-    "signature": "build(self, repo_root, progress_cb)",
-    "docstring": "Chunk all eligible files, embed, save FAISS index + chunks.json.\n\nReturns number of chunks embedded."
-  },
-  {
-    "name": "EmbedPipeline.search",
-    "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 610,
-    "line_end": 711,
-    "signature": "search(self, query, top_k, mmr)",
-    "docstring": "Return top-k most relevant chunks for *query*.\n\nEach result dict has: file, chunk_idx, text, score, is_implementation.\nReturns [] if no index exists.\n\nArgs:\n    query: The search query.\n    top_k: Number of results to return.\n    mmr: If True (default), apply Maximal Marginal Relevance to diversify results.\n         Respects REKIPEDIA_RAG_MMR=0 env var to disable."
-  },
-  {
-    "name": "EmbedPipeline.meta",
-    "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 717,
-    "line_end": 724,
-    "signature": "meta(self)",
-    "docstring": null
-  },
-  {
-    "name": "EmbedPipeline.is_built",
-    "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 726,
-    "line_end": 727,
-    "signature": "is_built(self)",
-    "docstring": null
-  },
-  {
-    "name": "EmbedPipeline.update",
-    "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 733,
-    "line_end": 892,
-    "signature": "update(self, repo_root, changed_files, last_run_id, new_run_id, progress_cb)",
-    "docstring": "Incrementally update the RAG index — only re-embed chunks from changed files.\n\nReturns number of chunks re-embedded (not total chunks).\nFalls back to full build() if no existing index found."
-  },
-  {
-    "name": "_ts",
-    "kind": "function",
-    "file": "src/rekipedia/rag/embedder.py",
-    "line_start": 899,
-    "line_end": 901,
-    "signature": "_ts()",
-    "docstring": null
-  },
-  {
-    "name": "rekipedia.server.app",
-    "kind": "module",
-    "file": "src/rekipedia/server/app.py",
-    "line_start": 1,
-    "line_end": 1,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "create_app",
-    "kind": "function",
-    "file": "src/rekipedia/server/app.py",
-    "line_start": 21,
-    "line_end": 663,
-    "signature": "create_app(repo_root, output_dir, llm_config)",
-    "docstring": "Factory — returns a configured FastAPI app."
-  },
-  {
-    "name": "rekipedia.storage.sqlite_store",
-    "kind": "module",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 1,
-    "line_end": 1,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore",
-    "kind": "class",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 39,
-    "line_end": 827,
-    "signature": null,
-    "docstring": "Wraps a database connection for the rekipedia store.\n\nUses Turso (pyturso) when available; falls back to stdlib sqlite3.\nUsage::\n\n    store = SqliteStore(Path(\".rekipedia/store.db\"))\n    store.open()\n    # … use store methods …\n    store.close()\n\nAlso usable as a context manager::\n\n    with SqliteStore(path) as store:\n        store.upsert_run(run_id, repo_path)"
-  },
-  {
-    "name": "SqliteStore.__init__",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 56,
-    "line_end": 58,
-    "signature": "__init__(self, path)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.open",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 64,
-    "line_end": 67,
-    "signature": "open(self)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.close",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 69,
-    "line_end": 72,
-    "signature": "close(self)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.__enter__",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 74,
-    "line_end": 76,
-    "signature": "__enter__(self)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.__exit__",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 78,
-    "line_end": 79,
-    "signature": "__exit__(self)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore._c",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 86,
-    "line_end": 89,
-    "signature": "_c(self)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.db",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 92,
-    "line_end": 94,
-    "signature": "db(self)",
-    "docstring": "Raw Turso connection. Prefer the typed helper methods over direct access."
-  },
-  {
-    "name": "SqliteStore.table_names",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 96,
-    "line_end": 98,
-    "signature": "table_names(self)",
-    "docstring": "Return names of all user tables in the database."
-  },
-  {
-    "name": "SqliteStore._table_names",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 100,
-    "line_end": 104,
-    "signature": "_table_names(self)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.current_schema_version",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 106,
-    "line_end": 111,
-    "signature": "current_schema_version(self)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore._apply_migrations",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 117,
-    "line_end": 131,
-    "signature": "_apply_migrations(self)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.upsert_run",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 137,
-    "line_end": 160,
-    "signature": "upsert_run(self, run_id, repo_path, status)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.update_run_status",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 162,
-    "line_end": 167,
-    "signature": "update_run_status(self, run_id, status)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.upsert_snapshot",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 173,
-    "line_end": 192,
-    "signature": "upsert_snapshot(self, run_id, files)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.upsert_file",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 194,
-    "line_end": 217,
-    "signature": "upsert_file(self, run_id, path, sha256, size_bytes, language)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.upsert_symbols",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 223,
-    "line_end": 261,
-    "signature": "upsert_symbols(self, run_id, symbols)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.upsert_relationships",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 263,
-    "line_end": 299,
-    "signature": "upsert_relationships(self, run_id, relationships)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.upsert_page",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 305,
-    "line_end": 331,
-    "signature": "upsert_page(self, run_id, slug, title, content, pinned)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.upsert_diagram",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 333,
-    "line_end": 357,
-    "signature": "upsert_diagram(self, run_id, name, diagram_type, content)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.get_all_symbols",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 363,
-    "line_end": 368,
-    "signature": "get_all_symbols(self, run_id)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.get_all_relationships",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 370,
-    "line_end": 388,
-    "signature": "get_all_relationships(self, run_id)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.upsert_rationale_notes",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 390,
-    "line_end": 416,
-    "signature": "upsert_rationale_notes(self, run_id, notes)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.get_rationale_notes",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 418,
-    "line_end": 424,
-    "signature": "get_rationale_notes(self, run_id)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.get_relationships_for_run",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 426,
-    "line_end": 434,
-    "signature": "get_relationships_for_run(self, run_id)",
-    "docstring": "Return all scan_relationships rows for *run_id* as plain dicts."
-  },
-  {
-    "name": "SqliteStore.get_god_nodes",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 436,
-    "line_end": 450,
-    "signature": "get_god_nodes(self, run_id, top_n)",
-    "docstring": "Return top_n god nodes (symbol name, degree) for the given run."
-  },
-  {
-    "name": "SqliteStore.get_pages",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 452,
-    "line_end": 457,
-    "signature": "get_pages(self, run_id)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.get_latest_run_id",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 463,
-    "line_end": 472,
-    "signature": "get_latest_run_id(self, repo_path)",
-    "docstring": "Return the id of the last successful scan_run for *repo_path*, or None."
-  },
-  {
-    "name": "SqliteStore.get_files_for_run",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 474,
-    "line_end": 482,
-    "signature": "get_files_for_run(self, run_id)",
-    "docstring": "Return all scan_files rows for *run_id* as plain dicts."
-  },
-  {
-    "name": "SqliteStore.copy_unchanged_symbols",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 484,
-    "line_end": 508,
-    "signature": "copy_unchanged_symbols(self, from_run_id, to_run_id, exclude_paths)",
-    "docstring": "Copy symbols from *from_run_id* to *to_run_id*, skipping *exclude_paths*.\n\nReturns the number of rows copied."
-  },
-  {
-    "name": "SqliteStore.copy_unchanged_relationships",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 510,
-    "line_end": 530,
-    "signature": "copy_unchanged_relationships(self, from_run_id, to_run_id, exclude_paths)",
-    "docstring": "Copy relationships from *from_run_id* to *to_run_id*, skipping *exclude_paths*."
-  },
-  {
-    "name": "SqliteStore.upsert_page_sources",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 535,
-    "line_end": 542,
-    "signature": "upsert_page_sources(self, run_id, page_slug, file_paths)",
-    "docstring": "Record which source files contributed to *page_slug* in *run_id*."
-  },
-  {
-    "name": "SqliteStore.get_pages_for_files",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 544,
-    "line_end": 555,
-    "signature": "get_pages_for_files(self, run_id, file_paths)",
-    "docstring": "Return set of page slugs whose sources include any of *file_paths* in *run_id*."
-  },
-  {
-    "name": "SqliteStore.get_all_page_slugs",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 557,
-    "line_end": 565,
-    "signature": "get_all_page_slugs(self, run_id)",
-    "docstring": "Return all page slugs stored for *run_id*."
-  },
-  {
-    "name": "SqliteStore.carry_forward_page_sources",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 567,
-    "line_end": 583,
-    "signature": "carry_forward_page_sources(self, from_run_id, to_run_id, page_slugs)",
-    "docstring": "Copy page_sources entries from *from_run_id* to *to_run_id* for *page_slugs*."
-  },
-  {
-    "name": "SqliteStore.copy_pages",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 585,
-    "line_end": 604,
-    "signature": "copy_pages(self, from_run_id, to_run_id, page_slugs)",
-    "docstring": "Copy wiki pages from *from_run_id* to *to_run_id* for *page_slugs*."
-  },
-  {
-    "name": "SqliteStore.save_qa",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 608,
-    "line_end": 615,
-    "signature": "save_qa(self, repo_path, question, answer, model)",
-    "docstring": "Persist a Q&A pair. Returns the new row id."
-  },
-  {
-    "name": "SqliteStore.get_qa_history",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 617,
-    "line_end": 627,
-    "signature": "get_qa_history(self, repo_path, limit)",
-    "docstring": "Return recent Q&A pairs for a repo, newest first."
-  },
-  {
-    "name": "SqliteStore.upsert_note",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 631,
-    "line_end": 656,
-    "signature": "upsert_note(self, content, tags, source, note_id)",
-    "docstring": "Insert or update a tech lead note. Returns the note id."
-  },
-  {
-    "name": "SqliteStore.list_notes",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 658,
-    "line_end": 681,
-    "signature": "list_notes(self, tags)",
-    "docstring": "Return all notes, optionally filtered by a tag."
-  },
-  {
-    "name": "SqliteStore.get_notes",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 684,
-    "line_end": 685,
-    "signature": "get_notes(self, tags)",
-    "docstring": null
-  },
-  {
-    "name": "SqliteStore.delete_note",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 687,
-    "line_end": 693,
-    "signature": "delete_note(self, note_id)",
-    "docstring": "Delete a note by id. Returns True if deleted."
-  },
-  {
-    "name": "SqliteStore.get_note",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 695,
-    "line_end": 704,
-    "signature": "get_note(self, note_id)",
-    "docstring": "Fetch a single note by id."
-  },
-  {
-    "name": "SqliteStore.upsert_rag_chunks",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 710,
-    "line_end": 737,
-    "signature": "upsert_rag_chunks(self, run_id, chunks)",
-    "docstring": "Persist RAG chunk provenance records for *run_id*.\n\nEach dict must have: file_path, chunk_idx, start_line, end_line,\nstart_char, end_char, text_hash, is_code, is_implementation."
-  },
-  {
-    "name": "SqliteStore.get_rag_chunks_by_file",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 739,
-    "line_end": 764,
-    "signature": "get_rag_chunks_by_file(self, run_id, file_path)",
-    "docstring": "Return all RAG chunk provenance records for *file_path* in *run_id*."
-  },
-  {
-    "name": "SqliteStore.carry_forward_rag_chunks",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 766,
-    "line_end": 800,
-    "signature": "carry_forward_rag_chunks(self, from_run_id, to_run_id, file_paths)",
-    "docstring": "Copy RAG chunk provenance from *from_run_id* to *to_run_id* for *file_paths*.\n\nUsed by incremental embed: unchanged files keep their provenance records.\nReturns number of rows copied."
-  },
-  {
-    "name": "SqliteStore.get_all_rag_chunks",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 802,
-    "line_end": 827,
-    "signature": "get_all_rag_chunks(self, run_id)",
-    "docstring": "Return all RAG chunk provenance records for *run_id*."
-  },
-  {
-    "name": "_now",
-    "kind": "function",
-    "file": "src/rekipedia/storage/sqlite_store.py",
-    "line_start": 832,
-    "line_end": 833,
-    "signature": "_now()",
-    "docstring": null
-  },
-  {
-    "name": "tests.test_notes_cli",
-    "kind": "module",
-    "file": "tests/test_notes_cli.py",
-    "line_start": 1,
-    "line_end": 1,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "runner",
-    "kind": "function",
-    "file": "tests/test_notes_cli.py",
-    "line_start": 14,
-    "line_end": 15,
-    "signature": "runner()",
-    "docstring": null
-  },
-  {
-    "name": "store_dir",
-    "kind": "function",
-    "file": "tests/test_notes_cli.py",
-    "line_start": 19,
-    "line_end": 22,
-    "signature": "store_dir(tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "invoke",
-    "kind": "function",
-    "file": "tests/test_notes_cli.py",
-    "line_start": 25,
-    "line_end": 27,
-    "signature": "invoke(runner, args, store_dir)",
-    "docstring": null
-  },
-  {
-    "name": "test_note_add",
-    "kind": "function",
-    "file": "tests/test_notes_cli.py",
-    "line_start": 30,
-    "line_end": 33,
-    "signature": "test_note_add(runner, store_dir)",
-    "docstring": null
-  },
-  {
-    "name": "test_note_list_empty",
-    "kind": "function",
-    "file": "tests/test_notes_cli.py",
-    "line_start": 36,
-    "line_end": 39,
-    "signature": "test_note_list_empty(runner, store_dir)",
-    "docstring": null
-  },
-  {
-    "name": "test_note_list_json",
-    "kind": "function",
-    "file": "tests/test_notes_cli.py",
-    "line_start": 42,
-    "line_end": 48,
-    "signature": "test_note_list_json(runner, store_dir)",
-    "docstring": null
-  },
-  {
-    "name": "test_note_remove",
-    "kind": "function",
-    "file": "tests/test_notes_cli.py",
-    "line_start": 51,
-    "line_end": 56,
-    "signature": "test_note_remove(runner, store_dir)",
-    "docstring": null
-  },
-  {
-    "name": "test_note_remove_not_found",
-    "kind": "function",
-    "file": "tests/test_notes_cli.py",
-    "line_start": 59,
-    "line_end": 64,
-    "signature": "test_note_remove_not_found(runner, store_dir)",
-    "docstring": null
-  },
-  {
-    "name": "test_note_import_yaml",
-    "kind": "function",
-    "file": "tests/test_notes_cli.py",
-    "line_start": 67,
-    "line_end": 79,
-    "signature": "test_note_import_yaml(runner, store_dir, tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "test_note_import_yaml_dry_run",
-    "kind": "function",
-    "file": "tests/test_notes_cli.py",
-    "line_start": 82,
-    "line_end": 90,
-    "signature": "test_note_import_yaml_dry_run(runner, store_dir, tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "test_note_import_dedup",
-    "kind": "function",
-    "file": "tests/test_notes_cli.py",
-    "line_start": 93,
-    "line_end": 99,
-    "signature": "test_note_import_dedup(runner, store_dir, tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "test_note_import_markdown",
-    "kind": "function",
-    "file": "tests/test_notes_cli.py",
-    "line_start": 102,
-    "line_end": 109,
-    "signature": "test_note_import_markdown(runner, store_dir, tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "tests.test_notes_rag",
-    "kind": "module",
-    "file": "tests/test_notes_rag.py",
-    "line_start": 1,
-    "line_end": 1,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "test_notes_injected_in_context",
-    "kind": "function",
-    "file": "tests/test_notes_rag.py",
-    "line_start": 11,
-    "line_end": 28,
-    "signature": "test_notes_injected_in_context(tmp_path)",
-    "docstring": "Notes should appear in assembled system context."
-  },
-  {
-    "name": "test_notes_not_injected_when_empty",
-    "kind": "function",
-    "file": "tests/test_notes_rag.py",
-    "line_start": 31,
-    "line_end": 47,
-    "signature": "test_notes_not_injected_when_empty(tmp_path)",
-    "docstring": "If no notes, context should not have the notes section."
-  },
-  {
-    "name": "tests.test_notes_server",
-    "kind": "module",
-    "file": "tests/test_notes_server.py",
-    "line_start": 1,
-    "line_end": 1,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "app",
-    "kind": "function",
-    "file": "tests/test_notes_server.py",
-    "line_start": 15,
-    "line_end": 24,
-    "signature": "app(tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "client",
-    "kind": "function",
-    "file": "tests/test_notes_server.py",
-    "line_start": 28,
-    "line_end": 29,
-    "signature": "client(app)",
-    "docstring": null
-  },
-  {
-    "name": "test_get_notes_empty",
-    "kind": "function",
-    "file": "tests/test_notes_server.py",
-    "line_start": 32,
-    "line_end": 35,
-    "signature": "test_get_notes_empty(client)",
-    "docstring": null
-  },
-  {
-    "name": "test_post_notes",
-    "kind": "function",
-    "file": "tests/test_notes_server.py",
-    "line_start": 38,
-    "line_end": 43,
-    "signature": "test_post_notes(client)",
-    "docstring": null
-  },
-  {
-    "name": "test_delete_note",
-    "kind": "function",
-    "file": "tests/test_notes_server.py",
-    "line_start": 46,
-    "line_end": 51,
-    "signature": "test_delete_note(client)",
-    "docstring": null
-  },
-  {
-    "name": "test_delete_nonexistent",
-    "kind": "function",
-    "file": "tests/test_notes_server.py",
-    "line_start": 54,
-    "line_end": 56,
-    "signature": "test_delete_nonexistent(client)",
-    "docstring": null
-  },
-  {
-    "name": "test_notes_page",
-    "kind": "function",
-    "file": "tests/test_notes_server.py",
-    "line_start": 59,
-    "line_end": 61,
-    "signature": "test_notes_page(client)",
-    "docstring": null
-  },
-  {
-    "name": "test_post_notes_no_content",
-    "kind": "function",
-    "file": "tests/test_notes_server.py",
-    "line_start": 64,
-    "line_end": 66,
-    "signature": "test_post_notes_no_content(client)",
-    "docstring": null
-  },
-  {
-    "name": "tests.test_notes_store",
-    "kind": "module",
-    "file": "tests/test_notes_store.py",
-    "line_start": 1,
-    "line_end": 1,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "store",
-    "kind": "function",
-    "file": "tests/test_notes_store.py",
-    "line_start": 12,
-    "line_end": 16,
-    "signature": "store(tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "test_notes_table_created",
-    "kind": "function",
-    "file": "tests/test_notes_store.py",
-    "line_start": 19,
-    "line_end": 20,
-    "signature": "test_notes_table_created(store)",
-    "docstring": null
-  },
-  {
-    "name": "test_add_and_list_note",
-    "kind": "function",
-    "file": "tests/test_notes_store.py",
-    "line_start": 23,
-    "line_end": 29,
-    "signature": "test_add_and_list_note(store)",
-    "docstring": null
-  },
-  {
-    "name": "test_list_empty",
-    "kind": "function",
-    "file": "tests/test_notes_store.py",
-    "line_start": 32,
-    "line_end": 33,
-    "signature": "test_list_empty(store)",
-    "docstring": null
-  },
-  {
-    "name": "test_delete_note",
-    "kind": "function",
-    "file": "tests/test_notes_store.py",
-    "line_start": 36,
-    "line_end": 39,
-    "signature": "test_delete_note(store)",
-    "docstring": null
-  },
-  {
-    "name": "test_delete_nonexistent",
-    "kind": "function",
-    "file": "tests/test_notes_store.py",
-    "line_start": 42,
-    "line_end": 43,
-    "signature": "test_delete_nonexistent(store)",
-    "docstring": null
-  },
-  {
-    "name": "test_tag_filter",
-    "kind": "function",
-    "file": "tests/test_notes_store.py",
-    "line_start": 46,
-    "line_end": 56,
-    "signature": "test_tag_filter(store)",
-    "docstring": null
-  },
-  {
-    "name": "test_upsert_updates_existing",
-    "kind": "function",
-    "file": "tests/test_notes_store.py",
-    "line_start": 59,
-    "line_end": 65,
-    "signature": "test_upsert_updates_existing(store)",
-    "docstring": null
-  },
-  {
-    "name": "test_get_note",
-    "kind": "function",
-    "file": "tests/test_notes_store.py",
-    "line_start": 68,
-    "line_end": 73,
-    "signature": "test_get_note(store)",
-    "docstring": null
-  },
-  {
-    "name": "test_get_notes_alias",
-    "kind": "function",
-    "file": "tests/test_notes_store.py",
-    "line_start": 76,
-    "line_end": 78,
-    "signature": "test_get_notes_alias(store)",
-    "docstring": null
-  },
-  {
-    "name": "tests.test_rag",
-    "kind": "module",
-    "file": "tests/test_rag.py",
-    "line_start": 1,
-    "line_end": 1,
-    "signature": null,
-    "docstring": null
-  },
-  {
-    "name": "test_write_and_read_scan_meta",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 20,
-    "line_end": 36,
-    "signature": "test_write_and_read_scan_meta(tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "test_patch_scan_meta",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 39,
-    "line_end": 53,
-    "signature": "test_patch_scan_meta(tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "test_read_scan_meta_missing",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 56,
-    "line_end": 57,
-    "signature": "test_read_scan_meta_missing(tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "_fake_embed_response",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 65,
-    "line_end": 72,
-    "signature": "_fake_embed_response(texts, dim)",
-    "docstring": "Return a fake litellm embedding response dict-like."
-  },
-  {
-    "name": "_make_test_repo",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 75,
-    "line_end": 82,
-    "signature": "_make_test_repo(tmp_path)",
-    "docstring": "Create a minimal repo with a few source files."
-  },
-  {
-    "name": "test_embed_pipeline_build_and_search",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 85,
-    "line_end": 119,
-    "signature": "test_embed_pipeline_build_and_search(tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "test_embed_pipeline_search_no_index",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 122,
-    "line_end": 128,
-    "signature": "test_embed_pipeline_search_no_index(tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "test_embed_pipeline_skips_large_file",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 131,
-    "line_end": 137,
-    "signature": "test_embed_pipeline_skips_large_file(tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "test_embed_pipeline_chunks_normal_file",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 140,
-    "line_end": 148,
-    "signature": "test_embed_pipeline_chunks_normal_file(tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "test_is_implementation_heuristic",
-    "kind": "function",
-    "file": "tests/test_rag.py",
+    "file": "src/rekipedia/synthesis/agent_planner.py",
     "line_start": 151,
-    "line_end": 157,
-    "signature": "test_is_implementation_heuristic()",
+    "line_end": 153,
+    "signature": "__init__(self, llm_config)",
     "docstring": null
   },
   {
-    "name": "test_chunk_file_includes_line_provenance",
+    "name": "AgentPlanner.plan",
     "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 165,
-    "line_end": 180,
-    "signature": "test_chunk_file_includes_line_provenance(tmp_path)",
-    "docstring": "_chunk_file should include start_line, end_line, text_hash in each chunk."
+    "file": "src/rekipedia/synthesis/agent_planner.py",
+    "line_start": 155,
+    "line_end": 295,
+    "signature": "plan(self, combined, diagrams, progress_cb)",
+    "docstring": "Run agentic planning loop. Returns WikiPlan."
   },
   {
-    "name": "test_chunk_file_first_chunk_starts_at_line_1",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 183,
-    "line_end": 189,
-    "signature": "test_chunk_file_first_chunk_starts_at_line_1(tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "test_sqlite_store_upsert_and_get_rag_chunks",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 192,
-    "line_end": 212,
-    "signature": "test_sqlite_store_upsert_and_get_rag_chunks(tmp_path)",
-    "docstring": "upsert_rag_chunks + get_rag_chunks_by_file round-trip."
-  },
-  {
-    "name": "test_sqlite_store_get_all_rag_chunks",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 215,
-    "line_end": 233,
-    "signature": "test_sqlite_store_get_all_rag_chunks(tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "test_embed_pipeline_persists_provenance",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 236,
-    "line_end": 257,
-    "signature": "test_embed_pipeline_persists_provenance(tmp_path)",
-    "docstring": "EmbedPipeline.build() should call upsert_rag_chunks when store is provided."
-  },
-  {
-    "name": "test_embed_pipeline_update_skips_unchanged_files",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 264,
-    "line_end": 303,
-    "signature": "test_embed_pipeline_update_skips_unchanged_files(tmp_path)",
-    "docstring": "update() should only re-embed chunks from changed files."
-  },
-  {
-    "name": "test_embed_pipeline_update_falls_back_to_build_if_no_index",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 306,
-    "line_end": 322,
-    "signature": "test_embed_pipeline_update_falls_back_to_build_if_no_index(tmp_path)",
-    "docstring": "update() should fall back to build() if no existing index found."
-  },
-  {
-    "name": "test_carry_forward_rag_chunks",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 325,
-    "line_end": 349,
-    "signature": "test_carry_forward_rag_chunks(tmp_path)",
-    "docstring": null
-  },
-  {
-    "name": "test_symbol_chunk_file_python_basic",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 359,
-    "line_end": 389,
-    "signature": "test_symbol_chunk_file_python_basic(tmp_path)",
-    "docstring": "Symbol chunker should produce chunks for a Python file with functions."
-  },
-  {
-    "name": "test_symbol_chunk_file_fallback_for_unsupported_ext",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 392,
-    "line_end": 399,
-    "signature": "test_symbol_chunk_file_fallback_for_unsupported_ext(tmp_path)",
-    "docstring": "Symbol chunker should fall back to char-based for unsupported file types."
-  },
-  {
-    "name": "test_symbol_chunk_file_fallback_on_tssitter_missing",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 402,
-    "line_end": 410,
-    "signature": "test_symbol_chunk_file_fallback_on_tssitter_missing(tmp_path, monkeypatch)",
-    "docstring": "Symbol chunker should fall back gracefully if tree-sitter is not installed."
-  },
-  {
-    "name": "test_symbol_chunk_file_large_function_splits",
-    "kind": "function",
-    "file": "tests/test_rag.py",
-    "line_start": 413,
-    "line_end": 419,
-    "signature": "test_symbol_chunk_file_large_function_splits(tmp_path)",
-    "docstring": "A single very large function should be split into multiple chunks."
-  },
-  {
-    "name": "tests.test_update",
+    "name": "rekipedia.synthesis.planner",
     "kind": "module",
-    "file": "tests/test_update.py",
+    "file": "src/rekipedia/synthesis/planner.py",
     "line_start": 1,
     "line_end": 1,
     "signature": null,
     "docstring": null
   },
   {
-    "name": "_fake_llm_response",
+    "name": "WikiPlan",
+    "kind": "class",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "line_start": 138,
+    "line_end": 177,
+    "signature": null,
+    "docstring": "The output of PlannerAgent — a structured plan for wiki generation."
+  },
+  {
+    "name": "WikiPlan.__init__",
     "kind": "function",
-    "file": "tests/test_update.py",
-    "line_start": 19,
-    "line_end": 30,
-    "signature": "_fake_llm_response()",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "line_start": 141,
+    "line_end": 164,
+    "signature": "__init__(self, data)",
     "docstring": null
   },
   {
-    "name": "mock_llm",
+    "name": "WikiPlan.get_page",
     "kind": "function",
-    "file": "tests/test_update.py",
-    "line_start": 34,
-    "line_end": 39,
-    "signature": "mock_llm()",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "line_start": 166,
+    "line_end": 167,
+    "signature": "get_page(self, slug)",
     "docstring": null
   },
   {
-    "name": "_do_full_scan",
+    "name": "WikiPlan.get_section_for",
     "kind": "function",
-    "file": "tests/test_update.py",
-    "line_start": 44,
-    "line_end": 45,
-    "signature": "_do_full_scan(repo, output_dir)",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "line_start": 169,
+    "line_end": 173,
+    "signature": "get_section_for(self, slug)",
     "docstring": null
   },
   {
-    "name": "_do_update",
+    "name": "WikiPlan.__repr__",
     "kind": "function",
-    "file": "tests/test_update.py",
-    "line_start": 48,
-    "line_end": 49,
-    "signature": "_do_update(repo, output_dir)",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "line_start": 175,
+    "line_end": 177,
+    "signature": "__repr__(self)",
     "docstring": null
   },
   {
-    "name": "test_update_no_prior_scan_falls_back_to_full",
-    "kind": "function",
-    "file": "tests/test_update.py",
-    "line_start": 54,
-    "line_end": 62,
-    "signature": "test_update_no_prior_scan_falls_back_to_full(mock_llm, tmp_path)",
-    "docstring": "If no previous scan exists, run_update() falls back to run_digest()."
+    "name": "PlannerAgent",
+    "kind": "class",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "line_start": 180,
+    "line_end": 286,
+    "signature": null,
+    "docstring": "One LLM call that designs the entire wiki structure."
   },
   {
-    "name": "test_update_no_changes_exits_early",
+    "name": "PlannerAgent.__init__",
     "kind": "function",
-    "file": "tests/test_update.py",
-    "line_start": 65,
-    "line_end": 76,
-    "signature": "test_update_no_changes_exits_early(mock_llm, tmp_path)",
-    "docstring": "If nothing has changed, update exits early without re-calling the LLM."
+    "file": "src/rekipedia/synthesis/planner.py",
+    "line_start": 183,
+    "line_end": 184,
+    "signature": "__init__(self, llm_config)",
+    "docstring": null
   },
   {
-    "name": "test_update_on_changed_file_creates_new_run",
+    "name": "PlannerAgent.plan",
     "kind": "function",
-    "file": "tests/test_update.py",
-    "line_start": 79,
-    "line_end": 101,
-    "signature": "test_update_on_changed_file_creates_new_run(mock_llm, tmp_path)",
-    "docstring": "When a file changes, run_update creates a new run entry in scan_runs."
-  },
-  {
-    "name": "test_update_carries_forward_symbols_from_unchanged_files",
-    "kind": "function",
-    "file": "tests/test_update.py",
-    "line_start": 104,
-    "line_end": 130,
-    "signature": "test_update_carries_forward_symbols_from_unchanged_files(mock_llm, tmp_path)",
-    "docstring": "Symbols from unchanged files are present in the new run without re-extraction."
-  },
-  {
-    "name": "test_update_wiki_pages_refreshed_after_change",
-    "kind": "function",
-    "file": "tests/test_update.py",
-    "line_start": 133,
-    "line_end": 145,
-    "signature": "test_update_wiki_pages_refreshed_after_change(mock_llm, tmp_path)",
-    "docstring": "After an update the wiki pages should still exist and be 5 in number."
-  },
-  {
-    "name": "test_targeted_wiki_resynthesis_only_affected_pages",
-    "kind": "function",
-    "file": "tests/test_update.py",
-    "line_start": 148,
-    "line_end": 183,
-    "signature": "test_targeted_wiki_resynthesis_only_affected_pages(mock_llm, tmp_path)",
-    "docstring": "reki update should only re-synthesise pages whose source files changed (issue #77)."
-  },
-  {
-    "name": "test_page_sources_upsert_and_query",
-    "kind": "function",
-    "file": "tests/test_update.py",
+    "file": "src/rekipedia/synthesis/planner.py",
     "line_start": 186,
-    "line_end": 207,
-    "signature": "test_page_sources_upsert_and_query(tmp_path)",
-    "docstring": "SqliteStore page_sources methods work correctly (issue #77)."
+    "line_end": 286,
+    "signature": "plan(self, combined, diagrams, progress_cb)",
+    "docstring": "Analyse *combined* and return a WikiPlan.\n\n*progress_cb* is called with status strings during the (blocking) LLM\ncall so callers can animate a spinner.  Falls back to a sensible\ndefault plan if the LLM call fails."
   },
   {
-    "name": "test_get_all_page_slugs",
+    "name": "_classify_file_role",
     "kind": "function",
-    "file": "tests/test_update.py",
-    "line_start": 210,
-    "line_end": 221,
-    "signature": "test_get_all_page_slugs(tmp_path)",
-    "docstring": "get_all_page_slugs returns slugs for a run."
+    "file": "src/rekipedia/synthesis/planner.py",
+    "line_start": 289,
+    "line_end": 305,
+    "signature": "_classify_file_role(path)",
+    "docstring": "Classify a file as impl / test / ci / config / doc."
   },
   {
-    "name": "test_update_triggers_incremental_rag_embed_when_index_exists",
+    "name": "_build_planning_summary",
     "kind": "function",
-    "file": "tests/test_update.py",
-    "line_start": 224,
-    "line_end": 259,
-    "signature": "test_update_triggers_incremental_rag_embed_when_index_exists(mock_llm, tmp_path)",
-    "docstring": "run_update() should call EmbedPipeline.update() when index exists."
+    "file": "src/rekipedia/synthesis/planner.py",
+    "line_start": 308,
+    "line_end": 397,
+    "signature": "_build_planning_summary(combined, diagrams)",
+    "docstring": "Compact summary for the planner — enough to make structural decisions."
+  },
+  {
+    "name": "_default_plan",
+    "kind": "function",
+    "file": "src/rekipedia/synthesis/planner.py",
+    "line_start": 400,
+    "line_end": 495,
+    "signature": "_default_plan(combined)",
+    "docstring": "Fallback plan when LLM planning fails — uses heuristics."
+  },
+  {
+    "name": "tests.test_agent_ask",
+    "kind": "module",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 1,
+    "line_end": 1,
+    "signature": null,
+    "docstring": null
+  },
+  {
+    "name": "_make_config",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 20,
+    "line_end": 21,
+    "signature": "_make_config(tmp_path)",
+    "docstring": null
+  },
+  {
+    "name": "_mock_direct_response",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 24,
+    "line_end": 32,
+    "signature": "_mock_direct_response(content)",
+    "docstring": "Simulate LLM response with no tool calls (direct answer)."
+  },
+  {
+    "name": "_mock_tool_call_response",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 35,
+    "line_end": 53,
+    "signature": "_mock_tool_call_response(fn_name, fn_args, call_id)",
+    "docstring": "Simulate LLM response with a single tool call."
+  },
+  {
+    "name": "test_tool_handler_search_code_no_index",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 60,
+    "line_end": 64,
+    "signature": "test_tool_handler_search_code_no_index(tmp_path)",
+    "docstring": "Returns 'No code chunks found' when no RAG index is built."
+  },
+  {
+    "name": "test_tool_handler_get_symbol_not_found",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 67,
+    "line_end": 71,
+    "signature": "test_tool_handler_get_symbol_not_found(tmp_path)",
+    "docstring": "Returns helpful message when symbol doesn't exist."
+  },
+  {
+    "name": "test_tool_handler_get_page_not_found",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 74,
+    "line_end": 78,
+    "signature": "test_tool_handler_get_page_not_found(tmp_path)",
+    "docstring": "Returns helpful 'not found' message when wiki dir is empty."
+  },
+  {
+    "name": "test_tool_handler_get_symbol_found",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 81,
+    "line_end": 94,
+    "signature": "test_tool_handler_get_symbol_found(tmp_path)",
+    "docstring": "Finds a symbol from symbols.json."
+  },
+  {
+    "name": "test_tool_handler_get_page_found",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 97,
+    "line_end": 105,
+    "signature": "test_tool_handler_get_page_found(tmp_path)",
+    "docstring": "Returns wiki page content when it exists."
+  },
+  {
+    "name": "test_agent_ask_direct_answer",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 112,
+    "line_end": 130,
+    "signature": "test_agent_ask_direct_answer(tmp_path)",
+    "docstring": "Model returns direct answer with no tool calls."
+  },
+  {
+    "name": "test_agent_ask_tool_then_finish",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 133,
+    "line_end": 152,
+    "signature": "test_agent_ask_tool_then_finish(tmp_path)",
+    "docstring": "Model first calls search_code, then returns direct answer."
+  },
+  {
+    "name": "test_agent_ask_finish_tool",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 155,
+    "line_end": 170,
+    "signature": "test_agent_ask_finish_tool(tmp_path)",
+    "docstring": "Model calls finish tool directly."
+  },
+  {
+    "name": "test_agent_ask_max_iterations",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 173,
+    "line_end": 195,
+    "signature": "test_agent_ask_max_iterations(tmp_path)",
+    "docstring": "After max_iter tool calls, falls back to final answer call."
+  },
+  {
+    "name": "test_agent_ask_fallback_on_error",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 198,
+    "line_end": 213,
+    "signature": "test_agent_ask_fallback_on_error(tmp_path)",
+    "docstring": "Falls back to single-shot when litellm raises an exception."
+  },
+  {
+    "name": "test_agent_planner_add_pages_and_finalize",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 220,
+    "line_end": 260,
+    "signature": "test_agent_planner_add_pages_and_finalize(tmp_path)",
+    "docstring": "Mock litellm to call add_section, add_page×3, finalize — verify WikiPlan."
+  },
+  {
+    "name": "test_agent_planner_fallback_on_error",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 263,
+    "line_end": 276,
+    "signature": "test_agent_planner_fallback_on_error(tmp_path)",
+    "docstring": "Returns _default_plan when litellm raises."
+  },
+  {
+    "name": "test_run_ask_uses_agent_when_env_set",
+    "kind": "function",
+    "file": "tests/test_agent_ask.py",
+    "line_start": 283,
+    "line_end": 303,
+    "signature": "test_run_ask_uses_agent_when_env_set(tmp_path, monkeypatch)",
+    "docstring": "When REKIPEDIA_AGENT_ASK=1, run_ask delegates to agent_run_ask."
   }
 ]
