@@ -129,6 +129,9 @@ export REKIPEDIA_SHARD_TOKEN_BUDGET=40000
 | `REKIPEDIA_API_KEY` | API key for the LLM provider |
 | `REKIPEDIA_BASE_URL` | Base URL for OpenAI-compatible endpoints |
 | `REKIPEDIA_SHARD_TOKEN_BUDGET` | Max tokens per shard group (default: 40000) |
+| `REKIPEDIA_AGENT_ASK` | Set to `1` to enable agentic ReAct ask loop (default: `0` — single-shot) |
+| `REKIPEDIA_ASK_MAX_ITER` | Max tool-call iterations for agentic ask (default: `5`) |
+| `REKIPEDIA_AGENT_PLANNER` | Set to `1` to enable tool-calling wiki planner (default: `0`) |
 
 ---
 
@@ -294,6 +297,37 @@ rekipedia ships a **Hermes agent skill** (`rekipedia-agent-skill.md`) that teach
 3. Dramatically reduces context window usage for large codebases
 
 ---
+
+## Agentic Mode
+
+rekipedia supports an experimental agentic mode where LLM calls use tool-calling (ReAct) instead of single large context dumps.
+
+### Agentic Ask
+
+Set `REKIPEDIA_AGENT_ASK=1` to enable:
+
+```bash
+REKIPEDIA_AGENT_ASK=1 reki ask "How does authentication work?"
+```
+
+The LLM issues tool calls to retrieve information on demand:
+- `search_code(query)` — semantic search over source code
+- `get_symbol(name)` — look up symbol location and signature
+- `get_page(slug)` — fetch a wiki page on demand
+- `get_relationships(target)` — dependency graph for a symbol/file
+- `finish(answer)` — provide final answer
+
+Max iterations can be configured with `REKIPEDIA_ASK_MAX_ITER` (default: 5).
+
+### Agentic Planner
+
+Set `REKIPEDIA_AGENT_PLANNER=1` to enable tool-calling wiki structure planning:
+
+```bash
+REKIPEDIA_AGENT_PLANNER=1 reki scan .
+```
+
+The planner builds the wiki structure incrementally using tool calls instead of generating a single large JSON response.
 
 ## Development
 

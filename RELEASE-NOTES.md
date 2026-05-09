@@ -1,3 +1,9 @@
+## v0.13.0 — 2026-05-09
+
+### New Features
+- **Agentic Ask** — `reki ask` now supports a ReAct tool-calling loop (`REKIPEDIA_AGENT_ASK=1`). Instead of stuffing a 96K context window, the LLM iteratively calls `search_code`, `get_symbol`, `get_page`, `get_relationships`, and `finish` tools to retrieve exactly what it needs. Falls back to single-shot mode automatically if the model doesn't support tool calling. (#94)
+- **Agentic Planner** — `reki scan` wiki planner supports tool-calling mode (`REKIPEDIA_AGENT_PLANNER=1`). The LLM builds the wiki plan incrementally using `add_section`, `add_page`, and `finalize` tools instead of generating a single large JSON blob. (#94)
+
 ## v0.12.0 — 2026-05-08
 
 ### Bug Fixes
