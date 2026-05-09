@@ -210,6 +210,10 @@ def scan_cmd(
     console.print(f"  Refactor    : {output_dir / 'REFACTOR.md'}")
     console.print(f"  Database    : {output_dir / 'store.db'}")
 
+    # ── Auto-generate .mcp.json at repo root ──────────────────────────────────
+    from rekipedia.cli.mcp_server import write_mcp_json
+    write_mcp_json(repo)
+
     # ── Optional: generate REFACTOR.md ────────────────────────────────────────
     if with_refactor:
         console.rule()
