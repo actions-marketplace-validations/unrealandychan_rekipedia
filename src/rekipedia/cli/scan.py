@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 import yaml
 from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
 from rekipedia.models.contracts import LLMConfig
 
@@ -150,31 +151,56 @@ def scan_cmd(
     from rekipedia.orchestrator.run_digest import run_digest  # noqa: PLC0415
 
     # In verbose mode: print each log line directly so tqdm + log interleave cleanly
-    # In normal mode: suppress the text progress callback (tqdm bars handle display)
-    def _log(msg: str) -> None:
-        if verbose:
+    # In normal mode: update a Rich spinner so the user sees live phase labels
+    if verbose:
+        def _log(msg: str) -> None:
             console.print(f"  [dim]{msg}[/dim]")
 
-    try:
-        run_digest(
-            repo_root=repo,
-            output_dir=output_dir,
-            llm_config=llm_config,
-            force_local=no_docker,
-            verbose=verbose,
-            progress=_log,
-            languages=lang_list,
-            no_llm=no_llm,
-            stdout_refactor=stdout_refactor,
-        )
-    except Exception as exc:
-        if verbose:
-            import traceback
+        try:
+            run_digest(
+                repo_root=repo,
+                output_dir=output_dir,
+                llm_config=llm_config,
+                force_local=no_docker,
+                verbose=verbose,
+                progress=_log,
+                languages=lang_list,
+                no_llm=no_llm,
+                stdout_refactor=stdout_refactor,
+            )
+        except Exception as exc:
             console.print_exception(show_locals=True)
-        else:
-            console.print(f"[bold red]Error:[/bold red] {exc}")
-            console.print("[dim]Tip: run with --verbose for full debug output[/dim]")
-        sys.exit(1)
+            sys.exit(1)
+    else:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            TimeElapsedColumn(),
+            console=console,
+            transient=False,
+        ) as progress:
+            task = progress.add_task("Scanning…", total=None)
+
+            def _log(msg: str) -> None:
+                progress.update(task, description=msg)
+
+            try:
+                run_digest(
+                    repo_root=repo,
+                    output_dir=output_dir,
+                    llm_config=llm_config,
+                    force_local=no_docker,
+                    verbose=verbose,
+                    progress=_log,
+                    languages=lang_list,
+                    no_llm=no_llm,
+                    stdout_refactor=stdout_refactor,
+                )
+            except Exception as exc:
+                progress.stop()
+                console.print(f"[bold red]Error:[/bold red] {exc}")
+                console.print("[dim]Tip: run with --verbose for full debug output[/dim]")
+                sys.exit(1)
 
     console.rule()
     console.print("[bold green]✓ Scan complete[/bold green]")

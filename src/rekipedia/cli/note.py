@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 
 import click
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 
 from rekipedia.storage.sqlite_store import SqliteStore
 
@@ -146,8 +147,18 @@ def note_import(ctx: click.Context, file: str, dry_run: bool) -> None:
                 click.echo(f"  [{n.get('tags','')}] {n['content'][:60]}")
             return
 
-        for n in new_notes:
-            store.upsert_note(content=n["content"], tags=n.get("tags", ""), source="import")
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            transient=True,
+        ) as progress:
+            task = progress.add_task(f"Importing notes…", total=len(new_notes))
+            for n in new_notes:
+                store.upsert_note(content=n["content"], tags=n.get("tags", ""), source="import")
+                progress.advance(task)
+
         click.echo(f"Imported {len(new_notes)} note(s) (skipped {skipped} duplicates).")
     finally:
         store.close()
