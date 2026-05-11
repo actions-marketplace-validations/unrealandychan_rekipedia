@@ -1,3 +1,10 @@
+## v0.14.0 — 2026-05-11
+
+### New Features
+- **Python API** — First-class programmatic interface: `rekipedia.scan()`, `rekipedia.ask()`, and async variants `scan_async()` / `ask_async()`. Returns typed `ScanResult` and `AskResult` dataclasses with citations. Import directly as `import rekipedia; rekipedia.scan("/path/to/repo")`. Closes #101.
+
+---
+
 ## v0.13.0 — 2026-05-09
 
 ### New Features

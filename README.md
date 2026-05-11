@@ -60,6 +60,40 @@ brew install rekipedia
 
 ---
 
+## Python API
+
+Use rekipedia programmatically inside Jupyter notebooks, CI pipelines, or any Python application:
+
+```python
+import rekipedia
+
+# Scan a local repo
+result = rekipedia.scan("/path/to/repo")
+print(result.page_count)   # number of wiki pages generated
+print(result.symbol_count) # number of code symbols extracted
+print(result.token_count)  # estimated token count of the wiki
+
+# Ask a question — grounded answer with file:line citations
+answer = rekipedia.ask("/path/to/repo", "How does the auth flow work?")
+print(answer.text)
+for citation in answer.citations:
+    print(f"  {citation.file}:{citation.line}")
+
+# Async variants (Jupyter-friendly)
+result = await rekipedia.scan_async("/path/to/repo")
+answer = await rekipedia.ask_async("/path/to/repo", "What is the entry point?")
+```
+
+**Return types:**
+
+| Type | Key fields |
+|---|---|
+| `ScanResult` | `page_count`, `symbol_count`, `token_count`, `wiki_pages`, `db_path`, `wiki_dir` |
+| `AskResult` | `text`, `citations: list[Citation]`, `model_used` |
+| `Citation` | `file`, `line`, `snippet` |
+
+---
+
 ## Commands
 
 | Command | Description |
