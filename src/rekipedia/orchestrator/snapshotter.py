@@ -6,7 +6,12 @@ FileManifest objects with SHA-256 hashes.
 from __future__ import annotations
 
 import hashlib
+import logging
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+
+logger = logging.getLogger("rekipedia.snapshotter")
 
 import pathspec
 
@@ -63,6 +68,9 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+
+
+
 def _detect_language(path: Path) -> str | None:
     suffix = path.suffix.lower()
     if path.name.lower() == "dockerfile":
@@ -90,8 +98,11 @@ class Snapshotter:
             {lang.lower() for lang in languages} if languages else None
         )
 
+    def _sha256(self, path: Path) -> str:
+        return _sha256(path)
+
     def snapshot(self) -> list[FileManifest]:
-        manifests: list[FileManifest] = []
+        candidate_paths: list[tuple[Path, str, str | None]] = []
         for file_path in self._root.rglob("*"):
             if not file_path.is_file():
                 continue
@@ -101,12 +112,27 @@ class Snapshotter:
             lang = _detect_language(file_path)
             if self._languages is not None and lang not in self._languages:
                 continue
-            manifests.append(
-                FileManifest(
-                    path=str(rel),
-                    sha256=_sha256(file_path),
-                    size_bytes=file_path.stat().st_size,
-                    language=lang,
-                )
-            )
+            candidate_paths.append((file_path, str(rel), lang))
+
+        manifests: list[FileManifest] = []
+        with ThreadPoolExecutor(max_workers=min(8, os.cpu_count() or 4)) as executor:
+            future_to_meta = {
+                executor.submit(self._sha256, fp): (fp, rel, lang)
+                for fp, rel, lang in candidate_paths
+            }
+            for future in as_completed(future_to_meta):
+                fp, rel, lang = future_to_meta[future]
+                try:
+                    sha = future.result()
+                    manifests.append(
+                        FileManifest(
+                            path=rel,
+                            sha256=sha,
+                            size_bytes=fp.stat().st_size,
+                            language=lang,
+                        )
+                    )
+                except Exception as exc:
+                    logger.warning("Skipping %s — could not hash: %s", fp, exc)
+
         return sorted(manifests, key=lambda m: m.path)

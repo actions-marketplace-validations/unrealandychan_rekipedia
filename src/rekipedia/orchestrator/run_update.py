@@ -12,7 +12,9 @@ Flow:
 """
 from __future__ import annotations
 
+import logging
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable
 
@@ -22,6 +24,10 @@ from rekipedia.orchestrator.sharding import ShardPlanner
 from rekipedia.orchestrator.snapshotter import Snapshotter
 from rekipedia.sandbox.runner import BaseRunner, get_runner
 from rekipedia.storage.sqlite_store import SqliteStore
+
+logger = logging.getLogger("rekipedia.run_update")
+
+_MAX_SHARD_WORKERS = 4
 
 
 def run_update(
@@ -126,15 +132,28 @@ def run_update(
             runner: BaseRunner = get_runner(force_local=force_local)
             _log(f"Using {type(runner).__name__}")
 
-            for i, shard in enumerate(shards, 1):
-                _log(f"  Extracting shard {i}/{len(shards)}: {shard.shard_id}")
-                result = runner.run(shard, repo_root)
-                merged_results.append(result)
+            def _run_shard(shard):
+                return shard, runner.run(shard, repo_root)
 
-                symbols_dicts = [s.model_dump() for s in result.symbols]
-                rels_dicts = [r.model_dump(by_alias=True) for r in result.relationships]
-                store.upsert_symbols(run_id, symbols_dicts)
-                store.upsert_relationships(run_id, rels_dicts)
+            with ThreadPoolExecutor(max_workers=_MAX_SHARD_WORKERS) as executor:
+                future_to_shard = {executor.submit(_run_shard, s): s for s in shards}
+                failed = 0
+                for i, future in enumerate(as_completed(future_to_shard), 1):
+                    shard = future_to_shard[future]
+                    try:
+                        _, result = future.result()
+                        _log(f"  Extracted shard {i}/{len(shards)}: {shard.shard_id}")
+                        merged_results.append(result)
+                        symbols_dicts = [s.model_dump() for s in result.symbols]
+                        rels_dicts = [r.model_dump(by_alias=True) for r in result.relationships]
+                        store.upsert_symbols(run_id, symbols_dicts)
+                        store.upsert_relationships(run_id, rels_dicts)
+                    except Exception as exc:
+                        failed += 1
+                        logger.error("Shard %s failed: %s", shard.shard_id, exc)
+
+            if failed == len(shards):
+                raise RuntimeError(f"All {len(shards)} shard(s) failed during update extraction")
 
         # ── 7. Synthesise wiki pages ──────────────────────────────────
         _log("Synthesising wiki pages…")
