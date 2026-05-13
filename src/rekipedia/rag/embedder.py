@@ -19,6 +19,7 @@ import bisect
 import hashlib
 import json
 import logging
+import functools
 import os
 import time
 from pathlib import Path
@@ -471,6 +472,20 @@ class EmbedPipeline:
             self._model = raw_model
 
     # ------------------------------------------------------------------
+    # Cached data loaders (Issue #114)
+    # ------------------------------------------------------------------
+
+    @functools.cached_property
+    def _chunks_data(self) -> list[dict]:
+        chunks_path = self._out / _CHUNKS_FILE
+        return json.loads(chunks_path.read_text(encoding="utf-8"))
+
+    @functools.cached_property
+    def _faiss_index(self):
+        import faiss as _faiss  # noqa: PLC0415
+        return _faiss.read_index(str(self._out / _INDEX_FILE))
+
+    # ------------------------------------------------------------------
     # Build
     # ------------------------------------------------------------------
 
@@ -533,31 +548,39 @@ class EmbedPipeline:
                 )
             try:
                 vecs = _embed_batch(batch, self._model, self._cfg)
-                all_vecs.append(vecs)
+                # Stream-build FAISS index (Issue #118)
+                if _HAS_FAISS:
+                    if '_stream_index' not in dir():
+                        _stream_dim = vecs.shape[1]
+                        _stream_index = _faiss.IndexFlatL2(_stream_dim)
+                    _faiss.normalize_L2(vecs)
+                    _stream_index.add(vecs)
+                else:
+                    all_vecs.append(vecs)
             except Exception as exc:
-                logger.error("Embedding batch %d failed: %s", i // _EMBED_BATCH, exc)
-                # Fill with zeros so index stays aligned — marked invalid
-                dim = all_vecs[-1].shape[1] if all_vecs else 1536
-                all_vecs.append(np.zeros((len(batch), dim), dtype=np.float32))
-            # Respect rate limits
-            time.sleep(0.1)
+                logger.warning("Embedding batch %d failed: %s — skipping batch", i // _EMBED_BATCH, exc)
+            # Respect rate limits (Issue #117)
+            if os.environ.get('REKIPEDIA_EMBED_RATE_LIMIT', '0') == '1':
+                time.sleep(0.1)
 
-        if not all_vecs:
+        # Check if anything was produced (Issue #118)
+        _faiss_built = _HAS_FAISS and '_stream_index' in locals()
+        if not _faiss_built and not all_vecs:
             logger.warning("No embeddings produced — nothing to index.")
             return 0
-        matrix = np.vstack(all_vecs)  # (N, D)
-        dim = matrix.shape[1]
 
-        # 3. Build index
-        if progress_cb:
-            progress_cb(f"🗄  Building index (dim={dim}, n={n})…")
-        if _HAS_FAISS:
-            index = _faiss.IndexFlatL2(dim)
-            _faiss.normalize_L2(matrix)
-            index.add(matrix)
-            _faiss.write_index(index, str(self._out / _INDEX_FILE))
+        # 3. Save index
+        if _HAS_FAISS and _faiss_built:
+            dim = _stream_index.d
+            if progress_cb:
+                progress_cb(f"🗄  Saving FAISS index (dim={dim}, n={n})…")
+            _faiss.write_index(_stream_index, str(self._out / _INDEX_FILE))
         else:
             # numpy fallback — normalise + save raw matrix
+            matrix = np.vstack(all_vecs)  # (N, D)
+            dim = matrix.shape[1]
+            if progress_cb:
+                progress_cb(f"🗄  Saving numpy index (dim={dim}, n={n})…")
             norms = np.linalg.norm(matrix, axis=1, keepdims=True)
             matrix /= np.where(norms == 0, 1, norms)
             np.save(str(self._out / _INDEX_FILE) + ".npy", matrix)
@@ -636,15 +659,15 @@ class EmbedPipeline:
             return []
 
         try:
-            chunks = json.loads(chunks_path.read_text(encoding="utf-8"))
+            chunks = self._chunks_data  # cached (Issue #114)
         except Exception as exc:
             logger.warning("Failed to load chunks: %s", exc)
             return []
 
         try:
-            q_vec = _embed_batch([query], self._model, self._cfg)  # (1, D)
+            q_vec = _embed_batch([query], self._model, self._cfg)  # (1, D) — embed once (Issue #115)
             if _HAS_FAISS and index_path.exists():
-                index = _faiss.read_index(str(index_path))
+                index = self._faiss_index  # cached (Issue #114)
                 _faiss.normalize_L2(q_vec)
                 distances, indices = index.search(q_vec, top_k)
                 results = []
@@ -679,28 +702,16 @@ class EmbedPipeline:
         use_mmr = mmr and os.environ.get("REKIPEDIA_RAG_MMR", "1") != "0"
         if use_mmr and _NUMPY_AVAILABLE and len(results) > 1:
             try:
-                # Re-embed query to get the query vector for MMR
-                q_vec_for_mmr = _embed_batch([query], self._model, self._cfg)[0]
+                # Reuse already-embedded query vector (Issue #115)
+                q_vec_for_mmr = q_vec[0]
                 # Build candidate vectors from stored index
                 if _HAS_FAISS and index_path.exists():
-                    index_mmr = _faiss.read_index(str(index_path))
-                    # Reconstruct vectors using the original result indices
-                    # We need to find what indices were used
-                    cand_vecs = np.array([
-                        index_mmr.reconstruct(int(chunks.index(dict(
-                            (k, v) for k, v in c.items() if k != "score"
-                        )))) if hasattr(index_mmr, 'reconstruct') else np.zeros(q_vec_for_mmr.shape, dtype=np.float32)
-                        for c in results
-                    ], dtype=np.float32)
+                    pass  # FAISS IndexFlatL2 doesn't support reconstruct; skip MMR for FAISS path
                 elif npy_path.exists():
                     full_matrix = np.load(str(npy_path))
-                    # Find chunk indices in original chunks list
-                    cand_indices = []
-                    for r in results:
-                        for i, c in enumerate(chunks):
-                            if c.get("file") == r.get("file") and c.get("chunk_idx") == r.get("chunk_idx"):
-                                cand_indices.append(i)
-                                break
+                    # O(1) chunk lookup via pre-built dict (Issue #116)
+                    chunk_index = {(c['file'], c['chunk_idx']): i for i, c in enumerate(chunks)}
+                    cand_indices = [chunk_index[(r['file'], r['chunk_idx'])] for r in results if (r['file'], r['chunk_idx']) in chunk_index]
                     if len(cand_indices) == len(results):
                         cand_vecs = full_matrix[cand_indices]
                         mmr_order = _mmr(q_vec_for_mmr, cand_vecs, top_k)
@@ -822,7 +833,8 @@ class EmbedPipeline:
                     dim = old_vecs.shape[1]
                     new_vecs_list.append(np.zeros((len(batch), dim), dtype=np.float32))
                 import time as _time  # noqa: PLC0415
-                _time.sleep(0.1)
+                if os.environ.get('REKIPEDIA_EMBED_RATE_LIMIT', '0') == '1':
+                    _time.sleep(0.1)
 
         # Combine all chunks + vecs
         all_chunks = kept_chunks + reused_chunks + to_embed_chunks

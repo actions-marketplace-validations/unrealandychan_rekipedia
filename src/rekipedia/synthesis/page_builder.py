@@ -13,6 +13,11 @@ from rekipedia.synthesis.slug_utils import sanitize_slug as _sanitize_slug
 
 _SYSTEM_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "digest_system.md"
 
+try:
+    _SYSTEM_PROMPT = _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+except FileNotFoundError:
+    _SYSTEM_PROMPT = ""  # fallback, will fail gracefully later
+
 # The 9 canonical pages every project wiki should have
 CANONICAL_PAGES = [
     "index",
@@ -214,7 +219,7 @@ class PageBuilder:
         self._overrides = prompt_overrides or {}
         self._exclude = set(exclude_pages or [])
         self._wiki_dir = wiki_dir
-        self._system = _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+        self._system = _SYSTEM_PROMPT
 
     def build(self, combined: AnalysisResult) -> dict[str, tuple[str, str]]:
         """Return {slug: (title, markdown_content)} for each page."""
