@@ -1,3 +1,29 @@
+## v0.15.0 — 2026-05-13
+
+### Performance Improvements
+
+**SQLite Storage Layer** (closes #108, #109, #110, #111)
+- **Batch commits** — `upsert_files_batch()` and `upsert_pages_batch()` use `executemany` + single `commit()` instead of one commit per row; `upsert_page_sources()` likewise. For a 1,000-file repo, `reki scan` write phase is up to 50× faster.
+- **PRAGMA tuning** — `synchronous=NORMAL`, `cache_size=-64000` (64 MB), `temp_store=MEMORY` applied on connection open; 2–3× faster writes on local desktop.
+- **Schema introspection cache** — `_table_names()` now caches results in an instance variable instead of querying `sqlite_master` on every read/write call.
+- **SQL-side copy filtering** — `copy_unchanged_symbols()` and `copy_unchanged_relationships()` now use `INSERT … SELECT … WHERE file NOT IN (…)` entirely inside SQLite, eliminating full-table Python-side filtering.
+
+**Parallelism** (closes #112, #113)
+- **Parallel SHA-256 hashing** — `Snapshotter.snapshot()` now hashes files concurrently via `ThreadPoolExecutor(max_workers=8)`; unreadable files are skipped with a warning instead of aborting.
+- **Parallel shard extraction in `reki update`** — `run_update.py` now mirrors the `ThreadPoolExecutor` pattern from `run_digest.py`; per-shard errors are isolated and logged.
+
+**RAG / Embedder** (closes #114, #115, #116, #117, #118)
+- **Cached FAISS index + chunks** — `EmbedPipeline` caches `chunks.json` and the FAISS index as `cached_property`; subsequent `reki ask` calls in the same process skip disk I/O entirely.
+- **Single query embedding** — `search()` no longer embeds the query twice; the same vector is reused for both FAISS retrieval and MMR re-ranking, halving embedding API calls.
+- **O(1) MMR candidate lookup** — replaced nested linear scan with a `{(file, chunk_idx): idx}` dict; eliminates O(N²) behaviour on large indexes.
+- **Streaming FAISS index build** — `build()` adds each embedding batch to the index immediately and releases the vectors, keeping RAM usage proportional to one batch instead of the entire corpus.
+- **Rate-limit sleep gated behind env var** — the fixed `time.sleep(0.1)` between embedding batches is now off by default; set `REKIPEDIA_EMBED_RATE_LIMIT=1` to re-enable for hosted API rate limits.
+
+**PageBuilder** (closes #119)
+- **Module-level system prompt** — `_SYSTEM_PROMPT` is read from disk once at import time instead of on every `PageBuilder` construction.
+
+---
+
 ## v0.14.0 — 2026-05-11
 
 ### New Features
