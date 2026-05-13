@@ -129,21 +129,34 @@ def test_copy_unchanged_sql_filtering(tmp_path):
 # ── #108 Rollback on error ────────────────────────────────────────────
 
 def test_batch_rollback(tmp_path):
-    """When executemany fails mid-batch, nothing should be committed."""
+    """When upsert_files_batch encounters a DB error, nothing should be committed."""
     store = make_store(tmp_path)
     run_id = "run-rollback"
     store.upsert_run(run_id, "/repo")
 
-    # Patch executemany to raise
-    original_executemany = store._c.executemany
+    # Inject a bad row that will cause a constraint / type error at executemany level
+    # by patching upsert_files_batch to call the real impl but with a connection that
+    # raises on executemany.  Since sqlite3.Connection.executemany is read-only (C slot),
+    # we swap out the internal cursor wrapper with a subclass that raises.
+    import sqlite3 as _sqlite3
 
-    call_count = [0]
+    original_conn = store._conn
 
-    def failing_executemany(sql, rows):
-        call_count[0] += 1
-        raise RuntimeError("Simulated DB error")
+    class _FailConn:
+        """Thin proxy that raises on executemany to simulate a mid-batch DB error."""
+        def __getattr__(self, name):
+            return getattr(original_conn, name)
 
-    store._c.executemany = failing_executemany
+        def executemany(self, sql, rows):
+            raise RuntimeError("Simulated DB error")
+
+        def execute(self, *a, **kw):
+            return original_conn.execute(*a, **kw)
+
+        def commit(self):
+            original_conn.commit()
+
+    store._conn = _FailConn()
 
     files = [
         SimpleNamespace(path=f"src/x{i}.py", sha256=f"sha{i}", size_bytes=i, language="python")
@@ -153,8 +166,8 @@ def test_batch_rollback(tmp_path):
     with pytest.raises(RuntimeError, match="upsert_files_batch failed"):
         store.upsert_files_batch(run_id, files)
 
-    # Restore and verify nothing was committed
-    store._c.executemany = original_executemany
+    # Restore real connection and verify nothing was committed
+    store._conn = original_conn
     rows = store.get_files_for_run(run_id)
     assert len(rows) == 0, f"Expected 0 rows after rollback, got {len(rows)}"
     store.close()
