@@ -109,8 +109,7 @@ def run_digest(
         _vlog(f"  {len(files)} files found")
 
         store.upsert_snapshot(run_id, [f.model_dump() for f in files])
-        for f in files:
-            store.upsert_file(run_id, f.path, f.sha256, f.size_bytes, f.language)
+        store.upsert_files_batch(run_id, files)
 
         # ── 2. Shard ─────────────────────────────────────────────────
         _vlog("Planning shards…")
@@ -334,9 +333,8 @@ def run_digest(
             [{k: v for k, v in p.items() if k != "focus"} for p in wiki_plan.pages]
         )
 
-        for slug, (title, content) in pages.items():
-            store.upsert_page(run_id, slug, title, content)
-            # Record which source files contributed to this page (issue #77)
+        store.upsert_pages_batch(run_id, pages)
+        for slug, _ in pages.items():
             store.upsert_page_sources(run_id, slug, combined_for_build.files_seen)
         for name, (dtype, content) in diagrams.items():
             store.upsert_diagram(run_id, name, dtype, content)

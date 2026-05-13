@@ -8,6 +8,7 @@ in both modes.
 """
 from __future__ import annotations
 
+import functools  # noqa: F401 — used for future lru_cache if needed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,12 @@ try:
     import turso as _db
 
     def _connect(path: str) -> Any:
-        return _db.connect(path)
+        conn = _db.connect(path)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        conn.execute("PRAGMA cache_size=-64000")
+        conn.execute("PRAGMA temp_store=MEMORY")
+        return conn
 
     _BACKEND = "turso"
 except ImportError:  # pragma: no cover — only hit on platforms without a wheel
@@ -25,6 +31,9 @@ except ImportError:  # pragma: no cover — only hit on platforms without a whee
     def _connect(path: str) -> Any:  # type: ignore[misc]
         conn = _db_sqlite3.connect(path, isolation_level=None)
         conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        conn.execute("PRAGMA cache_size=-64000")
+        conn.execute("PRAGMA temp_store=MEMORY")
         return conn
 
     _BACKEND = "sqlite3"
@@ -56,6 +65,7 @@ class SqliteStore:
     def __init__(self, path: Path) -> None:
         self._path = path
         self._conn: _Conn | None = None
+        self._known_tables: set | None = None
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -98,10 +108,13 @@ class SqliteStore:
         return self._table_names()
 
     def _table_names(self) -> set[str]:
+        if self._known_tables is not None:
+            return self._known_tables
         rows = self._c.execute(
             "SELECT name FROM sqlite_master WHERE type='table'"
         ).fetchall()
-        return {r[0] for r in rows}
+        self._known_tables = {r[0] for r in rows}
+        return self._known_tables
 
     def current_schema_version(self) -> int:
         try:
@@ -129,6 +142,8 @@ class SqliteStore:
                     if stmt:
                         self._conn.execute(stmt)
                 self._conn.commit()
+        # Invalidate table name cache after migrations
+        self._known_tables = None
 
     # ------------------------------------------------------------------
     # Run lifecycle
@@ -215,6 +230,89 @@ class SqliteStore:
             [run_id, path, sha256, size_bytes, language],
         )
         self._c.commit()
+
+    def upsert_files_batch(self, run_id: str, files: list) -> None:
+        """Batch upsert files with a single commit. Each item needs .path, .sha256, .size_bytes, .language."""
+        if not files:
+            return
+        self._c.execute(
+            """
+            CREATE TABLE IF NOT EXISTS scan_files (
+                run_id TEXT,
+                path TEXT,
+                sha256 TEXT,
+                size_bytes INTEGER,
+                language TEXT,
+                PRIMARY KEY(run_id, path)
+            )
+            """
+        )
+        rows = [(run_id, f.path, f.sha256, f.size_bytes, f.language) for f in files]
+        try:
+            self._c.executemany(
+                """
+                INSERT INTO scan_files(run_id, path, sha256, size_bytes, language) VALUES(?, ?, ?, ?, ?)
+                ON CONFLICT(run_id, path) DO UPDATE SET
+                    sha256=excluded.sha256,
+                    size_bytes=excluded.size_bytes,
+                    language=excluded.language
+                """,
+                rows,
+            )
+            self._c.commit()
+        except Exception as exc:
+            try:
+                self._c.execute("ROLLBACK")
+            except Exception:
+                pass
+            raise RuntimeError(f"upsert_files_batch failed: {exc}") from exc
+
+    def upsert_pages_batch(self, run_id: str, pages: dict) -> None:
+        """Batch upsert wiki pages with a single commit. pages is {slug: (title, content)} or {slug: content}."""
+        if not pages:
+            return
+        self._c.execute(
+            """
+            CREATE TABLE IF NOT EXISTS scan_wiki_pages (
+                run_id TEXT,
+                slug TEXT,
+                title TEXT,
+                content TEXT,
+                pinned INTEGER,
+                updated_at TEXT,
+                PRIMARY KEY(run_id, slug)
+            )
+            """
+        )
+        now = _now()
+        rows = []
+        for slug, value in pages.items():
+            if isinstance(value, tuple):
+                title, content = value
+            else:
+                title = slug.replace("-", " ").title()
+                content = value
+            rows.append((run_id, slug, title, content, 0, now))
+        try:
+            self._c.executemany(
+                """
+                INSERT INTO scan_wiki_pages(run_id, slug, title, content, pinned, updated_at)
+                VALUES(?, ?, ?, ?, ?, ?)
+                ON CONFLICT(run_id, slug) DO UPDATE SET
+                    title=excluded.title,
+                    content=excluded.content,
+                    pinned=excluded.pinned,
+                    updated_at=excluded.updated_at
+                """,
+                rows,
+            )
+            self._c.commit()
+        except Exception as exc:
+            try:
+                self._c.execute("ROLLBACK")
+            except Exception:
+                pass
+            raise RuntimeError(f"upsert_pages_batch failed: {exc}") from exc
 
     # ------------------------------------------------------------------
     # Symbols + relationships
@@ -490,22 +588,40 @@ class SqliteStore:
         """
         if "scan_symbols" not in self._table_names():
             return 0
-        all_rows = self._c.execute(
-            "SELECT name, kind, file, line_start, line_end, signature, docstring"
-            " FROM scan_symbols WHERE run_id = ?",
-            [from_run_id],
-        ).fetchall()
-        to_copy = [r for r in all_rows if r[2] not in exclude_paths]
-        if to_copy:
-            self._c.executemany(
-                """
-                INSERT OR REPLACE INTO scan_symbols(run_id, name, kind, file, line_start, line_end, signature, docstring)
-                VALUES(?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                [(to_run_id, r[0], r[1], r[2], r[3], r[4], r[5], r[6]) for r in to_copy],
-            )
+        try:
+            # Get column names dynamically
+            col_rows = self._c.execute("PRAGMA table_info(scan_symbols)").fetchall()
+            all_cols = [r[1] for r in col_rows]
+            non_run_cols = [c for c in all_cols if c != "run_id"]
+            cols_str = ", ".join(non_run_cols)
+            if exclude_paths:
+                placeholders = ",".join("?" * len(exclude_paths))
+                sql = (
+                    f"INSERT OR REPLACE INTO scan_symbols (run_id, {cols_str})"
+                    f" SELECT ?, {cols_str}"
+                    f" FROM scan_symbols WHERE run_id = ? AND file NOT IN ({placeholders})"
+                )
+                params = [to_run_id, from_run_id, *exclude_paths]
+            else:
+                sql = (
+                    f"INSERT OR REPLACE INTO scan_symbols (run_id, {cols_str})"
+                    f" SELECT ?, {cols_str}"
+                    f" FROM scan_symbols WHERE run_id = ?"
+                )
+                params = [to_run_id, from_run_id]
+            cur = self._c.execute(sql, params)
             self._c.commit()
-        return len(to_copy)
+            # turso may return incorrect rowcount for INSERT SELECT; query actual count
+            actual = self._c.execute(
+                "SELECT COUNT(*) FROM scan_symbols WHERE run_id = ?", [to_run_id]
+            ).fetchone()
+            return actual[0] if actual else 0
+        except Exception as exc:
+            try:
+                self._c.execute("ROLLBACK")
+            except Exception:
+                pass
+            raise RuntimeError(f"copy_unchanged_symbols failed: {exc}") from exc
 
     def copy_unchanged_relationships(
         self, from_run_id: str, to_run_id: str, exclude_paths: set[str]
@@ -513,33 +629,58 @@ class SqliteStore:
         """Copy relationships from *from_run_id* to *to_run_id*, skipping *exclude_paths*."""
         if "scan_relationships" not in self._table_names():
             return 0
-        all_rows = self._c.execute(
-            'SELECT "from_", "to", "kind", "file" FROM scan_relationships WHERE run_id = ?',
-            [from_run_id],
-        ).fetchall()
-        to_copy = [r for r in all_rows if r[3] not in exclude_paths]
-        if to_copy:
-            self._c.executemany(
-                """
-                INSERT OR REPLACE INTO scan_relationships(run_id, from_, "to", kind, file)
-                VALUES(?, ?, ?, ?, ?)
-                """,
-                [(to_run_id, r[0], r[1], r[2], r[3]) for r in to_copy],
-            )
+        try:
+            col_rows = self._c.execute("PRAGMA table_info(scan_relationships)").fetchall()
+            all_cols = [r[1] for r in col_rows]
+            non_run_cols = [c for c in all_cols if c != "run_id"]
+            # Quote column names for safety (e.g., "to")
+            quoted_non_run = ", ".join(f'"{c}"' for c in non_run_cols)
+            if exclude_paths:
+                placeholders = ",".join("?" * len(exclude_paths))
+                sql = (
+                    f'INSERT OR REPLACE INTO scan_relationships (run_id, {quoted_non_run})'
+                    f' SELECT ?, {quoted_non_run}'
+                    f' FROM scan_relationships WHERE run_id = ? AND file NOT IN ({placeholders})'
+                )
+                params = [to_run_id, from_run_id, *exclude_paths]
+            else:
+                sql = (
+                    f'INSERT OR REPLACE INTO scan_relationships (run_id, {quoted_non_run})'
+                    f' SELECT ?, {quoted_non_run}'
+                    f' FROM scan_relationships WHERE run_id = ?'
+                )
+                params = [to_run_id, from_run_id]
+            cur = self._c.execute(sql, params)
             self._c.commit()
-        return len(to_copy)
-
-
-    # ── Page sources (issue #77) ───────────────────────────────────────
+            actual = self._c.execute(
+                "SELECT COUNT(*) FROM scan_relationships WHERE run_id = ?", [to_run_id]
+            ).fetchone()
+            return actual[0] if actual else 0
+        except Exception as exc:
+            try:
+                self._c.execute("ROLLBACK")
+            except Exception:
+                pass
+            raise RuntimeError(f"copy_unchanged_relationships failed: {exc}") from exc
 
     def upsert_page_sources(self, run_id: str, page_slug: str, file_paths: list[str]) -> None:
         """Record which source files contributed to *page_slug* in *run_id*."""
-        for fp in file_paths:
-            self._c.execute(
+        if not file_paths:
+            self._c.commit()
+            return
+        rows = [(run_id, page_slug, fp) for fp in file_paths]
+        try:
+            self._c.executemany(
                 "INSERT OR REPLACE INTO page_sources (run_id, page_slug, file_path) VALUES (?, ?, ?)",
-                (run_id, page_slug, fp),
+                rows,
             )
-        self._c.commit()
+            self._c.commit()
+        except Exception as exc:
+            try:
+                self._c.execute("ROLLBACK")
+            except Exception:
+                pass
+            raise RuntimeError(f"upsert_page_sources failed: {exc}") from exc
 
     def get_pages_for_files(self, run_id: str, file_paths: list[str]) -> set[str]:
         """Return set of page slugs whose sources include any of *file_paths* in *run_id*."""

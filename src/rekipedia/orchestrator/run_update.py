@@ -112,8 +112,7 @@ def run_update(
 
         # Persist full current snapshot
         store.upsert_snapshot(run_id, [f.model_dump() for f in current_files])
-        for f in current_files:
-            store.upsert_file(run_id, f.path, f.sha256, f.size_bytes, f.language)
+        store.upsert_files_batch(run_id, current_files)
 
         # ── 5. Carry forward unchanged symbols / relationships ────────
         carried_syms = store.copy_unchanged_symbols(last_run_id, run_id, changed_paths)
@@ -184,8 +183,8 @@ def run_update(
             diagram_builder = DiagramBuilder()
             diagrams = diagram_builder.build(all_rels_raw)
 
-            for slug, (title, content) in pages.items():
-                store.upsert_page(run_id, slug, title, content)
+            store.upsert_pages_batch(run_id, pages)
+            for slug, _ in pages.items():
                 store.upsert_page_sources(run_id, slug, combined.files_seen)
             for name, (dtype, content) in diagrams.items():
                 store.upsert_diagram(run_id, name, dtype, content)
