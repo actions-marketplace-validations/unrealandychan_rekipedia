@@ -10,6 +10,17 @@
 - The REPL info panel now shows whether output mode is `streaming` or `buffered`.
 - Non-streaming mode uses `run_ask` (single LLM call with spinner), streaming mode uses `stream_ask` (litellm `stream=True`).
 
+**`reki review` PR diff review** (closes #133)
+- New `reki review` command: LLM-powered code review grounded in the wiki knowledge store.
+- Produces structured output: **summary**, **per-file analysis**, **issues** (rated 🔴 Critical → 🔵 Nit), **suggestions**, and a **verdict** (✅ LGTM / ⚠️ LGTM with comments / ❌ Needs changes).
+- Diff acquisition: auto-detects `git diff HEAD`, `--staged`, `--branch <ref>`, `--diff <file>`, stdin pipe, or GitHub PR via `--pr <number>` (requires `GH_TOKEN`).
+- Grounded review: if a `.rekipedia/` knowledge store exists, relevant wiki pages and the symbol index are injected as context so the LLM reviews against real architecture.
+- Works without a knowledge store — falls back to ungrounded review.
+- Streaming output with `rich.Live` Markdown rendering (same `--no-stream` / `REKIPEDIA_STREAM=0` flag as `reki ask`).
+- `--out <file>` saves the review to a Markdown file with generation timestamp.
+- Diff truncation: large diffs are truncated at file boundaries to fit the context window, with a visible notice.
+- 12 new tests covering: truncation, empty diff, streaming, non-streaming, wiki context injection, CLI flags.
+
 ---
 
 ## v0.15.0 — 2026-05-13

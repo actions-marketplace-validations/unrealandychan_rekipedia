@@ -19,6 +19,7 @@ from rekipedia.cli.watch import watch_cmd
 from rekipedia.cli.search import search_cmd
 from rekipedia.cli.refactor import refactor_cmd
 from rekipedia.cli.note import note_cmd
+from rekipedia.cli.review import review_cmd
 
 
 @click.group()
@@ -43,3 +44,4 @@ main.add_command(watch_cmd)
 main.add_command(search_cmd)
 main.add_command(refactor_cmd)
 main.add_command(note_cmd)
+main.add_command(review_cmd)

@@ -116,6 +116,7 @@ answer = await rekipedia.ask_async("/path/to/repo", "What is the entry point?")
 | `rekipedia watch add\|start\|list\|remove` | Watch repos and auto-index on file change |
 | `rekipedia refactor [REPO]` | Detect code smells + generate `REFACTOR.md` and `refactor_report.json` (use `--no-llm` for static only) |
 | `rekipedia note add\|list\|remove\|edit\|import` | Manage persistent tech lead notes — injected into `reki ask` context automatically |
+| `rekipedia review` | LLM-powered PR diff review grounded in the wiki — `--staged`, `--branch`, `--pr`, `--diff` |
 
 ---
 
@@ -319,6 +320,23 @@ rekipedia serve . --no-browser        # don't auto-open browser
 - Browse generated wiki pages in a dark-themed web UI
 - Ask questions with the same grounded Q&A (answers streamed via the web)
 - Q&A history stored in SQLite
+
+### Review a PR or diff
+
+`reki review` produces a structured LLM code review grounded in the repository's wiki pages and symbol index — it knows your architecture, naming conventions, and known risks:
+
+```bash
+reki review                          # auto-detect: review git diff HEAD
+reki review --staged                 # review staged changes
+reki review --branch main            # diff current branch vs main
+reki review --diff changes.patch     # review from a patch file
+git diff HEAD~1 | reki review        # pipe diff from stdin
+reki review --pr 42                  # fetch & review a GitHub PR (requires GH_TOKEN)
+reki review --out review.md          # save review to a markdown file
+reki review --no-stream              # wait for full response before printing
+```
+
+The review includes: **summary**, **per-file analysis**, **issues rated by severity** (🔴 Critical → 🔵 Nit), **suggestions**, and a **verdict** (✅ LGTM / ⚠️ LGTM with comments / ❌ Needs changes). If no knowledge store is found, the review still works — it just lacks codebase context.
 
 ---
 
