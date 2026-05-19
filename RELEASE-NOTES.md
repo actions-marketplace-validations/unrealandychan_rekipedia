@@ -21,6 +21,13 @@
 - Diff truncation: large diffs are truncated at file boundaries to fit the context window, with a visible notice.
 - 12 new tests covering: truncation, empty diff, streaming, non-streaming, wiki context injection, CLI flags.
 
+**OSC-8 clickable citations in `reki ask`** (closes #130)
+- Source citations (e.g. `src/auth.py:42`) are now printed as **OSC-8 terminal hyperlinks** after each answer.
+- Click the citation to open the file at the exact line in your editor (iTerm2, WezTerm, Kitty, Foot, Windows Terminal, VSCode, GNOME Terminal ≥3.26, Alacritty).
+- Auto-detects terminal support via `TERM_PROGRAM`, `COLORTERM`, `TERM`, `WT_SESSION`. Override with `REKIPEDIA_OSC8=1` (force on) or `REKIPEDIA_OSC8=0` (force off).
+- New module `rekipedia/utils/terminal_links.py`: `osc8_supported()`, `hyperlink()`, `file_hyperlink()`, `print_citations()`.
+- 24 new tests: auto-detection, hyperlink format, file URIs, print_citations, _parse_citations, ask integration.
+
 **`--focus` flag for targeted deep scans** (closes #134)
 - `reki scan --focus <glob>` limits extraction and wiki generation to files matching the pattern — ideal for focusing on a sub-system without scanning the whole repo.
 - Accepts multiple `--focus` flags: `--focus src/auth/** --focus src/payment/**`.
