@@ -28,6 +28,7 @@ No hallucinations, no guessing — every answer is grounded in your actual codeb
 - **Grounded Q&A**: answers cite real file paths and line numbers — no hallucinations
 - **Codebase tree index** — every scan builds a hierarchical directory/file tree in SQLite, enabling structured navigation and future reasoning-based retrieval.
 - **Rust full symbol extraction** — `RustExtractor` (tree-sitter) now extracts enums, type aliases, `const`/`static`, `macro_rules!`, `mod`, and intra-file call-graph edges — on par with Go, TypeScript, and Python extractors.
+- **`--focus` flag for targeted deep scans** — `reki scan --focus src/auth/** --focus src/payment/**` limits extraction and wiki generation to the matched files/directories, dramatically reducing scan time when you only need docs for a sub-system.
 
 ## Quick start
 

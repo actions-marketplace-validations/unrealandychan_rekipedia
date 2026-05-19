@@ -53,6 +53,7 @@ def run_digest(
     languages: list[str] | None = None,
     no_llm: bool = False,
     stdout_refactor: bool = False,
+    focus_globs: list[str] | None = None,
 ) -> None:
     """Full scan pipeline.
 
@@ -66,6 +67,14 @@ def run_digest(
         languages: Optional list of language names to include (e.g. ["python"]).
         no_llm: Skip LLM enrichment for refactoring issues (static analysis only).
         stdout_refactor: When True, also print REFACTOR.md to stdout after writing.
+        focus_globs: Optional list of glob patterns (relative to repo_root).
+            When set, only files matching at least one pattern are extracted and
+            used for wiki generation.  All other files are snapshotted for the
+            DB but skipped during extraction.  Examples::
+
+                ["src/auth/**", "src/payment/**"]
+                ["*.rs", "Cargo.toml"]
+                ["src/api/"]
     """
     if verbose:
         logging.basicConfig(
@@ -111,10 +120,38 @@ def run_digest(
         store.upsert_snapshot(run_id, [f.model_dump() for f in files])
         store.upsert_files_batch(run_id, files)
 
+        # ── 1.5. Focus filter ─────────────────────────────────────────
+        if focus_globs:
+            import fnmatch as _fnmatch  # noqa: PLC0415
+            def _matches_focus(file_rel: str) -> bool:
+                for pattern in focus_globs:
+                    # normalise pattern: strip leading ./ or /
+                    pat = pattern.lstrip("./")
+                    if _fnmatch.fnmatch(file_rel, pat):
+                        return True
+                    # also try matching against just the filename
+                    if _fnmatch.fnmatch(file_rel.split("/")[-1], pat):
+                        return True
+                    # treat trailing / as directory prefix
+                    if pat.endswith("/") and file_rel.startswith(pat):
+                        return True
+                return False
+
+            focus_files = [f for f in files if _matches_focus(f.path)]
+            skipped = len(files) - len(focus_files)
+            _vlog(f"  --focus: {len(focus_files)} files matched ({skipped} skipped)")
+            _log(f"  --focus: {len(focus_files)}/{len(files)} files in focus")
+            if not focus_files:
+                _vlog("  WARNING: no files matched focus patterns — falling back to all files")
+                focus_files = files
+            extraction_files = focus_files
+        else:
+            extraction_files = files
+
         # ── 2. Shard ─────────────────────────────────────────────────
         _vlog("Planning shards…")
         planner = ShardPlanner()
-        shards = planner.plan(files, llm_config)
+        shards = planner.plan(extraction_files, llm_config)
         _vlog(f"  {len(shards)} shards planned")
 
         # ── 3. Extract shards in parallel ────────────────────────────

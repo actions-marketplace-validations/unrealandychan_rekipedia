@@ -21,6 +21,14 @@
 - Diff truncation: large diffs are truncated at file boundaries to fit the context window, with a visible notice.
 - 12 new tests covering: truncation, empty diff, streaming, non-streaming, wiki context injection, CLI flags.
 
+**`--focus` flag for targeted deep scans** (closes #134)
+- `reki scan --focus <glob>` limits extraction and wiki generation to files matching the pattern — ideal for focusing on a sub-system without scanning the whole repo.
+- Accepts multiple `--focus` flags: `--focus src/auth/** --focus src/payment/**`.
+- Falls back to full scan if no files match, with a warning.
+- `REKIPEDIA_FOCUS` env var supported (comma-separated patterns).
+- Focus patterns are displayed in scan startup output.
+- 16 new tests: glob matching, directory prefix, multi-pattern, CLI flag, env var, run_digest integration.
+
 **`RustExtractor` — full tree-sitter symbol coverage** (closes #132)
 - Rust extractor now extracts **enums** (with variant list in signature), **type aliases**, **`const`/`static` items** (kind `variable`), **`macro_rules!`** (kind `other`), and **`mod` declarations** (kind `module`) — reaching parity with the Go, TypeScript, and Python extractors.
 - Added **call-graph edges**: `call_expression` nodes are matched against defined functions, producing `calls` relationships for intra-file call graph.

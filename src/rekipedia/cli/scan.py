@@ -55,6 +55,19 @@ def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
 @click.option("--no-llm", is_flag=True, default=False, help="Skip LLM enrichment for refactoring issues (static analysis only).")
 @click.option("--stdout", "stdout_refactor", is_flag=True, default=False, help="Print REFACTOR.md to stdout after scan (useful for piping to Claude Code).")
 @click.option("--with-refactor", is_flag=True, default=False, help="Auto-generate REFACTOR.md after scan completes.")
+@click.option(
+    "--focus", "-F",
+    "focus",
+    multiple=True,
+    default=None,
+    help=(
+        "Only extract and document files matching this glob pattern (relative to REPO). "
+        "Can be repeated: --focus src/auth/** --focus src/payment/**. "
+        "Shortens scan time and generates a focused wiki for a sub-system. "
+        "Set env var REKIPEDIA_FOCUS (comma-separated) as an alternative."
+    ),
+    envvar="REKIPEDIA_FOCUS",
+)
 def scan_cmd(
     repo: Path,
     model: str | None,
@@ -68,6 +81,7 @@ def scan_cmd(
     no_llm: bool,
     stdout_refactor: bool,
     with_refactor: bool,
+    focus: tuple[str, ...],
 ) -> None:
     """Scan REPO and (re)build the rekipedia knowledge store.
 
@@ -128,6 +142,11 @@ def scan_cmd(
     console.print(f"  model    : [cyan]{llm_config.model}[/cyan]")
     console.print(f"  output   : [cyan]{output_dir}[/cyan]")
     console.print(f"  runner   : [cyan]{'local (--no-docker)' if no_docker else 'auto'}[/cyan]")
+    focus_list: list[str] | None = None
+    if focus:
+        # Support comma-separated values from env var
+        focus_list = [p.strip() for item in focus for p in item.split(",") if p.strip()]
+        console.print(f"  focus    : [cyan]{', '.join(focus_list)}[/cyan]")
     if llm_config.embed_model:
         _em = f"{llm_config.embed_provider}/{llm_config.embed_model}" if llm_config.embed_provider else llm_config.embed_model
         console.print(f"  embed    : [cyan]{_em}[/cyan]")
@@ -167,6 +186,7 @@ def scan_cmd(
                 languages=lang_list,
                 no_llm=no_llm,
                 stdout_refactor=stdout_refactor,
+                focus_globs=focus_list,
             )
         except Exception as exc:
             console.print_exception(show_locals=True)
@@ -195,6 +215,7 @@ def scan_cmd(
                     languages=lang_list,
                     no_llm=no_llm,
                     stdout_refactor=stdout_refactor,
+                    focus_globs=focus_list,
                 )
             except Exception as exc:
                 progress.stop()
