@@ -54,6 +54,7 @@ def run_digest(
     no_llm: bool = False,
     stdout_refactor: bool = False,
     focus_globs: list[str] | None = None,
+    doc_type: str = "default",
 ) -> None:
     """Full scan pipeline.
 
@@ -317,7 +318,7 @@ def run_digest(
             transient=False,
         )
 
-        builder = PageBuilder(llm_config)
+        builder = PageBuilder(llm_config, doc_type=doc_type)
 
         # Pre-build full payload once, then slice per page spec
         from rekipedia.synthesis.page_builder import _build_payload, _slice_payload  # noqa: PLC0415

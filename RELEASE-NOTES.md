@@ -1,4 +1,4 @@
-## v0.15.1 — unreleased
+## v0.16.0 — 2026-05-19
 
 ### New Features
 
@@ -20,6 +20,14 @@
 - `--out <file>` saves the review to a Markdown file with generation timestamp.
 - Diff truncation: large diffs are truncated at file boundaries to fit the context window, with a visible notice.
 - 12 new tests covering: truncation, empty diff, streaming, non-streaming, wiki context injection, CLI flags.
+
+**`--doc-type` flag for targeted wiki style** (closes #126)
+- `reki scan --doc-type <type>` shapes how the LLM writes every wiki page.
+- Types: `default` (standard balanced overview), `api-ref` (function/class reference with param tables), `tutorial` (numbered steps, "you will learn"), `runbook` (ops procedures, prerequisites, troubleshooting), `adr` (Architecture Decision Records — Context/Decision/Consequences), `changelog` (What Changed, Migration Notes).
+- Doc-type preamble is prepended to the standard digest_system.md prompt.
+- Also configurable via `REKIPEDIA_DOC_TYPE` environment variable.
+- New module: `rekipedia/synthesis/doc_types.py` (`DOC_TYPE_CHOICES`, `doc_type_preamble()`).
+- 29 tests: preamble content, PageBuilder wiring, CLI flag, env var, display logic.
 
 **GitHub Actions official action** (closes #127)
 - New `action.yml` at repo root — use `uses: unrealandychan/rekipedia@v1` in any GitHub Actions workflow.

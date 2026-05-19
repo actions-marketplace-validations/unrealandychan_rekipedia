@@ -10,6 +10,7 @@ from pathlib import Path
 from rekipedia.llm.client import LLMClient, LLMCaller
 from rekipedia.models.contracts import AnalysisResult, LLMConfig
 from rekipedia.synthesis.slug_utils import sanitize_slug as _sanitize_slug
+from rekipedia.synthesis.doc_types import doc_type_preamble as _doc_type_preamble, DOC_TYPE_CHOICES
 
 _SYSTEM_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "digest_system.md"
 
@@ -214,12 +215,15 @@ class PageBuilder:
         wiki_dir: Path | None = None,
         *,
         caller: LLMCaller | None = None,
+        doc_type: str = "default",
     ) -> None:
         self._client: LLMCaller = caller if caller is not None else LLMClient(llm_config)
         self._overrides = prompt_overrides or {}
         self._exclude = set(exclude_pages or [])
         self._wiki_dir = wiki_dir
-        self._system = _SYSTEM_PROMPT
+        preamble = _doc_type_preamble(doc_type)
+        self._system = (preamble + "\n\n" + _SYSTEM_PROMPT).lstrip() if preamble else _SYSTEM_PROMPT
+        self._doc_type = doc_type
 
     def build(self, combined: AnalysisResult) -> dict[str, tuple[str, str]]:
         """Return {slug: (title, markdown_content)} for each page."""

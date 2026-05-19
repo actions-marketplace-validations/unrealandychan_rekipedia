@@ -56,6 +56,20 @@ def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
 @click.option("--stdout", "stdout_refactor", is_flag=True, default=False, help="Print REFACTOR.md to stdout after scan (useful for piping to Claude Code).")
 @click.option("--with-refactor", is_flag=True, default=False, help="Auto-generate REFACTOR.md after scan completes.")
 @click.option(
+    "--doc-type",
+    "doc_type",
+    default="default",
+    show_default=True,
+    type=click.Choice(["default", "api-ref", "tutorial", "runbook", "adr", "changelog"], case_sensitive=False),
+    help=(
+        "Wiki page generation style. "
+        "'default' = balanced overview; 'api-ref' = function/class reference; "
+        "'tutorial' = step-by-step; 'runbook' = ops procedures; "
+        "'adr' = Architecture Decision Records; 'changelog' = what changed and migration notes."
+    ),
+    envvar="REKIPEDIA_DOC_TYPE",
+)
+@click.option(
     "--focus", "-F",
     "focus",
     multiple=True,
@@ -82,6 +96,7 @@ def scan_cmd(
     stdout_refactor: bool,
     with_refactor: bool,
     focus: tuple[str, ...],
+    doc_type: str,
 ) -> None:
     """Scan REPO and (re)build the rekipedia knowledge store.
 
@@ -147,6 +162,8 @@ def scan_cmd(
         # Support comma-separated values from env var
         focus_list = [p.strip() for item in focus for p in item.split(",") if p.strip()]
         console.print(f"  focus    : [cyan]{', '.join(focus_list)}[/cyan]")
+    if doc_type != "default":
+        console.print(f"  doc-type : [magenta]{doc_type}[/magenta]")
     if llm_config.embed_model:
         _em = f"{llm_config.embed_provider}/{llm_config.embed_model}" if llm_config.embed_provider else llm_config.embed_model
         console.print(f"  embed    : [cyan]{_em}[/cyan]")
@@ -187,6 +204,7 @@ def scan_cmd(
                 no_llm=no_llm,
                 stdout_refactor=stdout_refactor,
                 focus_globs=focus_list,
+                doc_type=doc_type,
             )
         except Exception as exc:
             console.print_exception(show_locals=True)
@@ -216,6 +234,7 @@ def scan_cmd(
                     no_llm=no_llm,
                     stdout_refactor=stdout_refactor,
                     focus_globs=focus_list,
+                    doc_type=doc_type,
                 )
             except Exception as exc:
                 progress.stop()
