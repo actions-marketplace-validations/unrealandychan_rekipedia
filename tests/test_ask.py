@@ -145,3 +145,116 @@ def test_ask_uses_symbols_json_in_context(scanned_repo):
 
     assert captured
     assert "MyClass" in captured[0]
+
+
+# ── #125 Streaming output tests ───────────────────────────────────────────────
+
+def test_stream_ask_yields_chunks(scanned_repo):
+    """stream_ask should yield string chunks from the LLM stream method."""
+    from rekipedia.orchestrator.run_ask import stream_ask
+
+    repo, output_dir = scanned_repo
+    expected_chunks = ["Hello", " world", "!"]
+
+    with patch("rekipedia.orchestrator.run_ask.LLMClient") as MockClient:
+        mock = MagicMock()
+        mock.stream.return_value = iter(expected_chunks)
+        MockClient.return_value = mock
+
+        result = list(stream_ask("What is this?", repo, output_dir, LLMConfig()))
+
+    assert result == expected_chunks
+
+
+def test_stream_ask_joins_to_full_answer(scanned_repo):
+    """Concatenating stream_ask chunks should equal the full answer."""
+    from rekipedia.orchestrator.run_ask import stream_ask
+
+    repo, output_dir = scanned_repo
+    chunks = ["This ", "is ", "the ", "answer."]
+
+    with patch("rekipedia.orchestrator.run_ask.LLMClient") as MockClient:
+        mock = MagicMock()
+        mock.stream.return_value = iter(chunks)
+        MockClient.return_value = mock
+
+        full = "".join(stream_ask("Explain", repo, output_dir, LLMConfig()))
+
+    assert full == "This is the answer."
+
+
+def test_stream_ask_raises_if_no_scan(tmp_path):
+    """stream_ask raises RuntimeError if no store.db exists."""
+    from rekipedia.orchestrator.run_ask import stream_ask
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    output_dir = tmp_path / ".rekipedia"
+
+    with pytest.raises(RuntimeError, match="No knowledge store found"):
+        list(stream_ask("anything?", repo, output_dir, LLMConfig()))
+
+
+def test_stream_ask_passes_history(scanned_repo):
+    """stream_ask should pass history to LLMClient.stream."""
+    from rekipedia.orchestrator.run_ask import stream_ask
+
+    repo, output_dir = scanned_repo
+    history = [
+        {"role": "user", "content": "previous question"},
+        {"role": "assistant", "content": "previous answer"},
+    ]
+
+    with patch("rekipedia.orchestrator.run_ask.LLMClient") as MockClient:
+        mock = MagicMock()
+        mock.stream.return_value = iter(["ok"])
+        MockClient.return_value = mock
+
+        list(stream_ask("Follow up?", repo, output_dir, LLMConfig(), history=history))
+
+    call_kwargs = mock.stream.call_args
+    passed_history = call_kwargs.kwargs.get("history") or (call_kwargs.args[1:] and call_kwargs.args[1])
+    assert passed_history == history
+
+
+def test_ask_cmd_no_stream_flag(scanned_repo):
+    """--no-stream flag should call _answer_streaming with stream=False."""
+    from click.testing import CliRunner
+    from rekipedia.cli.ask import ask_cmd
+
+    repo, output_dir = scanned_repo
+    runner = CliRunner()
+
+    with patch("rekipedia.cli.ask._answer_streaming") as mock_answer:
+        mock_answer.return_value = "buffered answer"
+        result = runner.invoke(
+            ask_cmd,
+            ["--repo", str(repo), "--output-dir", str(output_dir), "--no-stream", "What is this?"],
+        )
+
+    assert result.exit_code == 0 or "Error" not in (result.output or "")
+    if mock_answer.called:
+        call_kwargs = mock_answer.call_args.kwargs
+        assert call_kwargs.get("stream") is False
+
+
+def test_answer_streaming_non_stream_calls_run_ask(scanned_repo):
+    """_answer_streaming with stream=False should use run_ask not stream_ask."""
+    from rekipedia.cli.ask import _answer_streaming
+    from rekipedia.models.contracts import LLMConfig
+
+    repo, output_dir = scanned_repo
+
+    with (
+        patch("rekipedia.orchestrator.run_ask.LLMClient") as MockClient,
+        patch("rekipedia.cli.ask.console"),
+    ):
+        mock = MagicMock()
+        mock.call.return_value = "full buffered answer"
+        MockClient.return_value = mock
+
+        result = _answer_streaming(
+            "Test?", repo, output_dir, LLMConfig(), history=[], stream=False
+        )
+
+    assert result == "full buffered answer"

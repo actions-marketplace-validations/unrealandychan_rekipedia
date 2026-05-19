@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import os
-import sys
 import threading
 from pathlib import Path
 
@@ -11,6 +10,7 @@ import pyfiglet
 import yaml
 from rich.console import Console
 from rich.live import Live
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.rule import Rule
 from rich.spinner import Spinner
@@ -19,6 +19,10 @@ from rich.text import Text
 from rekipedia.models.contracts import LLMConfig
 
 console = Console()
+
+# ── Streaming config ─────────────────────────────────────────────────────────
+# Streaming is ON by default. Disable via REKIPEDIA_STREAM=0 or --no-stream flag.
+_STREAM_DEFAULT = os.environ.get("REKIPEDIA_STREAM", "1") != "0"
 
 
 def _print_banner() -> None:
@@ -58,17 +62,52 @@ def _answer_streaming(
     output_dir: Path,
     llm_config: LLMConfig,
     history: list[dict],
+    *,
+    stream: bool = True,
 ) -> str | None:
-    """Run one Q&A turn: spinner while waiting, then stream tokens. Returns answer text."""
-    from rekipedia.orchestrator.run_ask import stream_ask  # noqa: PLC0415
+    """Run one Q&A turn: spinner while waiting, then stream tokens via rich.Live.
+
+    Args:
+        question: The user's question.
+        repo: Repository root.
+        output_dir: `.rekipedia/` directory.
+        llm_config: LLM settings.
+        history: Conversation history.
+        stream: If True (default), stream tokens with rich.Live Markdown rendering.
+                If False, wait for full response then print at once.
+
+    Returns:
+        The full answer string, or None on error.
+    """
+    from rekipedia.orchestrator.run_ask import run_ask, stream_ask  # noqa: PLC0415
 
     # Print question header
     console.print(Rule(style="dim"))
     console.print(f"[bold bright_yellow]❯[/bold bright_yellow] {question}\n")
 
-    # Phase 1: spinner until first token
-    chunks_iter = None
+    console.print(Rule("[bold bright_green]◆ Answer[/bold bright_green]", style="bright_green"))
 
+    if not stream:
+        # ── Non-streaming mode: spinner → full response ────────────────
+        spinner_text = Spinner("dots", text=Text(" Searching wiki & reasoning…", style="dim"))
+        answer: str | None = None
+        with Live(spinner_text, console=console, refresh_per_second=12, transient=True):
+            try:
+                answer = run_ask(
+                    question=question,
+                    repo_root=repo,
+                    output_dir=output_dir,
+                    llm_config=llm_config,
+                    history=history,
+                )
+            except (RuntimeError, Exception) as exc:
+                console.print(f"[bold red]Error:[/bold red] {exc}")
+                return None
+        console.print(Markdown(answer))
+        console.rule(style="dim")
+        return answer
+
+    # ── Streaming mode: spinner until first chunk, then live Markdown ──
     try:
         chunks_iter = stream_ask(
             question=question,
@@ -92,21 +131,19 @@ def _answer_streaming(
             console.print(f"[bold red]LLM error:[/bold red] {exc}")
             return None
 
-    # Phase 2: stream remaining tokens to stdout
+    # Phase 2: accumulate + render with rich.Live Markdown
     answer_parts = [first_chunk]
-    console.print(Rule("[bold bright_green]◆ Answer[/bold bright_green]", style="bright_green"))
-    sys.stdout.write(first_chunk)
-    sys.stdout.flush()
     try:
-        for chunk in chunks_iter:  # type: ignore[union-attr]
-            sys.stdout.write(chunk)
-            sys.stdout.flush()
-            answer_parts.append(chunk)
+        with Live(
+            Markdown(first_chunk),
+            console=console,
+            refresh_per_second=15,
+        ) as live:
+            for chunk in chunks_iter:  # type: ignore[union-attr]
+                answer_parts.append(chunk)
+                live.update(Markdown("".join(answer_parts)))
     except Exception as exc:
         console.print(f"\n[bold red]Stream error:[/bold red] {exc}")
-    finally:
-        sys.stdout.write("\n")
-        sys.stdout.flush()
 
     console.rule(style="dim")
     return "".join(answer_parts)
@@ -126,6 +163,16 @@ def _answer_streaming(
 @click.option("--history-limit", default=10, show_default=True, help="Max conversation turns to keep in context.")
 @click.option("--no-save-session", is_flag=True, default=False, help="Do not save session history to disk.")
 @click.option("--no-rewrite", is_flag=True, default=False, help="Disable silent query rewriting.")
+@click.option(
+    "--no-stream",
+    is_flag=True,
+    default=False,
+    envvar="REKIPEDIA_STREAM",
+    help=(
+        "Disable streaming — wait for the full response before printing. "
+        "Also controlled by REKIPEDIA_STREAM=0 env var."
+    ),
+)
 def ask_cmd(
     question_arg: str | None,
     question: str | None,
@@ -135,19 +182,22 @@ def ask_cmd(
     history_limit: int,
     no_save_session: bool,
     no_rewrite: bool,
+    no_stream: bool,
 ) -> None:
     """Interactive grounded Q&A about the scanned repository.
 
     Optionally pass QUESTION directly as a positional argument for single-shot mode.
     Starts a REPL loop if no question is provided — ask until you press Ctrl+C.
-    Answers are streamed in real-time from the LLM.
+    Answers are streamed token-by-token with rich Markdown rendering (default).
+    Use --no-stream or REKIPEDIA_STREAM=0 to wait for the full response first.
     Conversation history is kept for multi-turn context (--history-limit turns).
 
-    \b
+    \\b
     Examples:
         rekipedia ask                                   # interactive REPL
         rekipedia ask "How does the auth flow work?"    # positional single-shot
         rekipedia ask -q "What are the entry points?"  # flag single-shot
+        rekipedia ask --no-stream                       # disable streaming
         rekipedia ask --repo ./my-project
         rekipedia ask --history-limit 20
     """
@@ -160,6 +210,9 @@ def ask_cmd(
     if no_rewrite:
         import os
         os.environ["REKIPEDIA_QUERY_REWRITE"] = "0"
+
+    # Resolve streaming preference: --no-stream flag OR REKIPEDIA_STREAM=0
+    use_stream = not no_stream and _STREAM_DEFAULT
 
     # Resolve question: positional arg takes precedence over -q flag
     single_question = question_arg or question
@@ -191,18 +244,20 @@ def ask_cmd(
     if single_question:
         # Single-shot mode (no session save)
         _print_banner()
-        _answer_streaming(single_question, repo, output_dir, llm_config, history=[])
+        _answer_streaming(single_question, repo, output_dir, llm_config, history=[], stream=use_stream)
         return
 
     # Interactive REPL
     _print_banner()
 
     wiki_dir = output_dir / "wiki"
+    stream_label = "[dim]streaming[/dim]" if use_stream else "[dim]buffered[/dim]"
     panel_content = (
         f"[bold]Model[/bold]   [cyan]{llm_config.model}[/cyan]\n"
         f"[bold]Repo[/bold]    [cyan]{repo}[/cyan]\n"
         f"[bold]Wiki[/bold]    [cyan]{wiki_dir}/[/cyan]\n"
-        f"[bold]History[/bold] [cyan]{history_limit} turns[/cyan]\n\n"
+        f"[bold]History[/bold] [cyan]{history_limit} turns[/cyan]  "
+        f"[bold]Output[/bold] {stream_label}\n\n"
         "[dim]Ask anything about the codebase. Type 'exit' or Ctrl+C to quit.[/dim]"
     )
     console.print(Panel(panel_content, title=" rekipedia ask ", border_style="cyan"))
@@ -226,6 +281,6 @@ def ask_cmd(
             _save_session()
             break
 
-        answer = _answer_streaming(user_input, repo, output_dir, llm_config, history=list(history))
+        answer = _answer_streaming(user_input, repo, output_dir, llm_config, history=list(history), stream=use_stream)
         if answer:
             _append_history(user_input, answer)

@@ -1,3 +1,17 @@
+## v0.15.1 — unreleased
+
+### New Features
+
+**Streaming output for `reki ask`** (closes #125)
+- `reki ask` now renders answers using **rich Markdown live streaming** — headers, code blocks, bullet points, and inline code are rendered in real-time as the LLM produces tokens.
+- A spinner shows while waiting for the first token; once it arrives, the answer renders progressively inside a `rich.Live` panel.
+- Added `--no-stream` CLI flag to disable streaming and wait for the full response before printing. Useful for piping output or CI environments.
+- Added `REKIPEDIA_STREAM=0` environment variable as an alternative to `--no-stream`.
+- The REPL info panel now shows whether output mode is `streaming` or `buffered`.
+- Non-streaming mode uses `run_ask` (single LLM call with spinner), streaming mode uses `stream_ask` (litellm `stream=True`).
+
+---
+
 ## v0.15.0 — 2026-05-13
 
 ### Performance Improvements

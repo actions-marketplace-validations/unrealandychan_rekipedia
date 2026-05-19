@@ -167,6 +167,7 @@ export REKIPEDIA_SHARD_TOKEN_BUDGET=40000
 | `REKIPEDIA_SHARD_TOKEN_BUDGET` | Max tokens per shard group (default: 40000) |
 | `REKIPEDIA_AGENT_ASK` | Set to `1` to enable agentic ReAct ask loop (default: `0` — single-shot) |
 | `REKIPEDIA_ASK_MAX_ITER` | Max tool-call iterations for agentic ask (default: `5`) |
+| `REKIPEDIA_STREAM` | Set to `0` to disable streaming output for `reki ask` (default: `1` — streaming on) |
 | `REKIPEDIA_AGENT_PLANNER` | Set to `1` to enable tool-calling wiki planner (default: `0`) |
 
 ---
@@ -290,16 +291,20 @@ If no previous scan is found, `update` automatically falls back to a full scan.
 ### Ask the wiki
 
 ```bash
-# Start interactive Q&A session (streams answers, Ctrl+C to quit)
+# Start interactive Q&A session (streams answers token-by-token, Ctrl+C to quit)
 rekipedia ask
 rekipedia ask --repo ./my-project
 rekipedia ask --model gpt-4o
 
 # Single-shot mode (backward compat)
 rekipedia ask -q "How does the auth flow work?"
+
+# Disable streaming — wait for the full response before printing
+rekipedia ask --no-stream
+rekipedia ask -q "Explain the architecture" --no-stream
 ```
 
-Answers are grounded **entirely** in your wiki pages and symbol index — the LLM cannot hallucinate details that aren't in the scanned knowledge store. Answers are streamed token-by-token with a spinner while waiting.
+Answers are grounded **entirely** in your wiki pages and symbol index — the LLM cannot hallucinate details that aren't in the scanned knowledge store. Answers are streamed token-by-token using **rich Markdown rendering** — headers, code blocks, and bullet points render live as the model writes them. Set `REKIPEDIA_STREAM=0` or pass `--no-stream` to disable streaming and wait for the full response first.
 
 Not happy with a generated page? See **[docs/customizing.md](docs/customizing.md)** — you can pin pages, override prompts, change the writing style, or add your own pages that scans will never touch.
 
