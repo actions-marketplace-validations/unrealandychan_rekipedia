@@ -21,6 +21,13 @@
 - Diff truncation: large diffs are truncated at file boundaries to fit the context window, with a visible notice.
 - 12 new tests covering: truncation, empty diff, streaming, non-streaming, wiki context injection, CLI flags.
 
+**Interactive HTML export** (closes #129)
+- `reki export --format html` generates a fully self-contained single-file HTML wiki.
+- Features: dark/light theme toggle (persisted in localStorage), instant sidebar search, collapsible section groups, page importance badges, syntax highlighting via highlight.js, Mermaid diagram rendering, copyable heading anchors.
+- All wiki pages embedded as a JSON data block — no server, CDN, or build step required.
+- `HtmlExporter` class in `rekipedia/exporters/html_export.py` for programmatic use.
+- 23 tests: content embedding, nav order, metadata, unicode, HTML structure, CLI integration.
+
 **OSC-8 clickable citations in `reki ask`** (closes #130)
 - Source citations (e.g. `src/auth.py:42`) are now printed as **OSC-8 terminal hyperlinks** after each answer.
 - Click the citation to open the file at the exact line in your editor (iTerm2, WezTerm, Kitty, Foot, Windows Terminal, VSCode, GNOME Terminal ≥3.26, Alacritty).
