@@ -27,6 +27,7 @@ No hallucinations, no guessing — every answer is grounded in your actual codeb
 - **Incremental updates**: only re-processes changed files after the first scan
 - **Grounded Q&A**: answers cite real file paths and line numbers — no hallucinations
 - **Codebase tree index** — every scan builds a hierarchical directory/file tree in SQLite, enabling structured navigation and future reasoning-based retrieval.
+- **Rust full symbol extraction** — `RustExtractor` (tree-sitter) now extracts enums, type aliases, `const`/`static`, `macro_rules!`, `mod`, and intra-file call-graph edges — on par with Go, TypeScript, and Python extractors.
 
 ## Quick start
 

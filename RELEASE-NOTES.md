@@ -21,6 +21,13 @@
 - Diff truncation: large diffs are truncated at file boundaries to fit the context window, with a visible notice.
 - 12 new tests covering: truncation, empty diff, streaming, non-streaming, wiki context injection, CLI flags.
 
+**`RustExtractor` — full tree-sitter symbol coverage** (closes #132)
+- Rust extractor now extracts **enums** (with variant list in signature), **type aliases**, **`const`/`static` items** (kind `variable`), **`macro_rules!`** (kind `other`), and **`mod` declarations** (kind `module`) — reaching parity with the Go, TypeScript, and Python extractors.
+- Added **call-graph edges**: `call_expression` nodes are matched against defined functions, producing `calls` relationships for intra-file call graph.
+- `impl Trait for Type` now emits a `uses` relationship (Type → Trait) as before, unchanged.
+- Refactored internal helpers: `_name_from_field_or_child`, `_first_child_of_type` — eliminate repetition across all node types.
+- 40 new tests: per-kind symbol extraction, line numbers, signatures, relationships (import, uses, calls), error handling, mixed-file integration.
+
 ---
 
 ## v0.15.0 — 2026-05-13
