@@ -21,6 +21,15 @@
 - Diff truncation: large diffs are truncated at file boundaries to fit the context window, with a visible notice.
 - 12 new tests covering: truncation, empty diff, streaming, non-streaming, wiki context injection, CLI flags.
 
+**GitHub Actions official action** (closes #127)
+- New `action.yml` at repo root — use `uses: unrealandychan/rekipedia@v1` in any GitHub Actions workflow.
+- Composite action with steps: setup-python, install rekipedia, configure LLM provider, `reki scan`, optional HTML export, upload-artifact.
+- Inputs: `repo-path`, `output-dir`, `model`, `api-key`, `focus`, `export-html`, `upload-artifact`, `artifact-name`, `python-version`, `rekipedia-version`, `extra-deps`.
+- Outputs: `output-dir`, `wiki-pages`, `html-path`.
+- Auto-detects LLM provider (OpenAI/Anthropic/Google/Mistral) from model name to set the correct env var.
+- Example workflow: `.github/workflows/wiki-example.yml`.
+- 31 tests: action.yml structure, inputs, outputs, steps, example workflow.
+
 **Interactive HTML export** (closes #129)
 - `reki export --format html` generates a fully self-contained single-file HTML wiki.
 - Features: dark/light theme toggle (persisted in localStorage), instant sidebar search, collapsible section groups, page importance badges, syntax highlighting via highlight.js, Mermaid diagram rendering, copyable heading anchors.

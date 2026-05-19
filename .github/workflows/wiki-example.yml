@@ -1,0 +1,41 @@
+# Example: use rekipedia as a GitHub Actions step
+#
+# Add this to .github/workflows/wiki.yml in your repository.
+# The action scans your codebase and uploads a .rekipedia/ wiki as an artifact.
+#
+# To also generate an interactive HTML wiki, set export-html: 'true'.
+# To only scan specific paths, use the focus input.
+
+name: Generate Wiki
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:          # allow manual runs
+
+jobs:
+  wiki:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate rekipedia wiki
+        uses: unrealandychan/rekipedia@v1
+        with:
+          repo-path: "."
+          model: "gpt-4o-mini"          # or anthropic/claude-3-5-haiku-20241022
+          api-key: ${{ secrets.OPENAI_API_KEY }}
+          export-html: "true"           # also produce export.html
+          upload-artifact: "true"
+          artifact-name: "my-wiki"
+
+      # Optional: deploy export.html to GitHub Pages
+      # - name: Deploy to GitHub Pages
+      #   uses: peaceiris/actions-gh-pages@v4
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     publish_dir: .rekipedia
+      #     publish_branch: gh-pages

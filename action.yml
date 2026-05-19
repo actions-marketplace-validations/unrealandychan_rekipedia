@@ -1,0 +1,197 @@
+name: "rekipedia — AI Codebase Wiki"
+description: >
+  Scan a repository with rekipedia and generate a structured AI-powered wiki.
+  Outputs a .rekipedia/ directory containing wiki pages, a knowledge graph,
+  and an optional interactive HTML export ready for GitHub Pages or download.
+
+branding:
+  icon: "book-open"
+  color: "blue"
+
+inputs:
+  repo-path:
+    description: "Path to the repository root to scan (default: current workspace)."
+    required: false
+    default: "."
+
+  output-dir:
+    description: "Path to write the .rekipedia/ output directory."
+    required: false
+    default: ".rekipedia"
+
+  model:
+    description: >
+      LLM model string (e.g. openai/gpt-4o, anthropic/claude-3-5-sonnet-20241022).
+      Defaults to the rekipedia built-in default (gpt-4o-mini).
+    required: false
+    default: ""
+
+  api-key:
+    description: >
+      API key for the LLM provider.  Pass your secret with
+        api-key: ${{ secrets.OPENAI_API_KEY }}
+      The action auto-detects the provider from the model name and sets the
+      appropriate environment variable (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.).
+    required: false
+    default: ""
+
+  focus:
+    description: >
+      Comma-separated glob patterns to limit extraction to specific paths.
+      Example: "src/auth/**,src/payments/**"
+      Leave empty to scan the entire repository.
+    required: false
+    default: ""
+
+  export-html:
+    description: "Set to 'true' to also generate an interactive HTML wiki (export.html)."
+    required: false
+    default: "false"
+
+  upload-artifact:
+    description: "Set to 'true' to upload the .rekipedia/ directory as a GitHub Actions artifact."
+    required: false
+    default: "true"
+
+  artifact-name:
+    description: "Name of the uploaded artifact."
+    required: false
+    default: "rekipedia-wiki"
+
+  python-version:
+    description: "Python version to use when installing rekipedia."
+    required: false
+    default: "3.11"
+
+  rekipedia-version:
+    description: >
+      rekipedia version to install from PyPI (e.g. '0.15.1').
+      Leave empty to install the latest release.
+    required: false
+    default: ""
+
+  extra-deps:
+    description: >
+      Space-separated extra pip packages to install alongside rekipedia
+      (e.g. 'tree-sitter-rust tree-sitter-go').
+    required: false
+    default: ""
+
+outputs:
+  output-dir:
+    description: "Absolute path to the generated .rekipedia/ directory."
+    value: ${{ steps.scan.outputs.output-dir }}
+
+  wiki-pages:
+    description: "Number of wiki pages generated."
+    value: ${{ steps.scan.outputs.wiki-pages }}
+
+  html-path:
+    description: "Absolute path to export.html (only set when export-html is 'true')."
+    value: ${{ steps.html.outputs.html-path }}
+
+runs:
+  using: "composite"
+  steps:
+    # ── 1. Set up Python ──────────────────────────────────────────────────────
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    # ── 2. Install rekipedia ──────────────────────────────────────────────────
+    - name: Install rekipedia
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.rekipedia-version }}" ]; then
+          pip install --quiet "rekipedia==${{ inputs.rekipedia-version }}"
+        else
+          pip install --quiet rekipedia
+        fi
+        if [ -n "${{ inputs.extra-deps }}" ]; then
+          pip install --quiet ${{ inputs.extra-deps }}
+        fi
+        reki --version
+
+    # ── 3. Set API key environment variable ───────────────────────────────────
+    - name: Configure LLM provider
+      shell: bash
+      env:
+        _API_KEY: ${{ inputs.api-key }}
+        _MODEL: ${{ inputs.model }}
+      run: |
+        if [ -z "$_API_KEY" ]; then
+          echo "No api-key provided — using existing environment variables."
+          exit 0
+        fi
+        MODEL="${_MODEL:-}"
+        if echo "$MODEL" | grep -qi "anthropic\|claude"; then
+          echo "ANTHROPIC_API_KEY=$_API_KEY" >> "$GITHUB_ENV"
+          echo "Provider: Anthropic"
+        elif echo "$MODEL" | grep -qi "gemini\|google"; then
+          echo "GOOGLE_API_KEY=$_API_KEY" >> "$GITHUB_ENV"
+          echo "Provider: Google"
+        elif echo "$MODEL" | grep -qi "mistral"; then
+          echo "MISTRAL_API_KEY=$_API_KEY" >> "$GITHUB_ENV"
+          echo "Provider: Mistral"
+        else
+          # Default: OpenAI
+          echo "OPENAI_API_KEY=$_API_KEY" >> "$GITHUB_ENV"
+          echo "Provider: OpenAI"
+        fi
+
+    # ── 4. Run reki scan ──────────────────────────────────────────────────────
+    - name: Scan repository
+      id: scan
+      shell: bash
+      env:
+        REKIPEDIA_MODEL: ${{ inputs.model }}
+      run: |
+        REPO="${{ inputs.repo-path }}"
+        OUT="${{ inputs.output-dir }}"
+        FOCUS="${{ inputs.focus }}"
+
+        ARGS=("$REPO" "--output-dir" "$OUT")
+
+        if [ -n "$FOCUS" ]; then
+          IFS=',' read -ra PATTERNS <<< "$FOCUS"
+          for pat in "${PATTERNS[@]}"; do
+            ARGS+=("--focus" "$pat")
+          done
+        fi
+
+        echo "Running: reki scan ${ARGS[*]}"
+        reki scan "${ARGS[@]}"
+
+        # Count wiki pages
+        WIKI_DIR="$OUT/wiki"
+        PAGE_COUNT=0
+        if [ -d "$WIKI_DIR" ]; then
+          PAGE_COUNT=$(find "$WIKI_DIR" -name "*.md" | wc -l | tr -d ' ')
+        fi
+
+        ABS_OUT="$(cd "$OUT" && pwd)"
+        echo "output-dir=$ABS_OUT" >> "$GITHUB_OUTPUT"
+        echo "wiki-pages=$PAGE_COUNT" >> "$GITHUB_OUTPUT"
+        echo "✅ Scan complete — $PAGE_COUNT wiki pages written to $ABS_OUT"
+
+    # ── 5. Optional: export HTML ──────────────────────────────────────────────
+    - name: Export interactive HTML
+      id: html
+      if: ${{ inputs.export-html == 'true' }}
+      shell: bash
+      run: |
+        OUT="${{ inputs.output-dir }}"
+        reki export "${{ inputs.repo-path }}" --output-dir "$OUT" --format html
+        HTML_PATH="$(cd "$OUT" && pwd)/export.html"
+        echo "html-path=$HTML_PATH" >> "$GITHUB_OUTPUT"
+        echo "✅ HTML export: $HTML_PATH"
+
+    # ── 6. Optional: upload artifact ─────────────────────────────────────────
+    - name: Upload wiki artifact
+      if: ${{ inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.output-dir }}
+        retention-days: 30
