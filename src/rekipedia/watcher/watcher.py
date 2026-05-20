@@ -10,6 +10,22 @@ from pathlib import Path
 
 CONFIG_PATH = Path.home() / ".rekipedia" / "watch.json"
 
+_SOURCE_EXTENSIONS = frozenset({
+    ".py", ".pyw",
+    ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
+    ".go",
+    ".rs",
+    ".java",
+    ".rb",
+    ".php",
+    ".swift",
+    ".kt",
+})
+
+
+def _is_source_file(path: str) -> bool:
+    return Path(path).suffix.lower() in _SOURCE_EXTENSIONS
+
 
 def _load_config() -> dict:
     if CONFIG_PATH.exists():
@@ -81,7 +97,7 @@ class _RepoWatcher:
             print(f"[reki watch] Update failed: {e}", flush=True)
 
 
-def start_watching(repos: list[str] | None = None) -> None:
+def start_watching(repos: list[str] | None = None, debounce_seconds: float = 2.0) -> None:
     """Start watching repos. Blocks until interrupted."""
     try:
         from watchdog.observers import Observer
@@ -101,17 +117,17 @@ def start_watching(repos: list[str] | None = None) -> None:
             self._rw = repo_watcher
 
         def on_modified(self, event):
-            if not event.is_directory and event.src_path.endswith(('.py', '.ts', '.js', '.go')):
+            if not event.is_directory and _is_source_file(event.src_path):
                 self._rw.on_change(event.src_path)
 
         def on_created(self, event):
-            if not event.is_directory:
+            if not event.is_directory and _is_source_file(event.src_path):
                 self._rw.on_change(event.src_path)
 
     observer = Observer()
     watchers = []
     for repo in repos:
-        rw = _RepoWatcher(repo)
+        rw = _RepoWatcher(repo, debounce_seconds=debounce_seconds)
         handler = _Handler(rw)
         observer.schedule(handler, repo, recursive=True)
         watchers.append(rw)

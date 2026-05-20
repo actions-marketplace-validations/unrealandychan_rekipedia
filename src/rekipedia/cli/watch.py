@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import click
 from rich.console import Console
 
@@ -33,7 +35,14 @@ def watch_list():
         console.print(f'  [cyan]{r}[/cyan]')
 
 @watch_cmd.command('start')
-def watch_start():
-    """Start the file watcher daemon."""
+@click.argument('path', default=None, required=False)
+@click.option('--debounce', default=2.0, show_default=True, help='Debounce delay in seconds before triggering update.')
+def watch_start(path, debounce):
+    """Start the file watcher daemon.
+
+    Optionally pass a PATH to watch directly without registering it first.
+    If no PATH is given, watches all registered repos (reki watch add <path>).
+    """
     from rekipedia.watcher.watcher import start_watching
-    start_watching()
+    repos = [str(Path(path).resolve())] if path else None
+    start_watching(repos=repos, debounce_seconds=debounce)

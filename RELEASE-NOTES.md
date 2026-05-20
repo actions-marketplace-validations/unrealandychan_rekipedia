@@ -1,5 +1,12 @@
 ## v0.17.0 -- unreleased
 
+**`reki watch` -- native OS filesystem watcher** (closes #138)
+- `reki watch start <path>` -- directly watch a directory; or register repos with `reki watch add/remove/list`.
+- `--debounce <secs>` flag (default 2s) prevents thrashing on rapid saves.
+- Monitors 13 source extensions: `.py .ts .tsx .js .jsx .go .rs .java .rb .php .swift .kt`.
+- Auto-triggers `reki update` on changes via native `watchdog` OS events (FSEvents/inotify/ReadDirectoryChangesW).
+- 36 tests covering file filtering, debounce logic, config CRUD, all CLI sub-commands.
+
 **Framework-aware route extraction** (closes #137)
 - Routes are extracted as `kind: "route"` symbols named `"METHOD /path"`.
 - Python: Flask (`@app.route`, `@app.get/post/...`), FastAPI, Django `path()`/`url()`, Starlette `add_route()`.
