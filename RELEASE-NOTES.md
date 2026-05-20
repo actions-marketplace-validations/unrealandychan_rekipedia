@@ -1,4 +1,14 @@
-     1|## v0.17.0 — 2026-05-20
+     1|## v0.17.1 — 2026-05-20
+
+### Bug Fixes
+
+- Fix `TestExampleWorkflow` test path — point to `examples/wiki.yml` after workflow move
+- Fix `_print_answer_citations` OSC-8 hyperlink rendering in `reki ask`
+- Fix npm-publish workflow trigger to `py/v*` (prevent bare `v*` tags from triggering)
+
+---
+
+## v0.17.0 — 2026-05-20
 
 ### New Features
 
