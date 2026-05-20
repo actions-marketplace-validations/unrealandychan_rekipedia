@@ -1,0 +1,25 @@
+name: Benchmark Suite
+
+on:
+  push:
+    tags:
+      - 'py/v*'
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install rekipedia
+        run: pip install -e ".[dev]" -q
+      - name: Run benchmark suite
+        run: python benchmarks/run_extraction.py --verbose --json | tee benchmark-results.json
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark-results.json

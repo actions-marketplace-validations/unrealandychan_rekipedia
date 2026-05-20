@@ -1,11 +1,11 @@
 {
-  "rekipedia_version": "0.1.0",
-  "scanned_at": "2026-05-05T04:59:13.719814+00:00",
-  "repo_path": "/Users/eddiechan/close-wiki",
-  "run_id": "a2f8b2d0-82c7-4ed1-b639-7055376853d8",
-  "model": "gpt-5.4-mini",
-  "file_count": 285,
-  "page_count": 18,
-  "embed_model": "text-embedding-3-small",
-  "embedded": true
+  "rekipedia_version": "0.15.1",
+  "scanned_at": "2026-05-19T17:10:46.808138+00:00",
+  "repo_path": "/home/ubuntu/rekipedia",
+  "run_id": "cf6b4519-7c57-4667-9f55-56be9d22f210",
+  "model": "ollama/llama4",
+  "file_count": 311,
+  "page_count": 7,
+  "embed_model": "",
+  "embedded": false
 }

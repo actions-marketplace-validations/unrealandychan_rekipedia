@@ -17,8 +17,6 @@ from rich.spinner import Spinner
 from rich.text import Text
 
 from rekipedia.models.contracts import LLMConfig
-from rekipedia.utils.terminal_links import print_citations as _osc8_print_citations
-from rekipedia.api import _parse_citations  # noqa: PLC2403
 
 console = Console()
 
@@ -56,13 +54,6 @@ def _build_llm_config(repo: Path, model: str | None) -> LLMConfig:
         base_url=os.environ.get("REKIPEDIA_BASE_URL") or llm_cfg_raw.get("base_url", ""),
         temperature=llm_cfg_raw.get("temperature", 0.2),
     )
-
-
-def _print_answer_citations(answer: str, repo: Path, console) -> None:
-    """Parse file:line citations from *answer* and print as OSC-8 hyperlinks."""
-    citations = _parse_citations(answer)
-    if citations:
-        _osc8_print_citations(citations, repo_root=str(repo), console=console)
 
 
 def _answer_streaming(
@@ -113,7 +104,6 @@ def _answer_streaming(
                 console.print(f"[bold red]Error:[/bold red] {exc}")
                 return None
         console.print(Markdown(answer))
-        _print_answer_citations(answer, repo, console)
         console.rule(style="dim")
         return answer
 
@@ -155,10 +145,8 @@ def _answer_streaming(
     except Exception as exc:
         console.print(f"\n[bold red]Stream error:[/bold red] {exc}")
 
-    final_answer = "".join(answer_parts)
-    _print_answer_citations(final_answer, repo, console)
     console.rule(style="dim")
-    return final_answer
+    return "".join(answer_parts)
 
 
 @click.command("ask")

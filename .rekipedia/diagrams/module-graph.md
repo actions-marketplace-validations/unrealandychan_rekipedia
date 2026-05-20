@@ -1,6 +1,7 @@
 ```mermaid
 flowchart LR
   LLMConfig["LLMConfig"]
+  MagicMock["MagicMock"]
   Path["Path"]
   __future__["__future__"]
   append["append"]
@@ -8,9 +9,8 @@ flowchart LR
   exists["exists"]
   get["get"]
   invoke["invoke"]
-  join["join"]
+  isinstance["isinstance"]
   len["len"]
-  loads["loads"]
   lower["lower"]
   mkdir["mkdir"]
   patch["patch"]
@@ -25,9 +25,8 @@ flowchart LR
   create_app -.->|calls| append
   create_app -.->|calls| exists
   create_app -.->|calls| get
-  create_app -.->|calls| join
+  create_app -.->|calls| isinstance
   create_app -.->|calls| len
-  create_app -.->|calls| loads
   create_app -.->|calls| lower
   create_app -.->|calls| read_text
   create_app -.->|calls| str
@@ -37,5 +36,6 @@ flowchart LR
   run_digest -.->|calls| get
   run_digest -.->|calls| len
   run_digest -.->|calls| lower
+  run_digest -.->|calls| str
 
 ```

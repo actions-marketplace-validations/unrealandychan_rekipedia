@@ -1,0 +1,25 @@
+{
+  "version": "0.15.1",
+  "benchmarks": {
+    "extraction": {
+      "python_web_app": {
+        "description": "Minimal Flask app snapshot",
+        "expected_symbol_count": 5,
+        "expected_symbols": ["app", "index", "get_user", "create_user", "User"],
+        "expected_kinds": ["variable", "function", "class"]
+      },
+      "typescript_react": {
+        "description": "Minimal React TypeScript snapshot",
+        "expected_symbol_count": 3,
+        "expected_symbols": ["App", "Button", "useCounter"],
+        "expected_kinds": ["function", "class"]
+      }
+    },
+    "performance": {
+      "thresholds": {
+        "symbols_per_second": 50,
+        "max_db_size_bytes_per_symbol": 10240
+      }
+    }
+  }
+}

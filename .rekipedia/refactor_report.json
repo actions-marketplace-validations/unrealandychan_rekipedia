@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-05-05T04:59:13.735579+00:00",
-  "rekipedia_version": "0.10.3",
+  "generated_at": "2026-05-19T17:10:46.826419+00:00",
+  "rekipedia_version": "0.10.4",
   "summary": {
-    "high": 9,
+    "high": 11,
     "medium": 0,
-    "low": 364
+    "low": 423
   },
   "issues": [
     {
@@ -14,7 +14,7 @@
       "severity": "high",
       "metrics": {
         "lines": 11,
-        "fan_in": 37,
+        "fan_in": 40,
         "fan_out": 1
       },
       "suggestion": "Split `AnalysisResult` into smaller, single-responsibility classes",
@@ -31,14 +31,14 @@
         "run_update",
         "LocalRunner.run",
         "main",
+        "test_agent_planner_add_pages_and_finalize",
+        "test_agent_planner_fallback_on_error",
         "_make_result",
         "make_result",
         "sample_result",
+        "_make_analysis_result",
         "TestAnalyzeShardMerge.test_merge_basic",
-        "TestDockerSandboxRunner.test_successful_run",
-        "_god_class_result",
-        "_dead_code_result",
-        "_large_file_result"
+        "TestDockerSandboxRunner.test_successful_run"
       ]
     },
     {
@@ -47,8 +47,8 @@
       "file": "src/rekipedia/rag/embedder.py",
       "severity": "high",
       "metrics": {
-        "lines": 262,
-        "fan_in": 12,
+        "lines": 460,
+        "fan_in": 26,
         "fan_out": 0
       },
       "suggestion": "Split `EmbedPipeline` into smaller, single-responsibility classes",
@@ -56,6 +56,7 @@
         "embed_cmd",
         "_rag_chunks",
         "run_digest",
+        "run_update",
         "test_embed_pipeline_build_shows_progress",
         "test_embed_pipeline_uses_provider_prefix",
         "test_embed_pipeline_no_prefix_when_slash_in_model",
@@ -64,7 +65,14 @@
         "TestEmbedPipeline.test_pipeline_model_with_custom_base_url",
         "test_embed_pipeline_build_and_search",
         "test_embed_pipeline_search_no_index",
-        "test_embedder_skip_reported_in_progress"
+        "test_embed_pipeline_persists_provenance",
+        "test_embed_pipeline_update_skips_unchanged_files",
+        "test_embed_pipeline_update_falls_back_to_build_if_no_index",
+        "_make_pipeline",
+        "test_chunks_loaded_once",
+        "test_no_double_embedding",
+        "test_rate_limit_sleep_off_by_default",
+        "test_rate_limit_sleep_on_when_env_set"
       ]
     },
     {
@@ -73,15 +81,15 @@
       "file": "src/rekipedia/llm/client.py",
       "severity": "high",
       "metrics": {
-        "lines": 72,
+        "lines": 68,
         "fan_in": 12,
         "fan_out": 0
       },
       "suggestion": "Split `LLMClient` into smaller, single-responsibility classes",
       "callers": [
+        "AgentAsk.__init__",
         "_rewrite_query",
-        "run_ask",
-        "stream_ask",
+        "_prepare_ask",
         "run_digest",
         "PageBuilder.__init__",
         "PlannerAgent.__init__",
@@ -100,11 +108,13 @@
       "severity": "high",
       "metrics": {
         "lines": 10,
-        "fan_in": 103,
+        "fan_in": 123,
         "fan_out": 1
       },
       "suggestion": "Split `LLMConfig` into smaller, single-responsibility classes",
       "callers": [
+        "scan",
+        "ask",
         "_build_llm_config",
         "embed_cmd",
         "_handle_tool",
@@ -112,19 +122,41 @@
         "scan_cmd",
         "serve_cmd",
         "update_cmd",
-        "run_ask",
-        "stream_ask",
+        "agent_run_ask",
+        "_prepare_ask",
         "run_digest",
         "run_update",
         "ShardPlanner.plan",
+        "AgentPlanner.__init__",
+        "_make_config",
+        "test_agent_planner_add_pages_and_finalize",
+        "test_agent_planner_fallback_on_error",
         "scanned_repo",
-        "test_ask_returns_string",
-        "test_ask_includes_wiki_context_in_system_prompt",
-        "test_ask_raises_if_no_scan",
-        "test_ask_raises_if_no_successful_run",
-        "test_ask_uses_symbols_json_in_context",
-        "TestAnswerStreaming._make_llm_config",
-        "TestBuildFullSystem.test_assembles_context_with_wiki"
+        "test_ask_returns_string"
+      ]
+    },
+    {
+      "kind": "god_class",
+      "symbol": "PageBuilder",
+      "file": "src/rekipedia/synthesis/page_builder.py",
+      "severity": "high",
+      "metrics": {
+        "lines": 141,
+        "fan_in": 11,
+        "fan_out": 0
+      },
+      "suggestion": "Split `PageBuilder` into smaller, single-responsibility classes",
+      "callers": [
+        "_build_llm_report",
+        "run_digest",
+        "run_update",
+        "test_builds_all_canonical_pages",
+        "test_each_page_has_title_and_content",
+        "test_page_has_yaml_frontmatter",
+        "test_exclude_pages",
+        "test_pinned_page_not_overwritten",
+        "test_llm_error_fallback",
+        "test_page_builder_system_prompt_not_read_in_init"
       ]
     },
     {
@@ -214,36 +246,60 @@
     },
     {
       "kind": "god_class",
+      "symbol": "Snapshotter",
+      "file": "src/rekipedia/orchestrator/snapshotter.py",
+      "severity": "high",
+      "metrics": {
+        "lines": 58,
+        "fan_in": 10,
+        "fan_out": 0
+      },
+      "suggestion": "Split `Snapshotter` into smaller, single-responsibility classes",
+      "callers": [
+        "_build_llm_report",
+        "run_digest",
+        "run_update",
+        "test_snapshotter_parallel_hashing",
+        "test_snapshotter_skips_unreadable_file",
+        "test_snapshot_returns_manifests",
+        "test_snapshot_excludes_git_and_pycache",
+        "test_snapshot_sha256_is_stable",
+        "test_snapshot_detects_language",
+        "test_snapshot_extra_ignore"
+      ]
+    },
+    {
+      "kind": "god_class",
       "symbol": "SqliteStore",
       "file": "src/rekipedia/storage/sqlite_store.py",
       "severity": "high",
       "metrics": {
-        "lines": 515,
-        "fan_in": 40,
+        "lines": 920,
+        "fan_in": 62,
         "fan_out": 0
       },
       "suggestion": "Split `SqliteStore` into smaller, single-responsibility classes",
       "callers": [
         "_search_single_repo",
+        "_get_run_id",
+        "embed_cmd",
         "export_cmd",
         "impact_cmd",
-        "_load_store",
+        "_StoreCache._load",
+        "_get_store",
         "scan_cmd",
+        "_ToolHandler.get_relationships",
         "_verify_scan",
+        "_build_full_system",
         "run_digest",
         "run_update",
         "create_app",
         "test_ask_raises_if_no_successful_run",
         "client",
         "test_graph_api_returns_edges",
-        "TestAppRoutes.test_ask_page_with_db",
-        "TestAppRoutes.test_ask_post_saves_to_db",
-        "TestAppRoutes.test_api_history_with_db",
-        "TestAppRoutes.test_api_graph_with_db_no_run",
-        "TestAppRoutes.test_api_health_ok",
-        "test_qa_history_table_exists",
-        "test_save_and_retrieve_qa",
-        "test_qa_history_only_returns_own_repo"
+        "test_notes_injected_in_context",
+        "test_notes_not_injected_when_empty",
+        "app"
       ]
     },
     {
@@ -914,6 +970,18 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "(s *Store).DeleteNote",
+      "file": "go/internal/storage/store.go",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `(s *Store).DeleteNote` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "(s *Store).FinishRun",
       "file": "go/internal/storage/store.go",
       "severity": "low",
@@ -998,6 +1066,18 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "(s *Store).GetTree",
+      "file": "go/internal/storage/store.go",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `(s *Store).GetTree` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "(s *Store).GetWikiPage",
       "file": "go/internal/storage/store.go",
       "severity": "low",
@@ -1018,6 +1098,18 @@
         "fan_out": 0
       },
       "suggestion": "Remove `(s *Store).LatestRunID` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "(s *Store).ListNotes",
+      "file": "go/internal/storage/store.go",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `(s *Store).ListNotes` — 0 callers detected",
       "callers": []
     },
     {
@@ -1130,6 +1222,18 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "(s *Store).UpsertNote",
+      "file": "go/internal/storage/store.go",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `(s *Store).UpsertNote` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "(s *Store).UpsertPage",
       "file": "go/internal/storage/aliases.go",
       "severity": "low",
@@ -1186,6 +1290,18 @@
         "fan_out": 0
       },
       "suggestion": "Remove `(s *Store).UpsertSymbols` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "(s *Store).UpsertTree",
+      "file": "go/internal/storage/store.go",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `(s *Store).UpsertTree` — 0 callers detected",
       "callers": []
     },
     {
@@ -1354,6 +1470,78 @@
         "fan_out": 0
       },
       "suggestion": "Remove `(v *VectorStore).ensureCollection` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "AgentAsk.__init__",
+      "file": "src/rekipedia/orchestrator/agent_ask.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 2
+      },
+      "suggestion": "Remove `AgentAsk.__init__` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "AgentAsk._build_initial_system",
+      "file": "src/rekipedia/orchestrator/agent_ask.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 5
+      },
+      "suggestion": "Remove `AgentAsk._build_initial_system` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "AgentAsk.run",
+      "file": "src/rekipedia/orchestrator/agent_ask.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 35
+      },
+      "suggestion": "Remove `AgentAsk.run` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "AgentPlanner.__init__",
+      "file": "src/rekipedia/synthesis/agent_planner.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 1
+      },
+      "suggestion": "Remove `AgentPlanner.__init__` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "AgentPlanner.plan",
+      "file": "src/rekipedia/synthesis/agent_planner.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 51
+      },
+      "suggestion": "Remove `AgentPlanner.plan` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "AskResult.__repr__",
+      "file": "src/rekipedia/api.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 1
+      },
+      "suggestion": "Remove `AskResult.__repr__` — 0 callers detected",
       "callers": []
     },
     {
@@ -1718,12 +1906,36 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "EmbedPipeline._chunks_data",
+      "file": "src/rekipedia/rag/embedder.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 2
+      },
+      "suggestion": "Remove `EmbedPipeline._chunks_data` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "EmbedPipeline._faiss_index",
+      "file": "src/rekipedia/rag/embedder.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 2
+      },
+      "suggestion": "Remove `EmbedPipeline._faiss_index` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "EmbedPipeline.build",
       "file": "src/rekipedia/rag/embedder.py",
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 43
+        "fan_out": 55
       },
       "suggestion": "Remove `EmbedPipeline.build` — 0 callers detected",
       "callers": []
@@ -1759,9 +1971,21 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 59
+        "fan_out": 39
       },
       "suggestion": "Remove `EmbedPipeline.search` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "EmbedPipeline.update",
+      "file": "src/rekipedia/rag/embedder.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 85
+      },
+      "suggestion": "Remove `EmbedPipeline.update` — 0 callers detected",
       "callers": []
     },
     {
@@ -2299,7 +2523,7 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 3
+        "fan_out": 2
       },
       "suggestion": "Remove `PageBuilder.__init__` — 0 callers detected",
       "callers": []
@@ -2383,7 +2607,7 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 38
+        "fan_out": 41
       },
       "suggestion": "Remove `PlannerAgent.plan` — 0 callers detected",
       "callers": []
@@ -2558,12 +2782,24 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "ScanResult.__repr__",
+      "file": "src/rekipedia/api.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `ScanResult.__repr__` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "ShardPlanner.__init__",
       "file": "src/rekipedia/orchestrator/sharding.py",
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 0
+        "fan_out": 3
       },
       "suggestion": "Remove `ShardPlanner.__init__` — 0 callers detected",
       "callers": []
@@ -2606,12 +2842,24 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "Snapshotter._sha256",
+      "file": "src/rekipedia/orchestrator/snapshotter.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 1
+      },
+      "suggestion": "Remove `Snapshotter._sha256` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "Snapshotter.snapshot",
       "file": "src/rekipedia/orchestrator/snapshotter.py",
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 12
+        "fan_out": 19
       },
       "suggestion": "Remove `Snapshotter.snapshot` — 0 callers detected",
       "callers": []
@@ -2690,6 +2938,30 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "SqliteStore.carry_forward_page_sources",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 7
+      },
+      "suggestion": "Remove `SqliteStore.carry_forward_page_sources` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "SqliteStore.carry_forward_rag_chunks",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 7
+      },
+      "suggestion": "Remove `SqliteStore.carry_forward_rag_chunks` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "SqliteStore.close",
       "file": "src/rekipedia/storage/sqlite_store.py",
       "severity": "low",
@@ -2702,12 +2974,24 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "SqliteStore.copy_pages",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 8
+      },
+      "suggestion": "Remove `SqliteStore.copy_pages` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "SqliteStore.copy_unchanged_relationships",
       "file": "src/rekipedia/storage/sqlite_store.py",
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 6
+        "fan_out": 12
       },
       "suggestion": "Remove `SqliteStore.copy_unchanged_relationships` — 0 callers detected",
       "callers": []
@@ -2719,7 +3003,7 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 6
+        "fan_out": 12
       },
       "suggestion": "Remove `SqliteStore.copy_unchanged_symbols` — 0 callers detected",
       "callers": []
@@ -2746,6 +3030,42 @@
         "fan_out": 0
       },
       "suggestion": "Remove `SqliteStore.db` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "SqliteStore.delete_note",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 2
+      },
+      "suggestion": "Remove `SqliteStore.delete_note` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "SqliteStore.get_all_page_slugs",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 3
+      },
+      "suggestion": "Remove `SqliteStore.get_all_page_slugs` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "SqliteStore.get_all_rag_chunks",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 4
+      },
+      "suggestion": "Remove `SqliteStore.get_all_rag_chunks` — 0 callers detected",
       "callers": []
     },
     {
@@ -2810,6 +3130,30 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "SqliteStore.get_note",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 2
+      },
+      "suggestion": "Remove `SqliteStore.get_note` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "SqliteStore.get_notes",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 1
+      },
+      "suggestion": "Remove `SqliteStore.get_notes` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "SqliteStore.get_pages",
       "file": "src/rekipedia/storage/sqlite_store.py",
       "severity": "low",
@@ -2822,6 +3166,18 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "SqliteStore.get_pages_for_files",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 7
+      },
+      "suggestion": "Remove `SqliteStore.get_pages_for_files` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "SqliteStore.get_qa_history",
       "file": "src/rekipedia/storage/sqlite_store.py",
       "severity": "low",
@@ -2830,6 +3186,18 @@
         "fan_out": 2
       },
       "suggestion": "Remove `SqliteStore.get_qa_history` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "SqliteStore.get_rag_chunks_by_file",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 4
+      },
+      "suggestion": "Remove `SqliteStore.get_rag_chunks_by_file` — 0 callers detected",
       "callers": []
     },
     {
@@ -2854,6 +3222,18 @@
         "fan_out": 3
       },
       "suggestion": "Remove `SqliteStore.get_relationships_for_run` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "SqliteStore.list_notes",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 9
+      },
+      "suggestion": "Remove `SqliteStore.list_notes` — 0 callers detected",
       "callers": []
     },
     {
@@ -2930,6 +3310,30 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "SqliteStore.upsert_files_batch",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 5
+      },
+      "suggestion": "Remove `SqliteStore.upsert_files_batch` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "SqliteStore.upsert_note",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 5
+      },
+      "suggestion": "Remove `SqliteStore.upsert_note` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "SqliteStore.upsert_page",
       "file": "src/rekipedia/storage/sqlite_store.py",
       "severity": "low",
@@ -2938,6 +3342,42 @@
         "fan_out": 5
       },
       "suggestion": "Remove `SqliteStore.upsert_page` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "SqliteStore.upsert_page_sources",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 5
+      },
+      "suggestion": "Remove `SqliteStore.upsert_page_sources` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "SqliteStore.upsert_pages_batch",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 11
+      },
+      "suggestion": "Remove `SqliteStore.upsert_pages_batch` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "SqliteStore.upsert_rag_chunks",
+      "file": "src/rekipedia/storage/sqlite_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 6
+      },
+      "suggestion": "Remove `SqliteStore.upsert_rag_chunks` — 0 callers detected",
       "callers": []
     },
     {
@@ -3170,6 +3610,126 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "_StoreCache.__init__",
+      "file": "src/rekipedia/cli/mcp_server.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 1
+      },
+      "suggestion": "Remove `_StoreCache.__init__` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_StoreCache._load",
+      "file": "src/rekipedia/cli/mcp_server.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 5
+      },
+      "suggestion": "Remove `_StoreCache._load` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_StoreCache._rebuild_indices",
+      "file": "src/rekipedia/cli/mcp_server.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 20
+      },
+      "suggestion": "Remove `_StoreCache._rebuild_indices` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_StoreCache._refresh",
+      "file": "src/rekipedia/cli/mcp_server.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 3
+      },
+      "suggestion": "Remove `_StoreCache._refresh` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_StoreCache.available",
+      "file": "src/rekipedia/cli/mcp_server.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 1
+      },
+      "suggestion": "Remove `_StoreCache.available` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_StoreCache.callers_callees",
+      "file": "src/rekipedia/cli/mcp_server.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 3
+      },
+      "suggestion": "Remove `_StoreCache.callers_callees` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_StoreCache.rels",
+      "file": "src/rekipedia/cli/mcp_server.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 1
+      },
+      "suggestion": "Remove `_StoreCache.rels` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_StoreCache.search_by_name",
+      "file": "src/rekipedia/cli/mcp_server.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 4
+      },
+      "suggestion": "Remove `_StoreCache.search_by_name` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_StoreCache.symbols",
+      "file": "src/rekipedia/cli/mcp_server.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 1
+      },
+      "suggestion": "Remove `_StoreCache.symbols` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_StoreCache.symbols_for_file",
+      "file": "src/rekipedia/cli/mcp_server.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 6
+      },
+      "suggestion": "Remove `_StoreCache.symbols_for_file` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "_TokenCounter.__init__",
       "file": "src/rekipedia/llm/client.py",
       "severity": "low",
@@ -3226,6 +3786,90 @@
         "fan_out": 0
       },
       "suggestion": "Remove `_TokenCounter.total_tokens` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_ToolHandler.__init__",
+      "file": "src/rekipedia/orchestrator/agent_ask.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `_ToolHandler.__init__` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_ToolHandler._get_symbols",
+      "file": "src/rekipedia/orchestrator/agent_ask.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 3
+      },
+      "suggestion": "Remove `_ToolHandler._get_symbols` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_ToolHandler.dispatch",
+      "file": "src/rekipedia/orchestrator/agent_ask.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 9
+      },
+      "suggestion": "Remove `_ToolHandler.dispatch` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_ToolHandler.get_page",
+      "file": "src/rekipedia/orchestrator/agent_ask.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 8
+      },
+      "suggestion": "Remove `_ToolHandler.get_page` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_ToolHandler.get_relationships",
+      "file": "src/rekipedia/orchestrator/agent_ask.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 20
+      },
+      "suggestion": "Remove `_ToolHandler.get_relationships` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_ToolHandler.get_symbol",
+      "file": "src/rekipedia/orchestrator/agent_ask.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 13
+      },
+      "suggestion": "Remove `_ToolHandler.get_symbol` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "_ToolHandler.search_code",
+      "file": "src/rekipedia/orchestrator/agent_ask.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 8
+      },
+      "suggestion": "Remove `_ToolHandler.search_code` — 0 callers detected",
       "callers": []
     },
     {
@@ -3487,7 +4131,7 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 58
+        "fan_out": 65
       },
       "suggestion": "Remove `embed_cmd` — 0 callers detected",
       "callers": []
@@ -4034,6 +4678,90 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "note_add",
+      "file": "src/rekipedia/cli/note.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 7
+      },
+      "suggestion": "Remove `note_add` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "note_cmd",
+      "file": "src/rekipedia/cli/note.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 1
+      },
+      "suggestion": "Remove `note_cmd` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "note_edit",
+      "file": "src/rekipedia/cli/note.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 18
+      },
+      "suggestion": "Remove `note_edit` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "note_import",
+      "file": "src/rekipedia/cli/note.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 28
+      },
+      "suggestion": "Remove `note_import` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "note_list",
+      "file": "src/rekipedia/cli/note.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 10
+      },
+      "suggestion": "Remove `note_list` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "note_remove",
+      "file": "src/rekipedia/cli/note.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 15
+      },
+      "suggestion": "Remove `note_remove` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "openStore",
+      "file": "go/cmd/rekipedia/cmd/note.go",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `openStore` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "parseCIYaml",
       "file": "go/internal/extractor/config.go",
       "severity": "low",
@@ -4279,7 +5007,7 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 72
+        "fan_out": 82
       },
       "suggestion": "Remove `scan_cmd` — 0 callers detected",
       "callers": []
@@ -4382,6 +5110,18 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "splitByComma",
+      "file": "go/internal/storage/store.go",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `splitByComma` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "splitLanguages",
       "file": "go/cmd/rekipedia/cmd/scan.go",
       "severity": "low",
@@ -4390,6 +5130,18 @@
         "fan_out": 0
       },
       "suggestion": "Remove `splitLanguages` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "splitTags",
+      "file": "go/internal/storage/store.go",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `splitTags` — 0 callers detected",
       "callers": []
     },
     {
@@ -4498,6 +5250,18 @@
         "fan_out": 0
       },
       "suggestion": "Remove `topLevelDir` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "trimSpace",
+      "file": "go/internal/storage/store.go",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `trimSpace` — 0 callers detected",
       "callers": []
     },
     {
