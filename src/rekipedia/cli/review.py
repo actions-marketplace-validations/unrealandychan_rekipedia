@@ -338,11 +338,9 @@ def review_cmd(
     output_dir = (output_dir or repo / ".rekipedia").resolve()
 
     llm_cfg_raw: dict = {}
-    cfg_path = repo / ".rekipedia" / "config.yml"
-    if cfg_path.exists():
-        import yaml  # noqa: PLC0415
-        cfg = yaml.safe_load(cfg_path.read_text()) or {}
-        llm_cfg_raw = cfg.get("llm", {})
+    from rekipedia.config.loader import load_config  # noqa: PLC0415
+    cfg = load_config(repo)
+    llm_cfg_raw = cfg.get("llm", {})
 
     llm_config = LLMConfig(
         model=os.environ.get("REKIPEDIA_MODEL") or model or llm_cfg_raw.get("model", "ollama/llama4"),

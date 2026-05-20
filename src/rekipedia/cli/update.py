@@ -16,10 +16,8 @@ console = Console()
 
 
 def _load_config(repo: Path) -> dict:
-    cfg_path = repo / ".rekipedia" / "config.yml"
-    if cfg_path.exists():
-        return yaml.safe_load(cfg_path.read_text()) or {}
-    return {}
+    from rekipedia.config.loader import load_config  # noqa: PLC0415
+    return load_config(repo)
 
 
 @click.command("update")

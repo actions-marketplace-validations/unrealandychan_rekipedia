@@ -9,6 +9,7 @@ from rich.console import Console
 console = Console()
 
 _DEFAULT_CONFIG_YAML = """\
+# Project-level config — overrides ~/.config/rekipedia/config.yml
 # rekipedia configuration — .rekipedia/config.yml
 # Run `reki init` to regenerate this file.
 version: 1
@@ -40,23 +41,22 @@ languages:   # null = all languages
 
 # ── LLM settings ─────────────────────────────────────────────────────────────
 llm:
-  # Model in litellm format: provider/model-name
+  # Model in litellm format: provider/model-name  (can override per-project)
   # Examples:
   #   ollama/llama4          (local Ollama — default)
   #   openai/gpt-4o
   #   anthropic/claude-sonnet-4
   #   openrouter/google/gemini-2.5-pro
+  # model: ollama/llama4
   model: ollama/llama4
-  api_key: ""        # or set env var REKIPEDIA_API_KEY / OPENAI_API_KEY
-  base_url: ""       # override API base URL (e.g. http://localhost:11434 for Ollama)
+  # api_key, base_url, embed_api_key, embed_base_url — set in global config
+  # (~/.config/rekipedia/config.yml) or via env vars (REKIPEDIA_API_KEY, etc.)
   temperature: 0.2
 
   # ── Embedding model (for semantic search / RAG) ───────────────────────────
   # Leave blank to use the same model as above (not recommended for large repos).
   # embed_model: text-embedding-3-small
   # embed_provider: openai
-  # embed_api_key: ""
-  # embed_base_url: ""
 """
 
 _GITIGNORE_ENTRY = ".rekipedia/store.db\n"

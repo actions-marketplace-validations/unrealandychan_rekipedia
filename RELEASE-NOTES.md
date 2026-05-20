@@ -1,4 +1,15 @@
-     1|## v0.17.1 — 2026-05-20
+     1|## v0.17.2 — 2026-05-20
+
+### Features
+
+- **Global user config** (`~/.config/rekipedia/config.yml`) — store API keys and model once, all projects inherit automatically (closes #143)
+- **3-layer config merge** — global → project `.rekipedia/config.yml` → env vars; dicts deep-merged, local wins on conflict
+- **`reki setup` wizard** — interactive onboarding: pick LLM provider, enter API key, select model, optional connection test (closes #144)
+- Unified `load_config()` in `rekipedia.config.loader` replaces scattered `_load_config()` duplicates across CLI commands
+
+---
+
+## v0.17.1 — 2026-05-20
 
 ### Bug Fixes
 

@@ -313,4 +313,4 @@ class TestTopLevelImport:
     def test_version_still_present(self):
         import rekipedia
 
-        assert rekipedia.__version__ == "0.17.1"
+        assert rekipedia.__version__ == "0.17.2"

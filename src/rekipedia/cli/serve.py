@@ -44,8 +44,8 @@ def serve_cmd(
     repo = repo.resolve()
     output_dir = (output_dir or repo / ".rekipedia").resolve()
 
-    cfg_path = repo / ".rekipedia" / "config.yml"
-    cfg = yaml.safe_load(cfg_path.read_text()) if cfg_path.exists() else {}
+    from rekipedia.config.loader import load_config  # noqa: PLC0415
+    cfg = load_config(repo)
     llm_raw = cfg.get("llm", {}) if isinstance(cfg, dict) else {}
     llm_config = LLMConfig(
         model=os.environ.get("REKIPEDIA_MODEL") or model or llm_raw.get("model", "ollama/llama4"),

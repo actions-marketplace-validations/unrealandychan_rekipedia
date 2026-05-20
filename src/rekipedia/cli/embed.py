@@ -112,7 +112,7 @@ def embed_cmd(
         sys.exit(1)
 
     # Load config.yml first, then CLI flags / env vars override
-    from rekipedia.cli.scan import _load_config  # noqa: PLC0415
+    from rekipedia.config.loader import load_config as _load_config  # noqa: PLC0415
     from rekipedia.models.contracts import LLMConfig  # noqa: PLC0415
     from rekipedia.rag.embedder import EmbedPipeline  # noqa: PLC0415
     from rekipedia.rag.scan_meta import patch_scan_meta  # noqa: PLC0415

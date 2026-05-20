@@ -9,16 +9,14 @@ import yaml
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
+from rekipedia.config.loader import load_config
 from rekipedia.models.contracts import LLMConfig
 
 console = Console()
 
 
 def _load_config(repo: Path) -> dict:
-    cfg_path = repo / ".rekipedia" / "config.yml"
-    if cfg_path.exists():
-        return yaml.safe_load(cfg_path.read_text()) or {}
-    return {}
+    return load_config(repo)
 
 
 def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
