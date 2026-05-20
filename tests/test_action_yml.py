@@ -6,7 +6,7 @@ import yaml
 import pytest
 
 ACTION_YML = Path(__file__).parent.parent / "action.yml"
-EXAMPLE_WF = Path(__file__).parent.parent / ".github" / "workflows" / "wiki-example.yml"
+EXAMPLE_WF = Path(__file__).parent.parent / "examples" / "wiki.yml"
 
 
 @pytest.fixture(scope="module")
