@@ -14,6 +14,7 @@ from rekipedia.cli.diff import diff_cmd
 from rekipedia.cli.hook import hook_cmd
 from rekipedia.cli.update import update_cmd
 from rekipedia.cli.impact import impact_cmd
+from rekipedia.cli.affected import affected_cmd
 from rekipedia.cli.mcp_cmd import mcp_cmd
 from rekipedia.cli.watch import watch_cmd
 from rekipedia.cli.search import search_cmd
@@ -39,6 +40,7 @@ main.add_command(hook_cmd, name="hook")
 main.add_command(context_cmd)
 main.add_command(diff_cmd)
 main.add_command(impact_cmd)
+main.add_command(affected_cmd)
 main.add_command(mcp_cmd)
 main.add_command(watch_cmd)
 main.add_command(search_cmd)

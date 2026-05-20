@@ -1,3 +1,15 @@
+## v0.17.0 -- unreleased
+
+**`reki affected` -- git-diff-aware minimal test file selection** (closes #136)
+- `git diff --name-only | reki affected` prints the minimum set of test files to run.
+- Uses the stored call graph to compute full change-impact radius -- not naive file matching.
+- `--base`/`--head` flags for comparing git refs directly (e.g. `reki affected --base main`).
+- `--files a.py,b.py` for explicit file list without git.
+- `--format json` for structured CI output (includes `per_file` breakdown).
+- `--depth N` to cap graph traversal (0 = unlimited, default).
+- `--include-all` to output all affected files, not just test files.
+- 22 tests: unit (resolve_files, git_diff, stdin), CLI integration, JSON format, depth, edge cases.
+
 ## v0.16.0 — 2026-05-19
 
 ### New Features
