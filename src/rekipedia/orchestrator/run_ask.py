@@ -205,10 +205,68 @@ def _rewrite_query(
     return question
 
 
+def _load_pinned_context(pinned: list[str], repo_root: Path) -> str:
+    """Load and format pinned files/symbols into a context string.
+
+    Args:
+        pinned: List of "file" or "file:symbol" strings.
+        repo_root: Repository root used to resolve relative paths.
+
+    Returns:
+        Formatted Markdown section, or empty string if nothing to pin.
+    """
+    _TOKEN_BUDGET_CHARS = 16_000
+    sections: list[str] = []
+
+    for entry in pinned:
+        if ":" in entry:
+            file_part, symbol = entry.rsplit(":", 1)
+        else:
+            file_part, symbol = entry, None
+
+        file_path = Path(file_part)
+        if not file_path.is_absolute():
+            file_path = repo_root / file_part
+
+        if not file_path.exists():
+            sections.append(f"### `{entry}`\n\n*[File not found — skipped]*\n")
+            continue
+
+        content = file_path.read_text(encoding="utf-8", errors="replace")
+
+        if symbol:
+            # Extract the named function or class using regex
+            pattern = _re.compile(
+                rf'^(def |class ){_re.escape(symbol)}[\s(:]',
+                _re.MULTILINE,
+            )
+            m = pattern.search(content)
+            if m:
+                start = m.start()
+                # Find end: next top-level def/class or EOF
+                end_pattern = _re.compile(r'^(?:def |class )\S', _re.MULTILINE)
+                end_m = end_pattern.search(content, start + 1)
+                content = content[start:end_m.start() if end_m else len(content)].rstrip()
+            else:
+                content = f"# Symbol '{symbol}' not found in file\n{content}"
+
+        if len(content) > _TOKEN_BUDGET_CHARS:
+            content = content[:_TOKEN_BUDGET_CHARS] + "\n\n*[Content truncated — token budget reached]*"
+
+        label = entry
+        lang = file_part.rsplit(".", 1)[-1] if "." in file_part else ""
+        sections.append(f"### `{label}`\n\n```{lang}\n{content}\n```\n")
+
+    if not sections:
+        return ""
+    return "## Pinned Context (--context)\n\n" + "\n".join(sections)
+
+
 def _build_full_system(
     question: str,
     output_dir: Path,
     llm_config: LLMConfig,
+    pinned_context: str = "",
 ) -> str:
     """Assemble the system prompt + all context sources."""
     system_prompt = _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
@@ -228,6 +286,11 @@ def _build_full_system(
     # This order mirrors the Go runtime (go/internal/orchestrator/run_ask.go).
     context_parts: list[str] = ["# Knowledge Context\n"]
     used_chars = sum(len(p) for p in context_parts)
+
+    # ── 0. Pinned context (--context flag, highest priority) ──────────
+    if pinned_context:
+        context_parts.insert(1, pinned_context)
+        used_chars += len(pinned_context)
 
     # ── 1. RAG: raw source code chunks (highest priority) ─────────────
     if rag_results:
@@ -313,6 +376,7 @@ def _prepare_ask(
     output_dir: Path,
     llm_config: LLMConfig | None,
     history: list[dict] | None,  # noqa: ARG001 — reserved for future use
+    pinned_context: str = "",
 ) -> tuple[LLMClient, str]:
     """Validate scan, build system prompt, and init LLM client.
 
@@ -322,7 +386,7 @@ def _prepare_ask(
     """
     llm_config = llm_config or LLMConfig()
     _verify_scan(output_dir, repo_root)
-    full_system = _build_full_system(question, output_dir, llm_config)
+    full_system = _build_full_system(question, output_dir, llm_config, pinned_context=pinned_context)
     client = LLMClient(llm_config)
     return client, full_system
 
@@ -337,6 +401,7 @@ def run_ask(
     output_dir: Path,
     llm_config: LLMConfig | None = None,
     history: list[dict] | None = None,
+    pinned_context: list[str] | None = None,
 ) -> str:
     """Answer *question* grounded in the knowledge store.
 
@@ -346,6 +411,7 @@ def run_ask(
         output_dir: `.rekipedia/` directory containing store.db + wiki/.
         llm_config: LLM settings; defaults to LLMConfig().
         history: Previous conversation turns as [{role, content}, ...].
+        pinned_context: List of file[:symbol] strings to pin into context.
 
     Returns:
         The assistant's answer as a Markdown string.
@@ -357,7 +423,8 @@ def run_ask(
     if _os.environ.get("REKIPEDIA_AGENT_ASK", "0") == "1":
         from rekipedia.orchestrator.agent_ask import agent_run_ask  # noqa: PLC0415
         return agent_run_ask(question, repo_root, output_dir, llm_config, history)
-    client, full_system = _prepare_ask(question, repo_root, output_dir, llm_config, history)
+    pinned_str = _load_pinned_context(pinned_context or [], repo_root)
+    client, full_system = _prepare_ask(question, repo_root, output_dir, llm_config, history, pinned_context=pinned_str)
     return client.call(question, system=full_system, history=history)
 
 
@@ -367,11 +434,13 @@ def stream_ask(
     output_dir: Path,
     llm_config: LLMConfig | None = None,
     history: list[dict] | None = None,
+    pinned_context: list[str] | None = None,
 ) -> Iterator[str]:
     """Answer *question* grounded in the knowledge store, streaming tokens.
 
     Identical to :func:`run_ask` except the final LLM call uses streaming
     and yields text chunks instead of returning a single string.
     """
-    client, full_system = _prepare_ask(question, repo_root, output_dir, llm_config, history)
+    pinned_str = _load_pinned_context(pinned_context or [], repo_root)
+    client, full_system = _prepare_ask(question, repo_root, output_dir, llm_config, history, pinned_context=pinned_str)
     return client.stream(question, system=full_system, history=history)

@@ -98,6 +98,7 @@ def _answer_streaming(
     history: list[dict],
     *,
     stream: bool = True,
+    pinned_files: list[str] | None = None,
 ) -> str | None:
     """Run one Q&A turn: spinner while waiting, then stream tokens via rich.Live.
 
@@ -133,6 +134,7 @@ def _answer_streaming(
                     output_dir=output_dir,
                     llm_config=llm_config,
                     history=history,
+                    pinned_context=pinned_files,
                 )
             except (RuntimeError, Exception) as exc:
                 console.print(f"[bold red]Error:[/bold red] {exc}")
@@ -150,6 +152,7 @@ def _answer_streaming(
             output_dir=output_dir,
             llm_config=llm_config,
             history=history,
+            pinned_context=pinned_files,
         )
     except (RuntimeError, Exception) as exc:
         console.print(f"[bold red]Error:[/bold red] {exc}")
@@ -208,6 +211,13 @@ def _answer_streaming(
         "Also controlled by REKIPEDIA_STREAM=0 env var."
     ),
 )
+@click.option(
+    "--context", "-c",
+    "pinned_files",
+    multiple=True,
+    metavar="FILE[:SYMBOL]",
+    help="Pin a file (or file:symbol) into context. Can be repeated.",
+)
 def ask_cmd(
     question_arg: str | None,
     question: str | None,
@@ -218,6 +228,7 @@ def ask_cmd(
     no_save_session: bool,
     no_rewrite: bool,
     no_stream: bool,
+    pinned_files: tuple[str, ...],
 ) -> None:
     """Interactive grounded Q&A about the scanned repository.
 
@@ -279,7 +290,7 @@ def ask_cmd(
     if single_question:
         # Single-shot mode (no session save)
         _print_banner()
-        _answer_streaming(single_question, repo, output_dir, llm_config, history=[], stream=use_stream)
+        _answer_streaming(single_question, repo, output_dir, llm_config, history=[], stream=use_stream, pinned_files=list(pinned_files))
         return
 
     # Interactive REPL
@@ -316,6 +327,6 @@ def ask_cmd(
             _save_session()
             break
 
-        answer = _answer_streaming(user_input, repo, output_dir, llm_config, history=list(history), stream=use_stream)
+        answer = _answer_streaming(user_input, repo, output_dir, llm_config, history=list(history), stream=use_stream, pinned_files=list(pinned_files))
         if answer:
             _append_history(user_input, answer)
