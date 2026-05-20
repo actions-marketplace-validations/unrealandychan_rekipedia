@@ -33,6 +33,8 @@ rag = [
   "faiss-cpu>=1.7",
   "numpy>=1.26",
 ]
+qdrant = ["qdrant-client>=1.9"]
+chroma = ["chromadb>=0.5"]
 dev = [
   "pytest>=8",
   "pytest-asyncio>=0.23",
