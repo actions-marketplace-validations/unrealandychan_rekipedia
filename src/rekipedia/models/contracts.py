@@ -40,7 +40,7 @@ class FileManifest(BaseModel):
 
 SymbolKind = Literal[
     "function", "class", "type", "variable",
-    "interface", "enum", "module", "other",
+    "interface", "enum", "module", "other", "route",
 ]
 
 RelationshipKind = Literal["import", "imports", "call", "calls", "inherits", "uses", "re-exports"]

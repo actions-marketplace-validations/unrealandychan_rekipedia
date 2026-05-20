@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 from rekipedia.extractors.base import BaseExtractor
+from rekipedia.extractors.route_patterns import PYTHON_ROUTE_PATTERNS, extract_routes_from_line
 from rekipedia.models.contracts import AnalysisResult, RationaleNote, Relationship, Symbol
 
 _PY_SUFFIXES = {".py", ".pyw"}
@@ -150,6 +151,20 @@ class PythonExtractor(BaseExtractor):
                         )
 
         entry_points = _detect_entry_points(tree, rel)
+
+        # ── route extraction (Flask / FastAPI / Django / Starlette) ──
+        existing_names = {s.name for s in symbols}
+        for lineno, line in enumerate(source.splitlines(), start=1):
+            for route_name, _framework in extract_routes_from_line(line, PYTHON_ROUTE_PATTERNS):
+                if route_name not in existing_names:
+                    existing_names.add(route_name)
+                    symbols.append(Symbol(
+                        name=route_name,
+                        kind="route",
+                        file=rel,
+                        line_start=lineno,
+                        signature=f"route: {route_name}",
+                    ))
 
         return AnalysisResult(
             shard_id=rel,

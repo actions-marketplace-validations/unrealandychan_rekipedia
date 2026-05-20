@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 
 from rekipedia.extractors.base import BaseExtractor
+from rekipedia.extractors.route_patterns import TYPESCRIPT_ROUTE_PATTERNS, extract_routes_from_line
 from rekipedia.models.contracts import AnalysisResult, RationaleNote, Relationship, Symbol
 
 _TS_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
@@ -113,6 +114,32 @@ class TypeScriptExtractor(BaseExtractor):
         if path.name in {"index.ts", "index.js", "main.ts", "main.js", "server.ts", "server.js", "app.ts", "app.js"}:
             entry_points = [rel]
 
+        # ── route extraction (Express / Koa / NestJS) ─────────────────
+        existing_names = {s.name for s in symbols}
+        for lineno, line in enumerate(source.splitlines(), start=1):
+            for route_name, _fw in extract_routes_from_line(line, TYPESCRIPT_ROUTE_PATTERNS):
+                if route_name not in existing_names:
+                    existing_names.add(route_name)
+                    symbols.append(Symbol(
+                        name=route_name,
+                        kind="route",
+                        file=rel,
+                        line_start=lineno,
+                        signature=f"route: {route_name}",
+                    ))
+
+        # ── Next.js API route: infer from file path ───────────────────
+        if "pages/api/" in rel or "app/api/" in rel:
+            route_path = _nextjs_route_path(rel)
+            if route_path and route_path not in existing_names:
+                symbols.append(Symbol(
+                    name=route_path,
+                    kind="route",
+                    file=rel,
+                    line_start=1,
+                    signature=f"route: {route_path}",
+                ))
+
         return AnalysisResult(
             shard_id=rel,
             files_seen=[rel],
@@ -125,3 +152,27 @@ class TypeScriptExtractor(BaseExtractor):
 
 def _line_of(source: str, offset: int) -> int:
     return source[:offset].count("\n") + 1
+
+
+def _nextjs_route_path(rel: str) -> str:
+    """Convert a Next.js file path to an API route path.
+
+    e.g. ``pages/api/users/[id].ts`` -> ``/api/users/{id}``
+         ``app/api/auth/route.ts``   -> ``/api/auth``
+    """
+    import re as _re
+    # strip leading src/ or similar
+    path = rel
+    for prefix in ("src/", "app/", "pages/"):
+        if path.startswith(prefix):
+            path = path[len(prefix):]
+            break
+    # remove file extension
+    path = _re.sub(r"\.[jt]sx?$", "", path)
+    # remove /index and /route suffixes
+    path = _re.sub(r"/(index|route)$", "", path)
+    # convert [param] -> {param}
+    path = _re.sub(r"\[([^\]]+)\]", r"{\1}", path)
+    if not path.startswith("/"):
+        path = "/" + path
+    return path

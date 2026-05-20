@@ -1,5 +1,14 @@
 ## v0.17.0 -- unreleased
 
+**Framework-aware route extraction** (closes #137)
+- Routes are extracted as `kind: "route"` symbols named `"METHOD /path"`.
+- Python: Flask (`@app.route`, `@app.get/post/...`), FastAPI, Django `path()`/`url()`, Starlette `add_route()`.
+- TypeScript/JS: Express/Fastify `router.get/post/...`, Koa, NestJS `@Get/@Post` decorators, Next.js API file-path inference (`pages/api/[param].ts` -- `{param}`).
+- Go: Gin, Echo, Chi `.GET/.POST/...`, `net/http` `HandleFunc`/`Handle`.
+- Rust: Axum `.route()`, Actix-web `#[get]`/`#[post]` macros, Rocket macros.
+- `SymbolKind` extended with `"route"`.
+- 32 tests covering all frameworks + helpers + contracts.
+
 **`reki affected` -- git-diff-aware minimal test file selection** (closes #136)
 - `git diff --name-only | reki affected` prints the minimum set of test files to run.
 - Uses the stored call graph to compute full change-impact radius -- not naive file matching.

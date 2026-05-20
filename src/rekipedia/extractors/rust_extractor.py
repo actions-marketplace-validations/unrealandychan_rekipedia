@@ -23,6 +23,7 @@ import tree_sitter_rust as tsr
 from tree_sitter import Language, Parser
 
 from rekipedia.extractors.base import BaseExtractor
+from rekipedia.extractors.route_patterns import RUST_ROUTE_PATTERNS, extract_routes_from_line
 from rekipedia.models.contracts import AnalysisResult, Relationship, Symbol
 
 _RUST_LANG = Language(tsr.language())
@@ -289,6 +290,21 @@ class RustExtractor(BaseExtractor):
                                         )
                                 break
                             enclosing = getattr(enclosing, "parent", None)
+
+        # ── route extraction (Axum / Actix-web / Rocket) ──────────────
+        existing_names = {s.name for s in symbols}
+        src_text = src_bytes.decode("utf-8", errors="replace")
+        for lineno, line in enumerate(src_text.splitlines(), start=1):
+            for route_name, _fw in extract_routes_from_line(line, RUST_ROUTE_PATTERNS):
+                if route_name not in existing_names:
+                    existing_names.add(route_name)
+                    symbols.append(Symbol(
+                        name=route_name,
+                        kind="route",
+                        file=rel,
+                        line_start=lineno,
+                        signature=f"route: {route_name}",
+                    ))
 
         return AnalysisResult(
             shard_id=rel,
