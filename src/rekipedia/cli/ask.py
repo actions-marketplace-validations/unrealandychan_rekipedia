@@ -56,6 +56,40 @@ def _build_llm_config(repo: Path, model: str | None) -> LLMConfig:
     )
 
 
+import re as _re
+
+
+def _print_answer_citations(answer: str, repo_root: "Path", console) -> None:  # noqa: F821
+    """Print OSC-8 hyperlinks for any ``file:line`` references found in *answer*.
+
+    Does nothing if no references are found or if OSC-8 is not supported.
+    """
+    from rekipedia.utils.terminal_links import osc8_supported, file_hyperlink  # noqa: PLC0415
+
+    if not osc8_supported():
+        return
+
+    # Match patterns like `src/foo.py:42` or src/foo.py:42
+    pattern = _re.compile(r"`?(\S+\.(?:py|ts|tsx|go|rs|java|js|jsx|cpp|c|h))\s*:\s*(\d+)`?")
+    matches = pattern.findall(answer)
+    if not matches:
+        return
+
+    seen: set[str] = set()
+    citations = []
+    for filepath, lineno in matches:
+        key = f"{filepath}:{lineno}"
+        if key not in seen:
+            seen.add(key)
+            citations.append((filepath, int(lineno)))
+
+    console.print("\n[dim]─── Sources ─────────────────────────────────[/dim]")
+    for i, (filepath, lineno) in enumerate(citations, 1):
+        link = file_hyperlink(filepath, lineno, repo_root=str(repo_root))
+        console.print(f"  [dim]{i}.[/dim] {link}")
+    console.print("[dim]────────────────────────────────────────────[/dim]")
+
+
 def _answer_streaming(
     question: str,
     repo: Path,
@@ -104,6 +138,7 @@ def _answer_streaming(
                 console.print(f"[bold red]Error:[/bold red] {exc}")
                 return None
         console.print(Markdown(answer))
+        _print_answer_citations(answer, repo, console)
         console.rule(style="dim")
         return answer
 
