@@ -27,6 +27,12 @@ TOOLS = [
      "inputSchema": {"type": "object", "properties": {"top_n": {"type": "integer", "default": 10}}}},
     {"name": "get_impact", "description": "Blast-radius for a changed file",
      "inputSchema": {"type": "object", "properties": {"file": {"type": "string"}, "depth": {"type": "integer", "default": 2}}, "required": ["file"]}},
+    {"name": "get_transitive_impact", "description": "BFS transitive impact from a symbol name",
+     "inputSchema": {"type": "object", "properties": {
+         "target_symbol": {"type": "string"},
+         "depth": {"type": "integer", "default": 5},
+         "direction": {"type": "string", "default": "callers"},
+     }, "required": ["target_symbol"]}},
 ]
 
 
@@ -212,6 +218,17 @@ def _handle_tool(name: str, args: dict, cache: _StoreCache) -> str:
         elif name == "get_impact":
             from rekipedia.analysis.impact import compute_impact
             result = compute_impact(args.get("file", ""), cache.rels, cache.symbols, depth=args.get("depth", 2))
+            return json.dumps(result)
+
+        elif name == "get_transitive_impact":
+            from rekipedia.analysis.impact import compute_transitive_impact
+            result = compute_transitive_impact(
+                args.get("target_symbol", ""),
+                cache.rels,
+                cache.symbols,
+                depth=args.get("depth", 5),
+                direction=args.get("direction", "callers"),
+            )
             return json.dumps(result)
 
         elif name == "ask":

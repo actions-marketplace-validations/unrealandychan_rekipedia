@@ -225,6 +225,8 @@ def run_digest(
         _vlog(f"  Total symbols: {len(all_symbols_raw)}, relationships: {len(all_rels_raw)}")
 
         combined = _combine_results([r for r in merged_results if r])
+        from rekipedia.analysis.resolution import resolve_relationships  # noqa: PLC0415
+        combined = resolve_relationships(combined)
         diagram_builder = DiagramBuilder()
         diagrams = diagram_builder.build(all_rels_raw, entry_points=combined.entry_points)
         _vlog(f"  Built {len(diagrams)} diagram(s)")
@@ -293,6 +295,8 @@ def run_digest(
         from rekipedia.synthesis.page_builder import PageBuilder  # noqa: PLC0415
 
         combined_for_build = _combine_results([r for r in merged_results if r])
+        from rekipedia.analysis.resolution import resolve_relationships  # noqa: PLC0415
+        combined_for_build = resolve_relationships(combined_for_build)
         combined_for_build.evidence["pre_built_module_graph"] = combined.evidence["pre_built_module_graph"]
         combined_for_build.evidence["pre_built_dependency_graph"] = combined.evidence["pre_built_dependency_graph"]
 

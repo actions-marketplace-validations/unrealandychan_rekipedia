@@ -62,3 +62,73 @@ def compute_impact(
         "related_tests": related_tests,
         "total_affected": len(affected_symbols),
     }
+
+
+def compute_transitive_impact(
+    target_symbol: str,
+    relationships: list,
+    symbols: list,
+    depth: int = 5,
+    direction: str = "callers",  # "callers" | "callees" | "both"
+) -> dict:
+    """BFS over call/import graph to find all transitively affected symbols."""
+    # Build symbol file/line lookup
+    sym_info: dict[str, tuple[str | None, int | None]] = {}
+    for s in symbols:
+        name = s.name if hasattr(s, "name") else s.get("name", "")
+        file = s.file if hasattr(s, "file") else s.get("file", None)
+        line = s.line_start if hasattr(s, "line_start") else s.get("line_start", None)
+        if name:
+            sym_info[name] = (file, line)
+
+    forward: dict[str, list[str]] = {}
+    reverse: dict[str, list[str]] = {}
+
+    for rel in relationships:
+        frm = rel.from_ if hasattr(rel, "from_") else rel.get("from_", "") or rel.get("from", "")
+        to = rel.to if hasattr(rel, "to") else rel.get("to", "")
+        kind = rel.kind if hasattr(rel, "kind") else rel.get("kind", "")
+        if str(kind) in _IMPACT_EDGE_KINDS and frm and to:
+            forward.setdefault(frm, []).append(to)
+            reverse.setdefault(to, []).append(frm)
+
+    def _bfs(start: str, graph: dict[str, list[str]]) -> list[dict]:
+        visited: set[str] = {start}
+        queue: deque[tuple[str, int]] = deque([(start, 0)])
+        results = []
+        while queue:
+            sym, d = queue.popleft()
+            if d >= depth:
+                continue
+            for neighbor in graph.get(sym, []):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    file, line = sym_info.get(neighbor, (None, None))
+                    results.append({"symbol": neighbor, "depth": d + 1, "file": file, "line": line})
+                    queue.append((neighbor, d + 1))
+        return results
+
+    if direction == "callers":
+        results = _bfs(target_symbol, reverse)
+    elif direction == "callees":
+        results = _bfs(target_symbol, forward)
+    else:  # both
+        seen: set[str] = set()
+        merged = []
+        for item in _bfs(target_symbol, reverse) + _bfs(target_symbol, forward):
+            if item["symbol"] not in seen:
+                seen.add(item["symbol"])
+                merged.append(item)
+        results = sorted(merged, key=lambda x: x["depth"])
+
+    results.sort(key=lambda x: (x["depth"], x["symbol"]))
+    affected_files = sorted({r["file"] for r in results if r["file"]})
+
+    return {
+        "target": target_symbol,
+        "direction": direction,
+        "depth": depth,
+        "results": results,
+        "affected_files": affected_files,
+        "total": len(results),
+    }

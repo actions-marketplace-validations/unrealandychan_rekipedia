@@ -63,6 +63,8 @@ class Relationship(BaseModel):
     file: str | None = None
     confidence: float = 1.0
     evidence_tag: Literal["EXTRACTED", "INFERRED", "AMBIGUOUS"] = "EXTRACTED"
+    resolved_to_file: str | None = None
+    resolved_to_line: int | None = None
 
     model_config = {"populate_by_name": True}
 
