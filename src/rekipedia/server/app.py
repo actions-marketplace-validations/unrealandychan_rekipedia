@@ -361,7 +361,58 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                     parts = file_.replace("\\", "/").split("/")
                     file_package[file_] = parts[0] if len(parts) > 1 else "root"
 
-            god_set = {name for name, _ in god_nodes}
+            # ── Workspace package name → folder mapping ──────────────
+            # Scan package.json files to resolve @scope/pkg → folder path
+            pkg_name_to_folder: dict[str, str] = {}
+            try:
+                import json as _json
+                for pkgjson in repo_root.rglob("package.json"):
+                    # skip node_modules
+                    if "node_modules" in pkgjson.parts:
+                        continue
+                    try:
+                        data = _json.loads(pkgjson.read_text())
+                        pkg_name = data.get("name", "")
+                        if pkg_name:
+                            folder = str(pkgjson.parent.relative_to(repo_root)).replace("\\", "/")
+                            pkg_name_to_folder[pkg_name] = folder
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            # ── TypeScript path alias resolution ─────────────────────
+            # Read tsconfig.json / tsconfig.base.json paths
+            ts_aliases: dict[str, str] = {}  # alias_prefix → folder
+            try:
+                import json as _json
+                for tsconfig in list(repo_root.glob("tsconfig*.json")) + list(repo_root.glob("*/tsconfig*.json")):
+                    if "node_modules" in tsconfig.parts:
+                        continue
+                    try:
+                        raw = tsconfig.read_text()
+                        # Strip JS comments for basic parsing
+                        import re as _re
+                        raw = _re.sub(r"//[^\n]*", "", raw)
+                        data = _json.loads(raw)
+                        paths = data.get("compilerOptions", {}).get("paths", {})
+                        base_url = data.get("compilerOptions", {}).get("baseUrl", "")
+                        tsconfig_dir = str(tsconfig.parent.relative_to(repo_root)).replace("\\", "/")
+                        for alias, targets in paths.items():
+                            if not targets:
+                                continue
+                            # Strip trailing /* from alias: '@/components/*' → '@/components'
+                            alias_key = alias.rstrip("/*")
+                            target = targets[0].rstrip("/*")
+                            # Resolve target relative to tsconfig dir
+                            if not target.startswith("/"):
+                                if tsconfig_dir and tsconfig_dir != ".":
+                                    target = tsconfig_dir + "/" + target
+                            ts_aliases[alias_key] = target.lstrip("./")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
 
             nodes: list[dict] = []
             for file_, kind in sorted(file_kind.items()):
@@ -412,37 +463,67 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                 Handles:
                   - Relative TS/JS: './foo', '../bar/baz', '../../utils'
                   - Dotted Python:   'rekipedia.storage.sqlite_store'
-                  - Bare names:      'base64', 'react' (stdlib/external — skip)
+                  - TS path alias:   '@/components/Button', '~utils'
+                  - Workspace pkg:   '@terraform-viz/graph-schema'
+                  - Bare external:   'react', 'vitest' (skip)
                 """
                 module = module.strip()
                 if not module:
                     return None
+
+                # ── Workspace package name ────────────────────────────────
+                if module in pkg_name_to_folder:
+                    folder = pkg_name_to_folder[module]
+                    for idx_file in ("index.ts", "index.tsx", "index.js", "src/index.ts", "src/index.tsx"):
+                        cand = f"{folder}/{idx_file}"
+                        if cand in node_ids:
+                            return cand
+                        matches = suffix_index.get(idx_file)
+                        if matches:
+                            for m in matches:
+                                if m.startswith(folder + "/"):
+                                    return m
+
+                # ── TS path aliases (@/..., ~...) ─────────────────────────
+                for alias_key, alias_target in ts_aliases.items():
+                    if module == alias_key or module.startswith(alias_key + "/"):
+                        rest = module[len(alias_key):].lstrip("/")
+                        base = (alias_target + "/" + rest).rstrip("/")
+                        for ext in (".ts", ".tsx", ".js", ".jsx"):
+                            cand = base + ext
+                            if cand in node_ids:
+                                return cand
+                            matches = suffix_index.get(cand)
+                            if matches:
+                                return matches[0]
+                        # index file
+                        for ext in ("/index.ts", "/index.tsx", "/index.js"):
+                            cand = base + ext
+                            if cand in node_ids:
+                                return cand
+                            matches = suffix_index.get(cand)
+                            if matches:
+                                return matches[0]
 
                 # ── Relative import (TS/JS/Rust-style) ───────────────────
                 if module.startswith("."):
                     if not src_file:
                         return None
                     src_dir = src_file.replace("\\", "/").rsplit("/", 1)[0]
-                    # Normalise relative path against src_dir
-                    raw = src_dir + "/" + module.lstrip("./").replace("../", "")
-                    # Proper relative resolution
                     parts_src = src_dir.split("/")
                     parts_mod = module.split("/")
-                    # Walk parts_mod: leading dots = go up
-                    # './foo' → same dir; '../foo' → one up
                     remaining = list(parts_src)
                     i = 0
                     if parts_mod[0] == ".":
-                        i = 1  # same dir, keep remaining as-is
+                        i = 1
                     elif parts_mod[0] == "..":
                         while i < len(parts_mod) and parts_mod[i] == "..":
                             if remaining:
                                 remaining.pop()
                             i += 1
                     else:
-                        i = 1  # starts with './' stripped
+                        i = 1
                     base = "/".join(remaining + parts_mod[i:]) if remaining else "/".join(parts_mod[i:])
-                    # Try common extensions
                     for ext in (".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".rs"):
                         cand = base + ext
                         if cand in node_ids:
@@ -450,7 +531,6 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                         matches = suffix_index.get(cand)
                         if matches:
                             return matches[0]
-                    # Try index files
                     for ext in ("/index.ts", "/index.tsx", "/index.js", "/mod.rs"):
                         cand = base + ext
                         if cand in node_ids:
@@ -458,7 +538,6 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                         matches = suffix_index.get(cand)
                         if matches:
                             return matches[0]
-                    # Last resort: basename match
                     last = module.split("/")[-1]
                     for ext in (".ts", ".tsx", ".js", ".py", ".go", ".rs"):
                         key = last + ext
@@ -483,7 +562,7 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                     if matches:
                         return matches[0]
 
-                # Last segment fallback (only if unique)
+                # Last segment fallback (unique only)
                 last = module.split(".")[-1]
                 for ext in (".py", ".go", ".ts", ".js", ".rs"):
                     key = last + ext
