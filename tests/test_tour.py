@@ -20,6 +20,11 @@ def _make_symbols(*triples):
     return [{"name": n, "file": f, "kind": k, "line_start": 1} for n, f, k in triples]
 
 
+def _make_symbol_rows(*triples):
+    """triples: (name, file, kind) in scan_symbols tuple layout."""
+    return [("run-123", n, k, f, 1, 1, None, None) for n, f, k in triples]
+
+
 def _make_rels(*triples):
     """triples: (from_, to, kind)"""
     return [{"from_": fr, "to": t, "kind": k, "file": "", "confidence": 1.0, "evidence_tag": ""} for fr, t, k in triples]
@@ -85,6 +90,20 @@ class TestBuildTour:
         assert "src/main.py" in phase_of
         # models.py has no deps → lower phase
         assert phase_of["src/models.py"] < phase_of["src/main.py"]
+
+    def test_build_tour_accepts_tuple_symbol_rows(self, tmp_path):
+        symbols = _make_symbol_rows(
+            ("BaseModel", "src/models.py", "class"),
+            ("process", "src/logic.py", "function"),
+            ("run_app", "src/main.py", "function"),
+        )
+        rels = _make_rels(
+            ("process", "BaseModel", "uses"),
+            ("run_app", "process", "calls"),
+        )
+        store = _make_store_mock(symbols, rels)
+        result = build_tour(store, "run-123", tmp_path)
+        assert result["total_files"] == 3
 
 
 # ── CLI tests ─────────────────────────────────────────────────────────────

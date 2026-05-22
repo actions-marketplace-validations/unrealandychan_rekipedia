@@ -57,14 +57,31 @@ def _get_description(file_path: str, output_dir: Path) -> str:
 def build_tour(store: Any, run_id: str, output_dir: Path) -> dict:
     """Build a guided learning walkthrough from the store."""
     output_dir = Path(output_dir)
-    symbols: list[dict] = store.get_all_symbols(run_id)
+    symbols = store.get_all_symbols(run_id)
     relationships: list[dict] = store.get_all_relationships(run_id)
+
+    def _symbol_field(sym: Any, key: str) -> str:
+        if isinstance(sym, dict):
+            return str(sym.get(key) or "")
+        if hasattr(sym, "keys"):
+            return str(sym[key] or "")
+        if not isinstance(sym, tuple):
+            return ""
+        # scan_symbols column order:
+        # run_id(0), name(1), kind(2), file(3), line_start(4), ...
+        if key == "name":
+            return str(sym[1]) if len(sym) > 1 and sym[1] is not None else ""
+        if key == "kind":
+            return str(sym[2]) if len(sym) > 2 and sym[2] is not None else ""
+        if key == "file":
+            return str(sym[3]) if len(sym) > 3 and sym[3] is not None else ""
+        return ""
 
     # collect all file paths from symbols
     all_files: set[str] = set()
-    file_symbols: dict[str, list[dict]] = defaultdict(list)
+    file_symbols: dict[str, list[Any]] = defaultdict(list)
     for sym in symbols:
-        f = sym.get("file") or sym.get("path") or ""
+        f = _symbol_field(sym, "file")
         if f:
             all_files.add(f)
             file_symbols[f].append(sym)
@@ -75,8 +92,8 @@ def build_tour(store: Any, run_id: str, output_dir: Path) -> dict:
     file_deps: dict[str, set[str]] = defaultdict(set)  # file -> files it imports
     sym_to_file: dict[str, str] = {}
     for sym in symbols:
-        name = sym.get("name") or ""
-        f = sym.get("file") or sym.get("path") or ""
+        name = _symbol_field(sym, "name")
+        f = _symbol_field(sym, "file")
         if name and f:
             sym_to_file[name] = f
 
@@ -109,11 +126,11 @@ def build_tour(store: Any, run_id: str, output_dir: Path) -> dict:
         syms = sorted(
             file_symbols.get(f, []),
             key=lambda s: (
-                0 if s.get("kind") in ("class", "function") else 1,
-                -len(s.get("name") or ""),
+                0 if _symbol_field(s, "kind") in ("class", "function") else 1,
+                -len(_symbol_field(s, "name")),
             ),
         )[:3]
-        sym_names = [s.get("name", "") for s in syms if s.get("name")]
+        sym_names = [_symbol_field(s, "name") for s in syms if _symbol_field(s, "name")]
         desc = _get_description(f, output_dir)
         phase_files[phase_num].append({"path": f, "symbols": sym_names, "description": desc})
 
