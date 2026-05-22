@@ -6,6 +6,7 @@
 - **3-layer config merge** — global → project `.rekipedia/config.yml` → env vars; dicts deep-merged, local wins on conflict
 - **`reki setup` wizard** — interactive onboarding: pick LLM provider, enter API key, select model, optional connection test (closes #144)
 - Unified `load_config()` in `rekipedia.config.loader` replaces scattered `_load_config()` duplicates across CLI commands
+- feat: `reki domain` — business domain layer classification (API/Service/Data/UI/Utility) (#149)
 
 ---
 

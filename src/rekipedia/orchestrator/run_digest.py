@@ -37,8 +37,7 @@ from rekipedia.storage.sqlite_store import SqliteStore
 
 logger = logging.getLogger("rekipedia")
 
-# Max parallel workers for shard extraction and wiki page generation
-_MAX_SHARD_WORKERS = 4
+# Max parallel workers for wiki page generation
 _MAX_PAGE_WORKERS = 4
 
 
@@ -55,6 +54,7 @@ def run_digest(
     stdout_refactor: bool = False,
     focus_globs: list[str] | None = None,
     doc_type: str = "default",
+    workers: int = 4,
 ) -> None:
     """Full scan pipeline.
 
@@ -158,7 +158,7 @@ def run_digest(
         # ── 3. Extract shards in parallel ────────────────────────────
         runner: BaseRunner = get_runner(force_local=force_local)
         runner_name = type(runner).__name__
-        _vlog(f"Using {runner_name} with up to {_MAX_SHARD_WORKERS} parallel workers")
+        _vlog(f"Using {runner_name} with up to {workers} parallel workers")
 
         merged_results: list[AnalysisResult] = [None] * len(shards)  # type: ignore[list-item]
         shard_errors: list[str] = []
@@ -179,7 +179,7 @@ def run_digest(
             )
             _shard_done = 0
 
-            with ThreadPoolExecutor(max_workers=_MAX_SHARD_WORKERS) as executor:
+            with ThreadPoolExecutor(max_workers=workers) as executor:
                 future_to_idx = {
                     executor.submit(runner.run, shard, repo_root): (i, shard)
                     for i, shard in enumerate(shards)

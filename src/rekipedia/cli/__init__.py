@@ -22,6 +22,7 @@ from rekipedia.cli.refactor import refactor_cmd
 from rekipedia.cli.note import note_cmd
 from rekipedia.cli.review import review_cmd
 from rekipedia.cli.setup import setup_cmd
+from rekipedia.cli.domain import domain_cmd
 
 
 @click.group()
@@ -49,3 +50,4 @@ main.add_command(refactor_cmd)
 main.add_command(note_cmd)
 main.add_command(review_cmd)
 main.add_command(setup_cmd)
+main.add_command(domain_cmd)

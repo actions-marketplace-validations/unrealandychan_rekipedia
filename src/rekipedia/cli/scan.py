@@ -1,6 +1,7 @@
 """`rekipedia scan` command — full repo analysis."""
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -80,6 +81,8 @@ def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
     ),
     envvar="REKIPEDIA_FOCUS",
 )
+@click.option("--workers", "-w", default=None, type=int, metavar="N",
+    help="Number of parallel workers for file extraction (default: min(4, cpu_count))")
 def scan_cmd(
     repo: Path,
     model: str | None,
@@ -95,6 +98,7 @@ def scan_cmd(
     with_refactor: bool,
     focus: tuple[str, ...],
     doc_type: str,
+    workers: int | None,
 ) -> None:
     """Scan REPO and (re)build the rekipedia knowledge store.
 
@@ -118,6 +122,11 @@ def scan_cmd(
     """
     repo = repo.resolve()
     output_dir = (output_dir or repo / ".rekipedia").resolve()
+
+    # ── Workers resolution ─────────────────────────────────────────────────────
+    if workers is None:
+        env_val = os.environ.get('REKIPEDIA_WORKERS', '0')
+        workers = int(env_val) or min(4, os.cpu_count() or 4)
 
     # ── Skip if already scanned (unless --force) ──────────────────────────────
     if not force:
@@ -180,6 +189,9 @@ def scan_cmd(
     else:
         console.print("  languages: [cyan]all[/cyan]")
 
+    if workers > 1:
+        console.print(f"  workers  : [cyan]{workers}[/cyan]")
+
     console.rule()
 
     from rekipedia.orchestrator.run_digest import run_digest  # noqa: PLC0415
@@ -203,6 +215,7 @@ def scan_cmd(
                 stdout_refactor=stdout_refactor,
                 focus_globs=focus_list,
                 doc_type=doc_type,
+                workers=workers,
             )
         except Exception as exc:
             console.print_exception(show_locals=True)
@@ -233,6 +246,7 @@ def scan_cmd(
                     stdout_refactor=stdout_refactor,
                     focus_globs=focus_list,
                     doc_type=doc_type,
+                    workers=workers,
                 )
             except Exception as exc:
                 progress.stop()

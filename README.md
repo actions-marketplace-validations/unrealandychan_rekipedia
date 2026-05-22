@@ -126,6 +126,8 @@ answer = await rekipedia.ask_async("/path/to/repo", "What is the entry point?")
 | `rekipedia refactor [REPO]` | Detect code smells + generate `REFACTOR.md` and `refactor_report.json` (use `--no-llm` for static only) |
 | `rekipedia note add\|list\|remove\|edit\|import` | Manage persistent tech lead notes — injected into `reki ask` context automatically |
 | `rekipedia review` | LLM-powered PR diff review grounded in the wiki — `--staged`, `--branch`, `--pr`, `--diff` |
+| `reki domain .` | Map codebase to business domain layers (API/Service/Data/UI/Utility) |
+| `reki domain . --format json` | Machine-readable layer classification |
 
 ---
 
