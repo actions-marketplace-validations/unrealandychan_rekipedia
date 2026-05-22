@@ -22,7 +22,7 @@ def impact_cmd(target_file, depth, output_dir):
         if alt.exists():
             db_path = alt
     if not db_path.exists():
-        console.print(f"[red]No rekipedia DB at {Path(output_dir) / '.rekipedia' / 'store.db'}. Run reki scan first.[/red]")
+        console.print(f"[red]No rekipedia DB at {db_path}. Run `reki scan` first.[/red]")
         raise click.Abort()
 
     store = SqliteStore(db_path)
