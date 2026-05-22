@@ -49,20 +49,26 @@ def classify_domain(store, run_id: str, repo_root) -> dict:
     symbols = store.get_all_symbols(run_id)
     relationships = store.get_all_relationships(run_id)
 
+    # get_all_symbols returns raw tuples: (run_id, name, kind, file, line_start, line_end, sig, doc)
+    # get_all_relationships returns dicts: {from_, to, kind, file, confidence, evidence_tag}
+
     # Build file -> symbols mapping
     file_symbols: dict[str, list[str]] = defaultdict(list)
     sym_file: dict[str, str] = {}
     for s in symbols:
-        name = s.name if hasattr(s, "name") else s.get("name", "")
-        file = s.file if hasattr(s, "file") else s.get("file", "")
-        if file:
+        if isinstance(s, dict):
+            name, file = s.get("name", ""), s.get("file", "")
+        elif hasattr(s, "name"):
+            name, file = s.name, getattr(s, "file", "")
+        else:  # tuple: (run_id=0, name=1, kind=2, file=3, ...)
+            name = s[1] if len(s) > 1 else ""
+            file = s[3] if len(s) > 3 else ""
+        if file and name:
             file_symbols[file].append(name)
             sym_file[name] = file
 
     # Classify each file
-    file_layer: dict[str, str] = {}
-    for file in file_symbols:
-        file_layer[file] = _classify_file(file)
+    file_layer: dict[str, str] = {file: _classify_file(file) for file in file_symbols}
 
     # Build layer data
     layer_files: dict[str, list[str]] = defaultdict(list)
@@ -85,11 +91,17 @@ def classify_domain(store, run_id: str, repo_root) -> dict:
     # Build inter-layer dependency graph
     dep_counts: dict[tuple[str, str], int] = defaultdict(int)
     for rel in relationships:
-        kind = rel.kind if hasattr(rel, "kind") else rel.get("kind", "")
+        # relationships are dicts
+        if isinstance(rel, dict):
+            kind = rel.get("kind", "")
+            frm = rel.get("from_", "") or rel.get("from", "")
+            to = rel.get("to", "")
+        else:
+            kind = rel.kind if hasattr(rel, "kind") else ""
+            frm = getattr(rel, "from_", "") or getattr(rel, "from", "")
+            to = getattr(rel, "to", "")
         if kind not in ("imports", "calls"):
             continue
-        frm = rel.from_ if hasattr(rel, "from_") else rel.get("from_", "") or rel.get("from", "")
-        to = rel.to if hasattr(rel, "to") else rel.get("to", "")
         from_file = sym_file.get(frm, "")
         to_file = sym_file.get(to, "")
         if not from_file or not to_file:
