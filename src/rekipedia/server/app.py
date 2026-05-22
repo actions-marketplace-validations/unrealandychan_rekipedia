@@ -414,6 +414,8 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
             except Exception:
                 pass
 
+            god_set = {name for name, _ in god_nodes}
+
             nodes: list[dict] = []
             for file_, kind in sorted(file_kind.items()):
                 label = file_.replace("\\", "/").split("/")[-1]  # basename
