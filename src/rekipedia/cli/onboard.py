@@ -35,7 +35,7 @@ def onboard_cmd(repo: str, output: str | None, fmt: str) -> None:
         click.echo(
             f"❌ No scan found at {repo_path / '.rekipedia' / 'store.db'}"
             " — run 'reki scan .' first",
-            err=False,
+            err=True,
         )
         raise SystemExit(1)
 
@@ -45,7 +45,7 @@ def onboard_cmd(repo: str, output: str | None, fmt: str) -> None:
         click.echo(
             f"❌ Existing scan at {db_path} is invalid or from an incompatible version"
             " — run 'reki scan . --force' first",
-            err=False,
+            err=True,
         )
         raise SystemExit(1) from exc
 
