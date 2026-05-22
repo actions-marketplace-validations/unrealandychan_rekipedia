@@ -406,8 +406,68 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                     key = "/".join(parts[i:])
                     suffix_index.setdefault(key, []).append(nid)
 
-            def resolve_module_to_file(module: str) -> str | None:
-                """Convert dotted module name or file path to a node_id file path."""
+            def resolve_module_to_file(module: str, src_file: str = "") -> str | None:
+                """Convert module/import string to a node_id file path.
+
+                Handles:
+                  - Relative TS/JS: './foo', '../bar/baz', '../../utils'
+                  - Dotted Python:   'rekipedia.storage.sqlite_store'
+                  - Bare names:      'base64', 'react' (stdlib/external — skip)
+                """
+                module = module.strip()
+                if not module:
+                    return None
+
+                # ── Relative import (TS/JS/Rust-style) ───────────────────
+                if module.startswith("."):
+                    if not src_file:
+                        return None
+                    src_dir = src_file.replace("\\", "/").rsplit("/", 1)[0]
+                    # Normalise relative path against src_dir
+                    raw = src_dir + "/" + module.lstrip("./").replace("../", "")
+                    # Proper relative resolution
+                    parts_src = src_dir.split("/")
+                    parts_mod = module.split("/")
+                    # Walk parts_mod: leading dots = go up
+                    # './foo' → same dir; '../foo' → one up
+                    remaining = list(parts_src)
+                    i = 0
+                    if parts_mod[0] == ".":
+                        i = 1  # same dir, keep remaining as-is
+                    elif parts_mod[0] == "..":
+                        while i < len(parts_mod) and parts_mod[i] == "..":
+                            if remaining:
+                                remaining.pop()
+                            i += 1
+                    else:
+                        i = 1  # starts with './' stripped
+                    base = "/".join(remaining + parts_mod[i:]) if remaining else "/".join(parts_mod[i:])
+                    # Try common extensions
+                    for ext in (".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".rs"):
+                        cand = base + ext
+                        if cand in node_ids:
+                            return cand
+                        matches = suffix_index.get(cand)
+                        if matches:
+                            return matches[0]
+                    # Try index files
+                    for ext in ("/index.ts", "/index.tsx", "/index.js", "/mod.rs"):
+                        cand = base + ext
+                        if cand in node_ids:
+                            return cand
+                        matches = suffix_index.get(cand)
+                        if matches:
+                            return matches[0]
+                    # Last resort: basename match
+                    last = module.split("/")[-1]
+                    for ext in (".ts", ".tsx", ".js", ".py", ".go", ".rs"):
+                        key = last + ext
+                        matches = suffix_index.get(key)
+                        if matches and len(matches) == 1:
+                            return matches[0]
+                    return None
+
+                # ── Dotted Python-style ───────────────────────────────────
                 path_base = module.replace(".", "/")
                 candidates = [
                     f"{path_base}.py",
@@ -416,18 +476,16 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                     f"{path_base}.ts",
                     f"{path_base}.js",
                 ]
-                # Direct match first
                 for cand in candidates:
                     if cand in node_ids:
                         return cand
-                # Suffix match: try each candidate against suffix_index
-                for cand in candidates:
                     matches = suffix_index.get(cand)
                     if matches:
                         return matches[0]
-                # Try last segment only
+
+                # Last segment fallback (only if unique)
                 last = module.split(".")[-1]
-                for ext in (".py", ".go", ".ts", ".js"):
+                for ext in (".py", ".go", ".ts", ".js", ".rs"):
                     key = last + ext
                     matches = suffix_index.get(key)
                     if matches and len(matches) == 1:
@@ -447,7 +505,7 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
                 if src_file not in node_ids:
                     continue
 
-                tgt_file = resolve_module_to_file(to_module)
+                tgt_file = resolve_module_to_file(to_module, src_file)
                 if not tgt_file or tgt_file == src_file:
                     continue
 
@@ -539,6 +597,34 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
             request, "graph.html",
             _ctx(request, pages=pages, project_name=_project_name()),
         )
+
+    @app.get("/api/graph/debug")
+    async def api_graph_debug():
+        """Debug: show raw relationships + node_ids to diagnose 0-edge issue."""
+        db_path = output_dir / "store.db"
+        if not db_path.exists():
+            return JSONResponse({"error": "no store.db"})
+        with SqliteStore(db_path) as store:
+            run_id = store.get_latest_run_id(str(repo_root))
+            if not run_id:
+                return JSONResponse({"error": "no run_id"})
+            raw_syms = store.get_all_symbols(run_id)
+            raw_rels = store.get_all_relationships(run_id)
+        node_files = sorted({
+            (row[3] if isinstance(row, tuple) else row.get("file", ""))
+            for row in raw_syms
+        })[:30]
+        sample_rels = [
+            {"from_": r.get("from_"), "to": r.get("to"), "kind": r.get("kind"), "file": r.get("file")}
+            for r in raw_rels[:20]
+        ] if raw_rels and isinstance(raw_rels[0], dict) else raw_rels[:20]
+        return JSONResponse({
+            "run_id": run_id,
+            "total_symbols": len(raw_syms),
+            "total_rels": len(raw_rels),
+            "sample_node_files": node_files,
+            "sample_rels": sample_rels,
+        })
 
     @app.get("/api/graph-data")
     async def graph_data():
