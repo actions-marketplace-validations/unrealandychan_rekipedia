@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-05-19T17:10:46.826419+00:00",
-  "rekipedia_version": "0.10.4",
+  "generated_at": "2026-05-22T07:17:57.627601+00:00",
+  "rekipedia_version": "0.17.7",
   "summary": {
-    "high": 11,
+    "high": 12,
     "medium": 0,
-    "low": 423
+    "low": 469
   },
   "issues": [
     {
@@ -33,9 +33,9 @@
         "main",
         "test_agent_planner_add_pages_and_finalize",
         "test_agent_planner_fallback_on_error",
-        "_make_result",
         "make_result",
         "sample_result",
+        "_make_result",
         "_make_analysis_result",
         "TestAnalyzeShardMerge.test_merge_basic",
         "TestDockerSandboxRunner.test_successful_run"
@@ -77,16 +77,52 @@
     },
     {
       "kind": "god_class",
+      "symbol": "HtmlExporter",
+      "file": "src/rekipedia/exporters/html_export.py",
+      "severity": "high",
+      "metrics": {
+        "lines": 63,
+        "fan_in": 20,
+        "fan_out": 0
+      },
+      "suggestion": "Split `HtmlExporter` into smaller, single-responsibility classes",
+      "callers": [
+        "_export_html",
+        "TestHtmlExporter.test_creates_html_file",
+        "TestHtmlExporter.test_html_contains_title",
+        "TestHtmlExporter.test_html_contains_page_content",
+        "TestHtmlExporter.test_pages_embedded_as_json",
+        "TestHtmlExporter.test_nav_order_respected",
+        "TestHtmlExporter.test_pages_meta_embedded",
+        "TestHtmlExporter.test_default_dest_path",
+        "TestHtmlExporter.test_custom_dest_path",
+        "TestHtmlExporter.test_multiple_pages_all_included",
+        "TestHtmlExporter.test_html_is_valid_structure",
+        "TestHtmlExporter.test_html_escapes_title",
+        "TestHtmlExporter.test_dark_theme_default",
+        "TestHtmlExporter.test_mermaid_script_included",
+        "TestHtmlExporter.test_marked_js_included",
+        "TestHtmlExporter.test_highlight_js_included",
+        "TestHtmlExporter.test_version_in_footer",
+        "TestHtmlExporter.test_sections_embedded",
+        "TestHtmlExporter.test_empty_pages_dict",
+        "TestHtmlExporter.test_unicode_content"
+      ]
+    },
+    {
+      "kind": "god_class",
       "symbol": "LLMClient",
       "file": "src/rekipedia/llm/client.py",
       "severity": "high",
       "metrics": {
         "lines": 68,
-        "fan_in": 12,
+        "fan_in": 14,
         "fan_out": 0
       },
       "suggestion": "Split `LLMClient` into smaller, single-responsibility classes",
       "callers": [
+        "run_review",
+        "setup_cmd",
         "AgentAsk.__init__",
         "_rewrite_query",
         "_prepare_ask",
@@ -108,7 +144,7 @@
       "severity": "high",
       "metrics": {
         "lines": 10,
-        "fan_in": 123,
+        "fan_in": 144,
         "fan_out": 1
       },
       "suggestion": "Split `LLMConfig` into smaller, single-responsibility classes",
@@ -119,8 +155,11 @@
         "embed_cmd",
         "_handle_tool",
         "refactor_cmd",
+        "run_review",
+        "review_cmd",
         "scan_cmd",
         "serve_cmd",
+        "setup_cmd",
         "update_cmd",
         "agent_run_ask",
         "_prepare_ask",
@@ -129,10 +168,7 @@
         "ShardPlanner.plan",
         "AgentPlanner.__init__",
         "_make_config",
-        "test_agent_planner_add_pages_and_finalize",
-        "test_agent_planner_fallback_on_error",
-        "scanned_repo",
-        "test_ask_returns_string"
+        "test_agent_planner_add_pages_and_finalize"
       ]
     },
     {
@@ -141,8 +177,8 @@
       "file": "src/rekipedia/synthesis/page_builder.py",
       "severity": "high",
       "metrics": {
-        "lines": 141,
-        "fan_in": 11,
+        "lines": 144,
+        "fan_in": 13,
         "fan_out": 0
       },
       "suggestion": "Split `PageBuilder` into smaller, single-responsibility classes",
@@ -150,6 +186,8 @@
         "_build_llm_report",
         "run_digest",
         "run_update",
+        "TestPageBuilderDocType._make_builder",
+        "_make_builder_raw",
         "test_builds_all_canonical_pages",
         "test_each_page_has_title_and_content",
         "test_page_has_yaml_frontmatter",
@@ -228,8 +266,8 @@
       "file": "src/rekipedia/models/contracts.py",
       "severity": "high",
       "metrics": {
-        "lines": 8,
-        "fan_in": 11,
+        "lines": 10,
+        "fan_in": 12,
         "fan_out": 1
       },
       "suggestion": "Split `Relationship` into smaller, single-responsibility classes",
@@ -275,19 +313,23 @@
       "severity": "high",
       "metrics": {
         "lines": 920,
-        "fan_in": 62,
+        "fan_in": 66,
         "fan_out": 0
       },
       "suggestion": "Split `SqliteStore` into smaller, single-responsibility classes",
       "callers": [
         "_search_single_repo",
         "_get_run_id",
+        "affected_cmd",
+        "diff_cmd",
+        "domain_cmd",
         "embed_cmd",
         "export_cmd",
         "impact_cmd",
         "_StoreCache._load",
         "_get_store",
         "scan_cmd",
+        "tour_cmd",
         "_ToolHandler.get_relationships",
         "_verify_scan",
         "_build_full_system",
@@ -295,11 +337,7 @@
         "run_update",
         "create_app",
         "test_ask_raises_if_no_successful_run",
-        "client",
-        "test_graph_api_returns_edges",
-        "test_notes_injected_in_context",
-        "test_notes_not_injected_when_empty",
-        "app"
+        "client"
       ]
     },
     {
@@ -309,7 +347,7 @@
       "severity": "high",
       "metrics": {
         "lines": 7,
-        "fan_in": 33,
+        "fan_in": 45,
         "fan_out": 1
       },
       "suggestion": "Split `Symbol` into smaller, single-responsibility classes",
@@ -329,7 +367,8 @@
         "test_detect_dead_code_skips_test_file_symbols",
         "test_issues_sorted_high_before_low",
         "test_write_refactor_outputs_json_structure",
-        "test_write_refactor_outputs_summary_counts"
+        "test_write_refactor_outputs_summary_counts",
+        "TestSymbolKindRoute.test_route_kind_valid"
       ]
     },
     {
@@ -1534,6 +1573,18 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "App",
+      "file": "benchmarks/fixtures/typescript_react/App.tsx",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `App` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "AskResult.__repr__",
       "file": "src/rekipedia/api.py",
       "severity": "low",
@@ -1618,6 +1669,18 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "Button",
+      "file": "benchmarks/fixtures/typescript_react/App.tsx",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `Button` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "Calculator.sum",
       "file": "tests/fixtures/mini-py-repo/core.py",
       "severity": "low",
@@ -1650,6 +1713,102 @@
         "fan_out": 0
       },
       "suggestion": "Remove `CategoriseFiles` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "ChromaStore.__init__",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `ChromaStore.__init__` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "ChromaStore._get_collection",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 3
+      },
+      "suggestion": "Remove `ChromaStore._get_collection` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "ChromaStore.add",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 10
+      },
+      "suggestion": "Remove `ChromaStore.add` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "ChromaStore.is_built",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 2
+      },
+      "suggestion": "Remove `ChromaStore.is_built` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "ChromaStore.load",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 3
+      },
+      "suggestion": "Remove `ChromaStore.load` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "ChromaStore.reconstruct_all",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `ChromaStore.reconstruct_all` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "ChromaStore.save",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `ChromaStore.save` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "ChromaStore.search",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 7
+      },
+      "suggestion": "Remove `ChromaStore.search` — 0 callers detected",
       "callers": []
     },
     {
@@ -2014,6 +2173,102 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "FaissStore.__init__",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `FaissStore.__init__` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "FaissStore._try_load_index",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 6
+      },
+      "suggestion": "Remove `FaissStore._try_load_index` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "FaissStore.add",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 6
+      },
+      "suggestion": "Remove `FaissStore.add` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "FaissStore.is_built",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 2
+      },
+      "suggestion": "Remove `FaissStore.is_built` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "FaissStore.load",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 2
+      },
+      "suggestion": "Remove `FaissStore.load` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "FaissStore.reconstruct_all",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 7
+      },
+      "suggestion": "Remove `FaissStore.reconstruct_all` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "FaissStore.save",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 5
+      },
+      "suggestion": "Remove `FaissStore.save` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "FaissStore.search",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 15
+      },
+      "suggestion": "Remove `FaissStore.search` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "FakeCaller.__init__",
       "file": "src/rekipedia/llm/client.py",
       "severity": "low",
@@ -2103,9 +2358,33 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 34
+        "fan_out": 41
       },
       "suggestion": "Remove `GoExtractor.extract` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "HtmlExporter.__init__",
+      "file": "src/rekipedia/exporters/html_export.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `HtmlExporter.__init__` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "HtmlExporter.export",
+      "file": "src/rekipedia/exporters/html_export.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 18
+      },
+      "suggestion": "Remove `HtmlExporter.export` — 0 callers detected",
       "callers": []
     },
     {
@@ -2523,7 +2802,7 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 2
+        "fan_out": 4
       },
       "suggestion": "Remove `PageBuilder.__init__` — 0 callers detected",
       "callers": []
@@ -2631,9 +2910,105 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 56
+        "fan_out": 62
       },
       "suggestion": "Remove `PythonExtractor.extract` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "QdrantStore.__init__",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `QdrantStore.__init__` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "QdrantStore._get_client",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 2
+      },
+      "suggestion": "Remove `QdrantStore._get_client` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "QdrantStore.add",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 10
+      },
+      "suggestion": "Remove `QdrantStore.add` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "QdrantStore.is_built",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 2
+      },
+      "suggestion": "Remove `QdrantStore.is_built` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "QdrantStore.load",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 3
+      },
+      "suggestion": "Remove `QdrantStore.load` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "QdrantStore.reconstruct_all",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `QdrantStore.reconstruct_all` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "QdrantStore.save",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `QdrantStore.save` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "QdrantStore.search",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 5
+      },
+      "suggestion": "Remove `QdrantStore.search` — 0 callers detected",
       "callers": []
     },
     {
@@ -2763,7 +3138,7 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 28
+        "fan_out": 66
       },
       "suggestion": "Remove `RustExtractor.extract` — 0 callers detected",
       "callers": []
@@ -3471,9 +3846,93 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 60
+        "fan_out": 69
       },
       "suggestion": "Remove `TypeScriptExtractor.extract` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "User.__init__",
+      "file": "benchmarks/fixtures/python_web_app/app.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `User.__init__` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "VectorStore.add",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `VectorStore.add` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "VectorStore.is_built",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `VectorStore.is_built` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "VectorStore.load",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `VectorStore.load` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "VectorStore.reconstruct_all",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `VectorStore.reconstruct_all` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "VectorStore.save",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `VectorStore.save` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "VectorStore.search",
+      "file": "src/rekipedia/rag/vector_store.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `VectorStore.search` — 0 callers detected",
       "callers": []
     },
     {
@@ -3886,6 +4345,18 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "affected_cmd",
+      "file": "src/rekipedia/cli/affected.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 38
+      },
+      "suggestion": "Remove `affected_cmd` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "applyEnvOverrides",
       "file": "go/internal/config/loader.go",
       "severity": "low",
@@ -3915,7 +4386,7 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 39
+        "fan_out": 43
       },
       "suggestion": "Remove `ask_cmd` — 0 callers detected",
       "callers": []
@@ -4054,6 +4525,18 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "create_user",
+      "file": "benchmarks/fixtures/python_web_app/app.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 1
+      },
+      "suggestion": "Remove `create_user` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "cycleKey",
       "file": "go/internal/analysis/refactor_enricher.go",
       "severity": "low",
@@ -4095,7 +4578,7 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 33
+        "fan_out": 75
       },
       "suggestion": "Remove `diff_cmd` — 0 callers detected",
       "callers": []
@@ -4110,6 +4593,18 @@
         "fan_out": 0
       },
       "suggestion": "Remove `docString` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "domain_cmd",
+      "file": "src/rekipedia/cli/domain.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 50
+      },
+      "suggestion": "Remove `domain_cmd` — 0 callers detected",
       "callers": []
     },
     {
@@ -4167,7 +4662,7 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 67
+        "fan_out": 74
       },
       "suggestion": "Remove `export_cmd` — 0 callers detected",
       "callers": []
@@ -4398,6 +4893,30 @@
         "fan_out": 0
       },
       "suggestion": "Remove `init` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "initSearch",
+      "file": "src/rekipedia/server/static/reki.js",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `initSearch` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "initSidebar",
+      "file": "src/rekipedia/server/static/reki.js",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `initSidebar` — 0 callers detected",
       "callers": []
     },
     {
@@ -4750,6 +5269,18 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "onboard_cmd",
+      "file": "src/rekipedia/cli/onboard.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 20
+      },
+      "suggestion": "Remove `onboard_cmd` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "openStore",
       "file": "go/cmd/rekipedia/cmd/note.go",
       "severity": "low",
@@ -4930,6 +5461,18 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "review_cmd",
+      "file": "src/rekipedia/cli/review.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 82
+      },
+      "suggestion": "Remove `review_cmd` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "runGit",
       "file": "go/cmd/rekipedia/cmd/diff.go",
       "severity": "low",
@@ -5007,7 +5550,7 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 82
+        "fan_out": 97
       },
       "suggestion": "Remove `scan_cmd` — 0 callers detected",
       "callers": []
@@ -5043,9 +5586,21 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 33
+        "fan_out": 31
       },
       "suggestion": "Remove `serve_cmd` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "setup_cmd",
+      "file": "src/rekipedia/cli/setup.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 34
+      },
+      "suggestion": "Remove `setup_cmd` — 0 callers detected",
       "callers": []
     },
     {
@@ -5158,18 +5713,6 @@
     },
     {
       "kind": "dead_code",
-      "symbol": "status",
-      "file": "src/rekipedia/cli/hook.py",
-      "severity": "low",
-      "metrics": {
-        "fan_in": 0,
-        "fan_out": 13
-      },
-      "suggestion": "Remove `status` — 0 callers detected",
-      "callers": []
-    },
-    {
-      "kind": "dead_code",
       "symbol": "stripFrontmatter",
       "file": "go/internal/server/server.go",
       "severity": "low",
@@ -5230,6 +5773,30 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "toggle",
+      "file": "src/rekipedia/server/static/reki.js",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `toggle` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "toggleCat",
+      "file": "src/rekipedia/server/static/reki.js",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `toggleCat` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "tokenizeSymbol",
       "file": "go/cmd/rekipedia/cmd/search.go",
       "severity": "low",
@@ -5250,6 +5817,18 @@
         "fan_out": 0
       },
       "suggestion": "Remove `topLevelDir` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
+      "symbol": "tour_cmd",
+      "file": "src/rekipedia/cli/tour.py",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 43
+      },
+      "suggestion": "Remove `tour_cmd` — 0 callers detected",
       "callers": []
     },
     {
@@ -5338,6 +5917,18 @@
     },
     {
       "kind": "dead_code",
+      "symbol": "useCounter",
+      "file": "benchmarks/fixtures/typescript_react/App.tsx",
+      "severity": "low",
+      "metrics": {
+        "fan_in": 0,
+        "fan_out": 0
+      },
+      "suggestion": "Remove `useCounter` — 0 callers detected",
+      "callers": []
+    },
+    {
+      "kind": "dead_code",
       "symbol": "watch_add",
       "file": "src/rekipedia/cli/watch.py",
       "severity": "low",
@@ -5391,7 +5982,7 @@
       "severity": "low",
       "metrics": {
         "fan_in": 0,
-        "fan_out": 2
+        "fan_out": 7
       },
       "suggestion": "Remove `watch_start` — 0 callers detected",
       "callers": []

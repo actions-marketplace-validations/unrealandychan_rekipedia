@@ -1,10 +1,10 @@
 {
-  "rekipedia_version": "0.15.1",
-  "scanned_at": "2026-05-19T17:10:46.808138+00:00",
-  "repo_path": "/home/ubuntu/rekipedia",
-  "run_id": "cf6b4519-7c57-4667-9f55-56be9d22f210",
+  "rekipedia_version": "0.17.3",
+  "scanned_at": "2026-05-22T07:17:57.615292+00:00",
+  "repo_path": "/tmp/workspace/unrealandychan/rekipedia",
+  "run_id": "71290b0b-2560-47ae-b5eb-559ce39d4cf9",
   "model": "ollama/llama4",
-  "file_count": 311,
+  "file_count": 365,
   "page_count": 7,
   "embed_model": "",
   "embedded": false
