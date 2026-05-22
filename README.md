@@ -4,426 +4,107 @@
 
 > Your AI tech lead — always available, always up to date.
 
-rekipedia scans any repository into a portable SQLite knowledge store and gives every developer on the team an LLM-powered tech lead they can ask anything: _"How does the auth flow work?", "What's the fastest way to add a new API endpoint?", "What broke the payment service last week?"_
+rekipedia scans any repository into a portable SQLite knowledge store and gives every developer an LLM-powered tech lead they can ask anything.
 
-No hallucinations, no guessing — every answer is grounded in your actual codebase.
+No hallucinations — every answer is grounded in your actual codebase.
 
-### Key features
-- **Relationship confidence scoring**: every extracted relationship tagged as EXTRACTED/INFERRED/AMBIGUOUS with confidence score
-- **Design rationale extraction**: `# NOTE:`, `# HACK:`, `# WHY:` comments extracted as knowledge nodes
-- **God nodes**: highest-degree symbols surfaced in index.md and highlighted in the graph UI
-- **Interactive dependency graph**: `rekipedia serve` now includes a `/graph` route with D3.js force-directed visualization
-- **Git hooks**: `rekipedia hook install` triggers auto-rebuild on every commit
-- **Agentic wiki orchestration**: `PlannerAgent` designs the wiki structure dynamically based on your repo
-- **Page importance scoring**: planner assigns each page an importance score (0–100); nav sidebar sorts by priority
-- **DeepWiki-style sections**: pages grouped into logical sections (`getting-started`, `architecture`, `core-components`, etc.)
-- **Wiki sidebar categories**: `reki serve` sidebar groups pages by `section` field with collapsible headers
-- **Live search**: type in the sidebar search box to filter wiki pages by title or category instantly
-- **Refactor analysis**: `reki refactor` detects code smells (god class, circular deps, dead code, high coupling) with LLM-enriched suggestions — outputs `REFACTOR.md` + `refactor_report.json`
-- **Context slicing**: each page only receives the data it needs (~40–60% token reduction vs fixed-layout approach)
-- **Hybrid RAG Q&A**: FAISS-indexed code chunks + wiki pages give the LLM full codebase context when answering questions
-- **Embed provider choice**: `--embed-provider openai|ollama|azure|...` — any litellm-compatible embedding model
-- **Wiki export**: bundle to a single Markdown file, ZIP archive, or structured JSON (`rekipedia export`)
-- **Incremental updates**: only re-processes changed files after the first scan
-- **Grounded Q&A**: answers cite real file paths and line numbers — no hallucinations
-- **Codebase tree index** — every scan builds a hierarchical directory/file tree in SQLite, enabling structured navigation and future reasoning-based retrieval.
-- **Rust full symbol extraction** — `RustExtractor` (tree-sitter) now extracts enums, type aliases, `const`/`static`, `macro_rules!`, `mod`, and intra-file call-graph edges — on par with Go, TypeScript, and Python extractors.
-- **`reki watch` -- native OS filesystem watcher** with 2-second debounce; monitors Python, TS/JS, Go, Rust, Java, Kotlin, Ruby, PHP, Swift files; multi-repo via `reki watch add/remove/list`; direct path shortcut `reki watch start <path>`.
-- **Framework-aware route extraction** -- `reki scan` now detects HTTP route registrations across Python (Flask, FastAPI, Django, Starlette), TypeScript/JS (Express, Koa, NestJS, Next.js API routes), Go (Gin, Echo, Chi, net/http), and Rust (Axum, Actix-web, Rocket). Routes appear as `kind: "route"` symbols named `"METHOD /path"` (e.g. `GET /users/{id}`).
-- **`reki affected` -- git-diff-aware minimal test selection** -- pipe `git diff --name-only` into `reki affected` to get the minimum set of test files that need to run, derived from call-graph traversal. Supports `--base`/`--head` refs, `--format json`, and `--depth` control. CI-ready.
-- **`--doc-type` flag for `reki scan`** — shape wiki generation style with `api-ref`, `tutorial`, `runbook`, `adr`, or `changelog`. Each type injects a specialist prompt preamble before the standard system prompt. Also readable from env var `REKIPEDIA_DOC_TYPE`.
-- **GitHub Actions official action** — use `uses: unrealandychan/rekipedia@v1` in any workflow to scan, generate wiki pages, export HTML, and upload artifacts. Auto-detects LLM provider from model name. Supports `focus` glob filtering and optional GitHub Pages deployment.
-- **Interactive HTML export** — `reki export --format html` produces a single self-contained `.html` file with dark/light theme, instant search, sidebar navigation, syntax highlighting (highlight.js), Mermaid diagram rendering, and clickable heading anchors. No server required — open in any browser.
-- **OSC-8 clickable citations** — `reki ask` answers now print source citations as terminal hyperlinks (iTerm2, WezTerm, Kitty, Windows Terminal, VSCode). Click `src/auth.py:42` to jump directly to the file and line in your editor. Auto-detects terminal support; disable with `REKIPEDIA_OSC8=0`.
-- **`--focus` flag for targeted deep scans** — `reki scan --focus src/auth/** --focus src/payment/**` limits extraction and wiki generation to the matched files/directories, dramatically reducing scan time when you only need docs for a sub-system.
+---
 
 ## Quick start
 
-### via npm / npx (no install required)
-
 ```bash
-npx rekipedia init .
-npx rekipedia scan .
-```
-
-### via uv / uvx (no install required)
-
-```bash
-uvx rekipedia init .
-uvx rekipedia scan .
-```
-
-### Permanent install
-
-```bash
-# Core (scan + serve + ask)
-pip install rekipedia
+# No install required
+npx rekipedia init . && npx rekipedia scan .
 # or
-uv tool install rekipedia
+uvx rekipedia init . && uvx rekipedia scan .
+```
 
-# With RAG support (semantic embed + search — needs faiss-cpu + numpy ~100MB)
-pip install "rekipedia[rag]"
+```bash
+# Permanent install
+pip install rekipedia          # core
+pip install "rekipedia[rag]"   # + semantic search (FAISS)
+```
 
-# Homebrew (Go single binary — no Python needed)
-brew tap unrealandychan/tap
-brew install rekipedia
+---
+
+## Core commands
+
+| Command | What it does |
+|---|---|
+| `reki init .` | Scaffold config |
+| `reki scan .` | Full analysis → wiki + knowledge store |
+| `reki update .` | Incremental refresh (changed files only) |
+| `reki serve .` | Local web UI — browse, search, ask AI |
+| `reki ask` | Interactive Q&A REPL (streamed) |
+| `reki embed .` | Build FAISS semantic index for hybrid RAG |
+| `reki export .` | Bundle wiki → `--format md\|zip\|json\|html` |
+| `reki diff` | Uncommitted-change impact analysis |
+| `reki domain .` | Map codebase to business layers (API/Service/Data/UI) |
+| `reki tour .` | Guided learning walkthrough by dependency depth |
+| `reki onboard .` | Static onboarding guide for new developers |
+| `reki review` | LLM PR review grounded in wiki context |
+| `reki refactor .` | Detect code smells → `REFACTOR.md` |
+| `reki watch .` | Auto-index on file change (OS watcher) |
+| `reki hook install` | Git post-commit auto-rebuild |
+| `reki mcp` | MCP stdio server for AI coding assistants |
+
+---
+
+## LLM configuration
+
+After `reki init`, edit `.rekipedia/config.yml`:
+
+```yaml
+llm:
+  model: ollama/llama4        # any litellm model string
+  api_key: ""                 # or REKIPEDIA_API_KEY env var
+  base_url: ""                # for local / self-hosted endpoints
+  temperature: 0.2
+```
+
+Supported providers: Ollama, OpenAI, Anthropic, Gemini, any OpenAI-compatible endpoint.
+
+Key env vars: `REKIPEDIA_MODEL`, `REKIPEDIA_API_KEY`, `REKIPEDIA_BASE_URL`
+
+---
+
+## Output layout
+
+```
+.rekipedia/
+├── config.yml          # settings (committed)
+├── store.db            # SQLite knowledge store (git-ignored)
+├── wiki/               # generated Markdown pages
+├── rag/                # FAISS index + chunks (git-ignored)
+├── diagrams/           # Mermaid diagrams
+└── exports/            # JSON exports + manifest
 ```
 
 ---
 
 ## Python API
 
-Use rekipedia programmatically inside Jupyter notebooks, CI pipelines, or any Python application:
-
 ```python
 import rekipedia
 
-# Scan a local repo
 result = rekipedia.scan("/path/to/repo")
-print(result.page_count)   # number of wiki pages generated
-print(result.symbol_count) # number of code symbols extracted
-print(result.token_count)  # estimated token count of the wiki
-
-# Ask a question — grounded answer with file:line citations
 answer = rekipedia.ask("/path/to/repo", "How does the auth flow work?")
 print(answer.text)
-for citation in answer.citations:
-    print(f"  {citation.file}:{citation.line}")
-
-# Async variants (Jupyter-friendly)
-result = await rekipedia.scan_async("/path/to/repo")
-answer = await rekipedia.ask_async("/path/to/repo", "What is the entry point?")
+for c in answer.citations:
+    print(f"  {c.file}:{c.line}")
 ```
 
-**Return types:**
-
-| Type | Key fields |
-|---|---|
-| `ScanResult` | `page_count`, `symbol_count`, `token_count`, `wiki_pages`, `db_path`, `wiki_dir` |
-| `AskResult` | `text`, `citations: list[Citation]`, `model_used` |
-| `Citation` | `file`, `line`, `snippet` |
+Async variants: `rekipedia.scan_async()`, `rekipedia.ask_async()`
 
 ---
-
-## Commands
-
-| Command | Description |
-|---|---|
-| `rekipedia init [REPO]` | Scaffold `.rekipedia/` with `config.yml` and update `.gitignore` |
-| `rekipedia scan [REPO]` | Full analysis — extracts symbols, synthesises wiki pages, exports JSON |
-| `rekipedia update [REPO]` | Incremental refresh — re-extracts only changed files, keeps the rest |
-| `rekipedia ask [QUESTION]` | Interactive Q&A REPL — streaming answers, Ctrl+C to quit |
-| `rekipedia serve [REPO]` | Start a local web UI to browse wiki pages and ask questions |
-| `rekipedia embed [REPO]` | Build (or rebuild) the FAISS semantic search index for hybrid RAG Q&A |
-| `rekipedia export [REPO]` | Bundle the wiki to a single file (`--format md\|zip\|json`) |
-| `rekipedia hook install/uninstall/status` | Manage git post-commit hook for auto wiki rebuild |
-| `rekipedia diff [A] [B]` | Compare two graph snapshots (defaults to last two) |
-| `rekipedia impact <file>` | Show blast-radius — all affected files, symbols, tests for a changed file |
-| `rekipedia search <query>` | Search symbols (`--all-repos` for cross-repo parallel search) |
-| `rekipedia export --format graphml\|cypher\|obsidian` | Export graph to GraphML / Neo4j Cypher / Obsidian wikilinks |
-| `rekipedia mcp` | Start JSON-RPC 2.0 MCP stdio server (6 tools for AI coding assistants) |
-| `rekipedia watch add\|start\|list\|remove` | Watch repos and auto-index on file change |
-| `rekipedia refactor [REPO]` | Detect code smells + generate `REFACTOR.md` and `refactor_report.json` (use `--no-llm` for static only) |
-| `rekipedia note add\|list\|remove\|edit\|import` | Manage persistent tech lead notes — injected into `reki ask` context automatically |
-| `rekipedia review` | LLM-powered PR diff review grounded in the wiki — `--staged`, `--branch`, `--pr`, `--diff` |
-| `reki domain .` | Map codebase to business domain layers (API/Service/Data/UI/Utility) |
-| `reki domain . --format json` | Machine-readable layer classification |
-
----
-
-## LLM configuration
-
-After running `rekipedia init`, edit `.rekipedia/config.yml`:
-
-```yaml
-version: 1
-ignore:
-  - .git
-  - node_modules
-  - __pycache__
-  - .rekipedia
-languages:
-  - python
-  - typescript
-llm:
-  model: ollama/llama4        # any litellm model string
-  api_key: ""                 # or set REKIPEDIA_API_KEY env var
-  base_url: ""                # for local / self-hosted endpoints
-  temperature: 0.2
-```
-
-### Supported providers (via [litellm](https://docs.litellm.ai))
-
-| Provider | Example model string |
-|---|---|
-| Ollama (local, free) | `ollama/llama4` |
-| OpenAI | `gpt-5.5` |
-| Anthropic | `claude-opus-4-6` |
-| Google Gemini | `gemini/gemini-3.0-pro` |
-| Any OpenAI-compatible | set `base_url` in config |
-
-### Runtime overrides (env vars)
-
-```bash
-export REKIPEDIA_MODEL=gpt-5.5
-export REKIPEDIA_API_KEY=sk-...
-export REKIPEDIA_BASE_URL=https://my-proxy/v1
-export REKIPEDIA_SHARD_TOKEN_BUDGET=40000
-```
-
-| Variable | Description |
-|---|---|
-| `REKIPEDIA_MODEL` | LLM model name to use |
-| `REKIPEDIA_API_KEY` | API key for the LLM provider |
-| `REKIPEDIA_BASE_URL` | Base URL for OpenAI-compatible endpoints |
-| `REKIPEDIA_SHARD_TOKEN_BUDGET` | Max tokens per shard group (default: 40000) |
-| `REKIPEDIA_AGENT_ASK` | Set to `1` to enable agentic ReAct ask loop (default: `0` — single-shot) |
-| `REKIPEDIA_ASK_MAX_ITER` | Max tool-call iterations for agentic ask (default: `5`) |
-| `REKIPEDIA_STREAM` | Set to `0` to disable streaming output for `reki ask` (default: `1` — streaming on) |
-| `REKIPEDIA_AGENT_PLANNER` | Set to `1` to enable tool-calling wiki planner (default: `0`) |
-
----
-
-## Output
-
-`rekipedia scan` writes everything to `.rekipedia/` inside your repo:
-
-```
-.rekipedia/
-├── config.yml              # your settings (committed)
-├── store.db                # SQLite knowledge store (git-ignored)
-├── scan_meta.json          # last scan metadata (model, timestamp, file count)
-├── wiki/                   # generated Markdown pages (3–15 pages, dynamically planned)
-│   ├── index.md
-│   ├── architecture-overview.md
-│   ├── repository-structure.md
-│   └── ... (pages vary by repo)
-├── rag/                    # RAG index (git-ignored)
-│   ├── index.faiss         # FAISS flat L2 index
-│   └── chunks.json         # source code chunks + metadata
-├── diagrams/               # Mermaid diagram files
-│   ├── module-graph.md
-│   └── class-hierarchy.md
-└── exports/                # JSON exports
-    ├── symbols.json
-    ├── relationships.json
-    └── manifest.json       # run summary + metadata + page importance scores
-```
-
-Dynamically generates 3–15 wiki pages based on repo complexity (powered by PlannerAgent).
-
-The wiki structure is designed dynamically by `PlannerAgent` based on what's actually present in your repo:
-
-| Section | Example pages | When generated |
-|---|---|---|
-| Getting Started | index, installation, quick-start | Always |
-| Architecture | architecture-overview, data-flow, repository-structure | ≥3 modules |
-| Core Components | One page per major module | ≥2 modules |
-| API Reference | cli-reference, python-api, rest-api | CLI/HTTP handlers found |
-| Development | testing, contributing, ci-cd | Test files found |
-| Ecosystem | integrations, deployment | ≥3 external deps |
-
-### Scan options
-
-```bash
-# Use a specific LLM model
-rekipedia scan . --model gpt-5.5
-
-# Skip Docker (run extractors in-process)
-rekipedia scan . --no-docker
-
-# Write output to a custom directory
-rekipedia scan . --output-dir /tmp/wiki-output
-
-# Enable debug logging (litellm, HTTP, full tracebacks)
-rekipedia scan . --verbose
-
-# Auto-embed for RAG after scan
-rekipedia scan . --embed-model text-embedding-3-small --embed-provider openai
-```
-
-### RAG / semantic search
-
-`rekipedia ask` uses **hybrid retrieval** — wiki pages + FAISS-indexed code chunks — to answer questions with full codebase context.
-
-```bash
-# Build or rebuild the FAISS index
-rekipedia embed .
-
-# Custom embedding model + provider
-rekipedia embed . --model text-embedding-3-small --provider openai
-rekipedia embed . --model nomic-embed-text --provider ollama
-
-# If your embed provider uses a DIFFERENT API key from your main LLM:
-rekipedia embed . --model text-embedding-3-small --provider openai
-# set embed_api_key in config.yml, or:
-export REKIPEDIA_EMBED_API_KEY=sk-your-openai-key
-
-# Or configure everything in .rekipedia/config.yml:
-# llm:
-#   model: ollama/llama4          # main LLM (local)
-#   embed_model: text-embedding-3-small
-#   embed_provider: openai
-#   embed_api_key: sk-xxx         # separate key for embed provider
-#   embed_base_url: ""            # optional: custom endpoint
-
-# Env var overrides (all optional):
-export REKIPEDIA_EMBED_MODEL=nomic-embed-text
-export REKIPEDIA_EMBED_PROVIDER=ollama
-export REKIPEDIA_EMBED_API_KEY=sk-xxx
-export REKIPEDIA_EMBED_BASE_URL=https://my-proxy.example.com/v1
-```
-
-The FAISS index is saved to `.rekipedia/rag/index.faiss` and chunked source code to `.rekipedia/rag/chunks.json`.
-
-### Export the wiki
-
-```bash
-# Single combined Markdown file (default)
-rekipedia export . --format md --output ./wiki-export.md
-
-# ZIP archive (one .md per page + manifest.json)
-rekipedia export . --format zip --output ./wiki.zip
-
-# Structured JSON (all pages + metadata)
-rekipedia export . --format json --output ./wiki.json
-```
-
-### Incremental update
-
-After the first scan, `rekipedia update` only re-processes files whose SHA-256 has changed. Unchanged symbols and relationships are carried forward from the previous run — the wiki is refreshed in seconds.
-
-```bash
-rekipedia update .                    # auto-detect changed files
-rekipedia update . --no-docker        # skip Docker
-```
-
-If no previous scan is found, `update` automatically falls back to a full scan.
-
-### Ask the wiki
-
-```bash
-# Start interactive Q&A session (streams answers token-by-token, Ctrl+C to quit)
-rekipedia ask
-rekipedia ask --repo ./my-project
-rekipedia ask --model gpt-4o
-
-# Single-shot mode (backward compat)
-rekipedia ask -q "How does the auth flow work?"
-
-# Disable streaming — wait for the full response before printing
-rekipedia ask --no-stream
-rekipedia ask -q "Explain the architecture" --no-stream
-```
-
-Answers are grounded **entirely** in your wiki pages and symbol index — the LLM cannot hallucinate details that aren't in the scanned knowledge store. Answers are streamed token-by-token using **rich Markdown rendering** — headers, code blocks, and bullet points render live as the model writes them. Set `REKIPEDIA_STREAM=0` or pass `--no-stream` to disable streaming and wait for the full response first.
-
-Not happy with a generated page? See **[docs/customizing.md](docs/customizing.md)** — you can pin pages, override prompts, change the writing style, or add your own pages that scans will never touch.
-
-### Serve the wiki
-
-```bash
-rekipedia serve .                     # opens browser at http://127.0.0.1:7070
-rekipedia serve . --port 8080         # custom port
-rekipedia serve . --no-browser        # don't auto-open browser
-```
-
-- Browse generated wiki pages in a dark-themed web UI
-- Ask questions with the same grounded Q&A (answers streamed via the web)
-- Q&A history stored in SQLite
-
-### Review a PR or diff
-
-`reki review` produces a structured LLM code review grounded in the repository's wiki pages and symbol index — it knows your architecture, naming conventions, and known risks:
-
-```bash
-reki review                          # auto-detect: review git diff HEAD
-reki review --staged                 # review staged changes
-reki review --branch main            # diff current branch vs main
-reki review --diff changes.patch     # review from a patch file
-git diff HEAD~1 | reki review        # pipe diff from stdin
-reki review --pr 42                  # fetch & review a GitHub PR (requires GH_TOKEN)
-reki review --out review.md          # save review to a markdown file
-reki review --no-stream              # wait for full response before printing
-```
-
-The review includes: **summary**, **per-file analysis**, **issues rated by severity** (🔴 Critical → 🔵 Nit), **suggestions**, and a **verdict** (✅ LGTM / ⚠️ LGTM with comments / ❌ Needs changes). If no knowledge store is found, the review still works — it just lacks codebase context.
-
----
-
-## Prerequisites
-
-- **Python ≥ 3.11** (or `uv` which manages its own Python)
-- **Docker** — optional; used for isolated extraction. Falls back to in-process runner automatically if Docker is not available (`--no-docker` forces in-process mode)
-
----
-
-## Using rekipedia with AI coding agents
-
-rekipedia ships a **Hermes agent skill** (`rekipedia-agent-skill.md`) that teaches AI assistants (Copilot, Claude Code, Codex) to use rekipedia as their codebase intelligence layer:
-
-1. Copy `rekipedia-agent-skill.md` into your Hermes skills directory
-2. Any agent with the skill loaded will automatically scan + query rekipedia before diving into source files
-3. Dramatically reduces context window usage for large codebases
-
----
-
-## Agentic Mode
-
-rekipedia supports an experimental agentic mode where LLM calls use tool-calling (ReAct) instead of single large context dumps.
-
-### Agentic Ask
-
-Set `REKIPEDIA_AGENT_ASK=1` to enable:
-
-```bash
-REKIPEDIA_AGENT_ASK=1 reki ask "How does authentication work?"
-```
-
-The LLM issues tool calls to retrieve information on demand:
-- `search_code(query)` — semantic search over source code
-- `get_symbol(name)` — look up symbol location and signature
-- `get_page(slug)` — fetch a wiki page on demand
-- `get_relationships(target)` — dependency graph for a symbol/file
-- `finish(answer)` — provide final answer
-
-Max iterations can be configured with `REKIPEDIA_ASK_MAX_ITER` (default: 5).
-
-### Agentic Planner
-
-Set `REKIPEDIA_AGENT_PLANNER=1` to enable tool-calling wiki structure planning:
-
-```bash
-REKIPEDIA_AGENT_PLANNER=1 reki scan .
-```
-
-The planner builds the wiki structure incrementally using tool calls instead of generating a single large JSON response.
 
 ## Development
 
 ```bash
-# Install all deps
-make dev
-
-# Run tests
-make test
-
-# Lint
-make lint
-
-# Build wheel + npm tarball
-make build
-```
-
-### Release
-
-```bash
-PYPI_TOKEN=*** NPM_TOKEN=*** make release
-
-# Full release: build + tag + push + PyPI + npm
-make release-all PYPI_TOKEN=*** NPM_TOKEN=***
-# With version bump
-make release-all PYPI_TOKEN=*** NPM_TOKEN=*** VERSION=0.5.0
+make dev      # install deps
+make test     # run tests
+make lint     # lint
+make build    # wheel + npm tarball
 ```
 
 ---
@@ -431,6 +112,3 @@ make release-all PYPI_TOKEN=*** NPM_TOKEN=*** VERSION=0.5.0
 ## License
 
 Proprietary and Confidential — Copyright © 2026 Eddie Chan. All Rights Reserved.
-
-Unauthorized copying, distribution, or modification of this software is strictly prohibited.
-See [LICENSE](LICENSE) for details.

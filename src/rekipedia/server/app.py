@@ -9,6 +9,7 @@ from typing import Annotated, AsyncIterator
 import markdown as md
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from rekipedia.models.contracts import LLMConfig
@@ -16,11 +17,14 @@ from rekipedia.orchestrator.run_ask import run_ask, stream_ask
 from rekipedia.storage.sqlite_store import SqliteStore
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
+_STATIC_DIR    = Path(__file__).parent / "static"
 
 
 def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> FastAPI:
     """Factory — returns a configured FastAPI app."""
     app = FastAPI(title="rekipedia", docs_url=None, redoc_url=None)
+
+    app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
     templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 

@@ -4,142 +4,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% if project_name %}{{ project_name }}{% else %}rekipedia{% endif %}{% if title %} · {{ title }}{% endif %}</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #0d1117;
-      --surface: #161b22;
-      --surface2: #1c2128;
-      --border: #30363d;
-      --border-subtle: #21262d;
-      --text: #e6edf3;
-      --muted: #7d8590;
-      --muted2: #484f58;
-      --accent: #58a6ff;
-      --accent-dim: rgba(88,166,255,.12);
-      --green: #3fb950;
-      --orange: #d29922;
-      --red: #f85149;
-      --code-bg: #161b22;
-      --radius: 8px;
-      --radius-sm: 5px;
-      --shadow: 0 1px 3px rgba(0,0,0,.4);
-    }
-    body {
-      display: flex; min-height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", sans-serif;
-      background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.65;
-    }
-
-    /* ── Sidebar ─────────────────────────────────────────────────────── */
-    .sidebar {
-      width: 256px; min-width: 256px;
-      background: var(--surface);
-      border-right: 1px solid var(--border-subtle);
-      padding: 0;
-      display: flex; flex-direction: column;
-      position: sticky; top: 0; height: 100vh; overflow-y: auto;
-    }
-    .sidebar-header {
-      padding: 1.25rem 1.25rem 1rem;
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex; align-items: center; gap: 0.6rem;
-    }
-    .sidebar-logo {
-      width: 28px; height: 28px;
-      background: linear-gradient(135deg, #1f6feb 0%, #58a6ff 100%);
-      border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; flex-shrink: 0;
-    }
-    .sidebar-title {
-      font-size: 0.9rem; font-weight: 700; color: var(--text);
-      letter-spacing: -0.2px; line-height: 1.2;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .sidebar-subtitle { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.3px; }
-    .sidebar-nav { padding: 0.75rem 0.75rem; flex: 1; }
-    .nav-section { margin-bottom: 0.25rem; }
-    .nav-label {
-      font-size: 0.67rem; text-transform: uppercase; letter-spacing: 1.2px;
-      color: var(--muted2); padding: 0.5rem 0.6rem 0.25rem;
-      display: block; font-weight: 600;
-    }
-    .sidebar a {
-      display: flex; align-items: center; gap: 0.5rem;
-      padding: 0.38rem 0.6rem; border-radius: var(--radius-sm);
-      color: var(--muted); text-decoration: none; font-size: 0.855rem;
-      transition: all 0.15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .sidebar a:hover { background: var(--accent-dim); color: var(--text); }
-    .sidebar a.active { background: var(--accent-dim); color: var(--accent); font-weight: 500; }
-    .sidebar a .icon { font-size: 0.8rem; flex-shrink: 0; opacity: 0.7; }
-    .sidebar-footer {
-      padding: 0.75rem 1rem;
-      border-top: 1px solid var(--border-subtle);
-      font-size: 0.72rem; color: var(--muted2);
-    }
-    .sidebar hr { border: none; border-top: 1px solid var(--border-subtle); margin: 0.4rem 0; }
-
-    /* ── Search ──────────────────────────────────────────────────────── */
-    .search-wrap { padding: 0.6rem 0.75rem 0; }
-    .search-input {
-      width: 100%; background: var(--bg); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); padding: 0.38rem 0.65rem;
-      font-size: 0.82rem; color: var(--text); outline: none;
-    }
-    .search-input::placeholder { color: var(--muted2); }
-    .search-input:focus { border-color: var(--accent); }
-
-    /* ── Category groups ─────────────────────────────────────────────── */
-    .cat-group { margin-bottom: 0.1rem; }
-    .cat-header {
-      font-size: 0.67rem; text-transform: uppercase; letter-spacing: 1.2px;
-      color: var(--muted2); padding: 0.55rem 0.6rem 0.2rem;
-      display: flex; align-items: center; gap: 0.35rem;
-      cursor: pointer; user-select: none; font-weight: 600;
-    }
-    .cat-header:hover { color: var(--muted); }
-    .cat-arrow { font-size: 0.55rem; transition: transform 0.15s; }
-    .cat-group.collapsed .cat-arrow { transform: rotate(-90deg); }
-    .cat-group.collapsed .cat-pages { display: none; }
-    .cat-pages { }
-    .no-results { font-size: 0.8rem; color: var(--muted2); padding: 0.5rem 0.6rem; }
-
-    /* ── Main ─────────────────────────────────────────────────────────── */
-    .main { flex: 1; padding: 2.5rem 3rem; min-width: 0; max-width: 900px; }
-
-    /* ── Prose (wiki pages) ──────────────────────────────────────────── */
-    .prose { max-width: 760px; }
-    .prose h1 { font-size: 1.75em; font-weight: 700; color: #e6edf3; border-bottom: 1px solid var(--border); padding-bottom: 0.35em; margin: 0 0 1em; }
-    .prose h2 { font-size: 1.25em; font-weight: 600; color: #e6edf3; margin: 1.75em 0 0.5em; }
-    .prose h3 { font-size: 1.05em; font-weight: 600; color: #cdd9e5; margin: 1.25em 0 0.4em; }
-    .prose p { margin: 0.75em 0; color: var(--text); }
-    .prose a { color: var(--accent); text-decoration: none; }
-    .prose a:hover { text-decoration: underline; }
-    .prose code {
-      background: var(--code-bg); border: 1px solid var(--border-subtle);
-      padding: 0.18em 0.45em; border-radius: 4px;
-      font-size: 0.85em; font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-      color: #e6edf3;
-    }
-    .prose pre {
-      background: var(--code-bg); border: 1px solid var(--border-subtle);
-      border-radius: var(--radius); padding: 1.1em 1.25em;
-      overflow-x: auto; margin: 1.1em 0; font-size: 0.875em;
-    }
-    .prose pre code { background: none; border: none; padding: 0; font-size: 1em; }
-    .prose table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
-    .prose th { background: var(--surface2); border: 1px solid var(--border); padding: 0.5em 0.85em; text-align: left; font-weight: 600; color: #cdd9e5; }
-    .prose td { border: 1px solid var(--border); padding: 0.45em 0.85em; }
-    .prose tr:hover td { background: rgba(255,255,255,.02); }
-    .prose ul, .prose ol { padding-left: 1.6em; margin: 0.75em 0; }
-    .prose li { margin: 0.3em 0; }
-    .prose blockquote { border-left: 3px solid var(--border); margin: 1em 0; padding: 0.5em 1em; color: var(--muted); background: var(--surface2); border-radius: 0 4px 4px 0; }
-    .prose hr { border: none; border-top: 1px solid var(--border); margin: 1.5em 0; }
-  </style>
+  <link rel="stylesheet" href="/static/reki.css">
+  {% block head %}{% endblock %}
 </head>
 <body>
+
+<!-- ── Mobile top-bar ──────────────────────────────────────── -->
+<div class="topbar">
+  <div class="topbar-logo">📖</div>
+  <span class="topbar-title">{% if project_name %}{{ project_name }}{% else %}rekipedia{% endif %}</span>
+  <button class="hamburger" id="hamburger-btn" aria-label="Toggle navigation">
+    <span></span><span></span><span></span>
+  </button>
+</div>
+
+<!-- ── Sidebar overlay (mobile) ────────────────────────────── -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<!-- ── Sidebar ──────────────────────────────────────────────── -->
 <nav class="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-logo">📖</div>
@@ -148,43 +30,45 @@
       <div class="sidebar-subtitle">rekipedia</div>
     </div>
   </div>
-  <div class="search-wrap" style="padding:0.75rem 0.75rem 0.5rem; border-bottom:1px solid var(--border-subtle);">
+
+  <div class="search-wrap">
     <input id="wiki-search" class="search-input" type="search" placeholder="🔍 Search pages…" autocomplete="off">
   </div>
+
   <div class="sidebar-nav">
     <div class="nav-section">
       <a href="/" class="{% if request.url.path == '/' %}active{% endif %}">
         <span class="icon">⌂</span> Overview
       </a>
     </div>
+
     {% if pages %}
     <div class="nav-section">
-    <div id="wiki-nav">
-    {% if pages %}
-      {%- set ns = namespace(current_section=None) %}
-      {%- for page in pages %}
-        {%- if page.section != ns.current_section %}
-          {%- if ns.current_section is not none %}</div></div>{% endif %}
-          {%- set ns.current_section = page.section %}
-          <div class="cat-group" data-cat="{{ page.section }}">
-            <div class="cat-header" onclick="toggleCat(this.parentElement)">
-              <span class="cat-arrow">▾</span> {{ page.section | replace('-',' ') | replace('_',' ') | title }}
-            </div>
-            <div class="cat-pages">
-        {%- endif %}
-        <a href="/wiki/{{ page.slug }}" data-title="{{ page.title | lower }}" data-section="{{ page.section | lower }}"
-           {% if slug is defined and slug == page.slug %}class="active"{% endif %}>
-          <span class="icon">◦</span> {{ page.title }}
-        </a>
-      {%- endfor %}
-      {%- if ns.current_section is not none %}</div></div>{% endif %}
-    {% else %}
-      <p class="no-results">No wiki pages yet.</p>
-    {% endif %}
-    </div>
-    <div id="wiki-search-results" style="padding:0 0.1rem;"></div>
+      <div id="wiki-nav">
+        {%- set ns = namespace(current_section=None) %}
+        {%- for page in pages %}
+          {%- if page.section != ns.current_section %}
+            {%- if ns.current_section is not none %}</div></div>{% endif %}
+            {%- set ns.current_section = page.section %}
+            <div class="cat-group" data-cat="{{ page.section }}">
+              <div class="cat-header" onclick="toggleCat(this.parentElement)">
+                <span class="cat-arrow">▾</span> {{ page.section | replace('-',' ') | replace('_',' ') | title }}
+              </div>
+              <div class="cat-pages">
+          {%- endif %}
+          <a href="/wiki/{{ page.slug }}"
+             data-title="{{ page.title | lower }}"
+             data-section="{{ page.section | lower }}"
+             {% if slug is defined and slug == page.slug %}class="active"{% endif %}>
+            <span class="icon">◦</span> {{ page.title }}
+          </a>
+        {%- endfor %}
+        {%- if ns.current_section is not none %}</div></div>{% endif %}
+      </div>
+      <div id="wiki-search-results" style="padding:0 0.1rem;"></div>
     </div>
     {% endif %}
+
     <hr>
     <a href="/ask" class="{% if request.url.path == '/ask' %}active{% endif %}">
       <span class="icon">💬</span> Ask AI
@@ -196,84 +80,15 @@
       <span class="icon">📝</span> Notes
     </a>
   </div>
+
   <div class="sidebar-footer">Powered by rekipedia</div>
 </nav>
+
+<!-- ── Main content ─────────────────────────────────────────── -->
 <main class="main">
-{% block content %}{% endblock %}
+  {% block content %}{% endblock %}
 </main>
-<style>
-  .search-result-item {
-    display: block; padding: 0.45rem 0.6rem; border-radius: var(--radius-sm);
-    text-decoration: none; color: var(--muted); font-size: 0.835rem;
-    transition: all 0.15s; border-left: 2px solid transparent;
-  }
-  .search-result-item:hover { background: var(--accent-dim); color: var(--text); border-left-color: var(--accent); }
-  .search-result-title { font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .search-result-snippet { font-size: 0.75rem; color: var(--muted2); margin-top: 0.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .search-result-section { font-size: 0.68rem; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 0.1rem; }
-  #wiki-search-results { display: none; }
-  #wiki-search-results.visible { display: block; }
-</style>
-<style>
-  .search-result-item {
-    display: block; padding: 0.45rem 0.6rem; border-radius: var(--radius-sm);
-    text-decoration: none; color: var(--muted); font-size: 0.835rem;
-    transition: all 0.15s; border-left: 2px solid transparent;
-  }
-  .search-result-item:hover { background: var(--accent-dim); color: var(--text); border-left-color: var(--accent); }
-  .search-result-title { font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .search-result-snippet { font-size: 0.75rem; color: var(--muted2); margin-top: 0.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .search-result-section { font-size: 0.68rem; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 0.1rem; }
-  #wiki-search-results { display: none; }
-  #wiki-search-results.visible { display: block; }
-</style>
-<script>
-  function toggleCat(el) { el.classList.toggle('collapsed'); }
 
-  const searchInput = document.getElementById('wiki-search');
-  const wikiNav = document.getElementById('wiki-nav');
-  const searchResults = document.getElementById('wiki-search-results');
-  let searchTimer = null;
-
-  if (searchInput) {
-    searchInput.addEventListener('input', function() {
-      const q = this.value.trim();
-      clearTimeout(searchTimer);
-      if (!q || q.length < 2) {
-        if (wikiNav) wikiNav.style.display = '';
-        if (searchResults) { searchResults.innerHTML = ''; searchResults.classList.remove('visible'); }
-        return;
-      }
-      searchTimer = setTimeout(() => {
-        fetch('/api/wiki/search?q=' + encodeURIComponent(q))
-          .then(r => r.json())
-          .then(items => {
-            if (wikiNav) wikiNav.style.display = 'none';
-            if (!searchResults) return;
-            if (!items.length) {
-              searchResults.innerHTML = '<p class="no-results">No results for “' + q + '”</p>';
-            } else {
-              searchResults.innerHTML = items.map(item =>
-                '<a class="search-result-item" href="/wiki/' + item.slug + '">' +
-                '<div class="search-result-title">◦ ' + item.title + '</div>' +
-                (item.snippet ? '<div class="search-result-snippet">' + item.snippet + '</div>' : '') +
-                '<div class="search-result-section">' + item.section.replace(/[-_]/g,' ') + '</div>' +
-                '</a>'
-              ).join('');
-            }
-            searchResults.classList.add('visible');
-          })
-          .catch(() => {});
-      }, 250);
-    });
-    searchInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        this.value = '';
-        if (wikiNav) wikiNav.style.display = '';
-        if (searchResults) { searchResults.innerHTML = ''; searchResults.classList.remove('visible'); }
-      }
-    });
-  }
-</script>
+<script src="/static/reki.js"></script>
 </body>
 </html>
