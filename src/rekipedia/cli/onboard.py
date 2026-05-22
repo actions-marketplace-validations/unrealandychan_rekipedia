@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 
 import click
@@ -38,7 +39,15 @@ def onboard_cmd(repo: str, output: str | None, fmt: str) -> None:
         )
         raise SystemExit(1)
 
-    guide = build_onboard_guide(db_path, repo_path)
+    try:
+        guide = build_onboard_guide(db_path, repo_path)
+    except sqlite3.Error as exc:
+        click.echo(
+            f"❌ Existing scan at {db_path} is invalid or from an incompatible version"
+            " — run 'reki scan . --force' first",
+            err=False,
+        )
+        raise SystemExit(1) from exc
 
     if fmt == "json":
         out_text = json.dumps(guide, indent=2)

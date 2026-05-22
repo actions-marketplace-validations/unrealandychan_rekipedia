@@ -3,10 +3,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
-import tempfile
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from rekipedia.analysis.onboard import build_onboard_guide
@@ -101,6 +99,21 @@ def test_onboard_cmd_no_scan(tmp_path):
         result = runner.invoke(onboard_cmd, [str(tmp_path)])
     assert result.exit_code == 1
     assert "scan" in result.output.lower() or "scan" in (result.output + "").lower()
+
+
+def test_onboard_cmd_invalid_scan_schema(tmp_path):
+    reki_dir = tmp_path / ".rekipedia"
+    reki_dir.mkdir()
+    db = sqlite3.connect(str(reki_dir / "store.db"))
+    db.execute("CREATE TABLE placeholder (id INTEGER PRIMARY KEY)")
+    db.commit()
+    db.close()
+
+    runner = CliRunner()
+    result = runner.invoke(onboard_cmd, [str(tmp_path)])
+    assert result.exit_code == 1
+    assert "incompatible version" in result.output.lower()
+    assert "reki scan . --force" in result.output
 
 
 def _make_repo_with_store(tmp_path: Path) -> Path:
