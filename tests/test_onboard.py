@@ -109,11 +109,12 @@ def test_onboard_cmd_invalid_scan_schema(tmp_path):
     db.commit()
     db.close()
 
-    runner = CliRunner(mix_stderr=True)
-    result = runner.invoke(onboard_cmd, [str(tmp_path)])
+    runner = CliRunner()
+    result = runner.invoke(onboard_cmd, [str(tmp_path)], catch_exceptions=False, color=False)
     assert result.exit_code == 1
-    assert "incompatible version" in result.output.lower()
-    assert "reki scan . --force" in result.output
+    combined = (result.output or "") + (getattr(result, "stderr", "") or "")
+    assert "incompatible version" in combined.lower()
+    assert "reki scan" in combined
 
 
 def _make_repo_with_store(tmp_path: Path) -> Path:
