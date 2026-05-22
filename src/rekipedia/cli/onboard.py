@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from pathlib import Path
 
 import click
@@ -41,10 +40,9 @@ def onboard_cmd(repo: str, output: str | None, fmt: str) -> None:
 
     try:
         guide = build_onboard_guide(db_path, repo_path)
-    except sqlite3.Error as exc:
+    except Exception as exc:
         click.echo(
-            f"❌ Existing scan at {db_path} is invalid or from an incompatible version"
-            " — run 'reki scan . --force' first",
+            f"❌ Failed to generate onboarding guide: {exc}",
             err=True,
         )
         raise SystemExit(1) from exc

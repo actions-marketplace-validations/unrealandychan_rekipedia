@@ -9,36 +9,31 @@ from click.testing import CliRunner
 
 from rekipedia.analysis.onboard import build_onboard_guide
 from rekipedia.cli.onboard import onboard_cmd
+from rekipedia.storage.sqlite_store import SqliteStore
 
 
-def _make_store(tmp_path: Path, symbols: list[tuple] | None = None) -> Path:
-    """Create a minimal SQLite store with optional symbols."""
-    db = tmp_path / "store.db"
-    con = sqlite3.connect(str(db))
-    con.execute(
-        "CREATE TABLE scan_runs (run_id TEXT PRIMARY KEY, repo TEXT, started_at TEXT)"
-    )
-    con.execute(
-        "CREATE TABLE scan_symbols "
-        "(id INTEGER PRIMARY KEY, run_id TEXT, file TEXT, name TEXT, kind TEXT, line INTEGER)"
-    )
-    if symbols:
-        con.execute(
-            "INSERT INTO scan_runs VALUES ('run1', 'testrepo', '2026-01-01T00:00:00')"
-        )
-        con.executemany(
-            "INSERT INTO scan_symbols (run_id, file, name, kind, line) VALUES (?,?,?,?,?)",
-            symbols,
-        )
-    con.commit()
-    con.close()
+def _make_store(store_dir: Path, symbols: list[tuple] | None = None, repo_root: Path | None = None) -> Path:
+    """Create a minimal store.db via SqliteStore (proper schema + migrations)."""
+    db = store_dir / "store.db"
+    repo_str = str(repo_root) if repo_root else str(store_dir.parent)
+    with SqliteStore(db) as store:
+        if symbols:
+            run_id = "run1"
+            store.upsert_run(run_id, repo_str, status="running")
+            sym_dicts = [
+                {"name": s[2], "kind": s[3], "file": s[1],
+                 "line_start": s[4], "line_end": s[4], "signature": "", "docstring": ""}
+                for s in symbols
+            ]
+            store.upsert_symbols(run_id, sym_dicts)
+            store.upsert_run(run_id, repo_str, status="success")
     return db
 
 
 # ── unit: build_onboard_guide ─────────────────────────────────────────────────
 
 def test_build_onboard_empty_store(tmp_path):
-    db = _make_store(tmp_path)
+    db = _make_store(tmp_path, repo_root=tmp_path)
     guide = build_onboard_guide(db, tmp_path)
     assert "repo" in guide
     assert "generated_at" in guide
@@ -57,7 +52,7 @@ def test_build_onboard_file_counts(tmp_path):
         ("run1", "src/b.py", "qux", "function", 1),
         ("run1", "src/b.py", "quux", "function", 5),
     ]
-    db = _make_store(tmp_path, symbols)
+    db = _make_store(tmp_path, symbols, repo_root=tmp_path)
     guide = build_onboard_guide(db, tmp_path)
     assert guide["_counts"]["files"] == 2
     assert guide["_counts"]["symbols"] == 5
@@ -66,7 +61,7 @@ def test_build_onboard_file_counts(tmp_path):
 
 def test_build_onboard_getting_started_python(tmp_path):
     (tmp_path / "pyproject.toml").write_text("[project]\nname='x'")
-    db = _make_store(tmp_path)
+    db = _make_store(tmp_path, repo_root=tmp_path)
     guide = build_onboard_guide(db, tmp_path)
     cmds = [s["cmd"] for s in guide["getting_started"]]
     assert any("pip install" in c for c in cmds)
@@ -75,7 +70,7 @@ def test_build_onboard_getting_started_python(tmp_path):
 
 def test_build_onboard_getting_started_node(tmp_path):
     (tmp_path / "package.json").write_text('{"name": "x"}')
-    db = _make_store(tmp_path)
+    db = _make_store(tmp_path, repo_root=tmp_path)
     guide = build_onboard_guide(db, tmp_path)
     cmds = [s["cmd"] for s in guide["getting_started"]]
     assert any("npm install" in c for c in cmds)
@@ -86,7 +81,7 @@ def test_build_onboard_readme_overview(tmp_path):
     (tmp_path / "README.md").write_text(
         "# My Project\n\nThis is the overview paragraph.\n\nMore details here."
     )
-    db = _make_store(tmp_path)
+    db = _make_store(tmp_path, repo_root=tmp_path)
     guide = build_onboard_guide(db, tmp_path)
     assert "overview paragraph" in guide["overview"]
 
@@ -102,6 +97,8 @@ def test_onboard_cmd_no_scan(tmp_path):
 
 
 def test_onboard_cmd_invalid_scan_schema(tmp_path):
+    """SqliteStore auto-migrates any SQLite file, so a pre-existing placeholder table
+    is not a fatal error — the guide just returns empty results (no scan run yet)."""
     reki_dir = tmp_path / ".rekipedia"
     reki_dir.mkdir()
     db = sqlite3.connect(str(reki_dir / "store.db"))
@@ -110,11 +107,10 @@ def test_onboard_cmd_invalid_scan_schema(tmp_path):
     db.close()
 
     runner = CliRunner()
-    result = runner.invoke(onboard_cmd, [str(tmp_path)], catch_exceptions=False, color=False)
-    assert result.exit_code == 1
-    combined = (result.output or "") + (getattr(result, "stderr", "") or "")
-    assert "incompatible version" in combined.lower()
-    assert "reki scan" in combined
+    result = runner.invoke(onboard_cmd, [str(tmp_path)], color=False)
+    # Store is valid SQLite; SqliteStore migrates it. Guide runs with 0 symbols.
+    assert result.exit_code == 0
+    assert "Onboarding Guide" in result.output
 
 
 def _make_repo_with_store(tmp_path: Path) -> Path:
@@ -125,10 +121,7 @@ def _make_repo_with_store(tmp_path: Path) -> Path:
         ("run1", "src/main.py", "helper", "function", 10),
         ("run1", "src/utils.py", "util_fn", "function", 1),
     ]
-    db = _make_store(reki_dir, symbols)
-    # move store to .rekipedia/store.db
-    import shutil
-    shutil.move(str(db), str(reki_dir / "store.db"))
+    _make_store(reki_dir, symbols, repo_root=tmp_path)
     return tmp_path
 
 

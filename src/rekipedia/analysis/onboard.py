@@ -11,7 +11,6 @@ Builds a structured guide from existing rekipedia data:
 """
 from __future__ import annotations
 
-import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -22,88 +21,71 @@ def build_onboard_guide(store_path: Path, repo_root: Path) -> dict:
     {
         "repo": str,
         "generated_at": "ISO",
-        "overview": str,  # first paragraph of README or "N files, N symbols"
-        "getting_started": [
-            {"step": 1, "title": "...", "cmd": "..."},
-            ...
-        ],
-        "key_modules": [
-            {"path": "...", "description": "Top module", "symbols": [...]}
-        ],
-        "architecture": {
-            "layers": {"Service": 8, "Utility": 29, ...}
-        },
-        "patterns": [
-            {"kind": "function", "count": 142},
-        ],
-        "wiki_dir": str  # path to .rekipedia/wiki/ if it exists
+        "overview": str,
+        "getting_started": [{"step": 1, "title": "...", "cmd": "..."}, ...],
+        "key_modules": [{"path": "...", "description": "Top module", "symbols": [...]}],
+        "architecture": {"layers": {"Service": 8, "Utility": 29, ...}},
+        "patterns": [{"kind": "function", "count": 142}],
+        "wiki_dir": str | None
     }
     """
     from rekipedia.analysis.domain import _classify_file
+    from rekipedia.storage.sqlite_store import SqliteStore
 
-    con = sqlite3.connect(str(store_path))
-    con.row_factory = sqlite3.Row
-    try:
-        # Get latest run_id
-        row = con.execute(
-            "SELECT run_id FROM scan_runs ORDER BY started_at DESC LIMIT 1"
-        ).fetchone()
-        run_id = row["run_id"] if row else None
+    symbol_count = 0
+    file_count = 0
+    key_modules: list[dict] = []
+    patterns: list[dict] = []
+    layers: dict[str, int] = {}
 
-        symbol_count = 0
-        file_count = 0
-        key_modules: list[dict] = []
-        patterns: list[dict] = []
-        layers: dict[str, int] = {}
+    with SqliteStore(store_path) as store:
+        run_id = store.get_latest_run_id(str(repo_root))
 
         if run_id:
-            symbol_count = con.execute(
-                "SELECT COUNT(*) FROM scan_symbols WHERE run_id=?", (run_id,)
-            ).fetchone()[0]
-            file_count = con.execute(
-                "SELECT COUNT(DISTINCT file) FROM scan_symbols WHERE run_id=?", (run_id,)
-            ).fetchone()[0]
+            symbols = store.get_all_symbols(run_id)
+            symbol_count = len(symbols)
+
+            # Group by file
+            by_file: dict[str, list] = {}
+            for s in symbols:
+                if isinstance(s, dict):
+                    f, name, kind = s.get("file"), s.get("name"), s.get("kind")
+                elif hasattr(s, "keys"):
+                    f, name, kind = s["file"], s["name"], s["kind"]
+                else:  # tuple: run_id(0), name(1), kind(2), file(3)
+                    name = s[1] if len(s) > 1 else None
+                    kind = s[2] if len(s) > 2 else None
+                    f = s[3] if len(s) > 3 else None
+                if f:
+                    by_file.setdefault(f, []).append((name, kind))
+
+            file_count = len(by_file)
 
             # Top 5 hub modules
-            rows = con.execute(
-                "SELECT file, COUNT(*) as cnt FROM scan_symbols WHERE run_id=? "
-                "GROUP BY file ORDER BY cnt DESC LIMIT 5",
-                (run_id,),
-            ).fetchall()
-            for r in rows:
-                syms = [
-                    s[0]
-                    for s in con.execute(
-                        "SELECT name FROM scan_symbols WHERE run_id=? AND file=? LIMIT 5",
-                        (run_id, r["file"]),
-                    ).fetchall()
-                ]
-                key_modules.append(
-                    {
-                        "path": r["file"],
-                        "description": "Top module",
-                        "symbols": syms,
-                        "count": r["cnt"],
-                    }
-                )
+            sorted_files = sorted(by_file.items(), key=lambda x: -len(x[1]))
+            for f, syms in sorted_files[:5]:
+                key_modules.append({
+                    "path": f,
+                    "description": "Top module",
+                    "symbols": [s[0] for s in syms[:5] if s[0]],
+                    "count": len(syms),
+                })
 
             # Pattern counts
-            rows = con.execute(
-                "SELECT kind, COUNT(*) as cnt FROM scan_symbols WHERE run_id=? "
-                "GROUP BY kind ORDER BY cnt DESC",
-                (run_id,),
-            ).fetchall()
-            patterns = [{"kind": r["kind"], "count": r["cnt"]} for r in rows]
+            kind_counts: dict[str, int] = {}
+            for syms in by_file.values():
+                for _, k in syms:
+                    if k:
+                        kind_counts[k] = kind_counts.get(k, 0) + 1
+            patterns = [
+                {"kind": k, "count": c}
+                for k, c in sorted(kind_counts.items(), key=lambda x: -x[1])
+            ]
 
             # Layer classification
-            files = con.execute(
-                "SELECT DISTINCT file FROM scan_symbols WHERE run_id=?", (run_id,)
-            ).fetchall()
-            for f in files:
-                layer = _classify_file(f["file"])
+            for f in by_file:
+                layer = _classify_file(f)
                 layers[layer] = layers.get(layer, 0) + 1
-    finally:
-        con.close()
 
     # Overview: try README
     overview = f"{file_count} files, {symbol_count} symbols"
@@ -111,10 +93,8 @@ def build_onboard_guide(store_path: Path, repo_root: Path) -> dict:
         readme = repo_root / readme_name
         if readme.exists():
             text = readme.read_text(errors="replace")
-            paragraphs = text.split("\n\n")
-            for para in paragraphs:
+            for para in text.split("\n\n"):
                 stripped = para.strip()
-                # Skip headings-only paragraphs
                 lines = [l for l in stripped.splitlines() if not l.startswith("#") and l.strip()]
                 if lines:
                     overview = " ".join(lines)
@@ -125,7 +105,6 @@ def build_onboard_guide(store_path: Path, repo_root: Path) -> dict:
     steps: list[dict] = []
     step_num = 1
 
-    # Install
     if (repo_root / "pyproject.toml").exists() or (repo_root / "setup.py").exists():
         steps.append({"step": step_num, "title": "Install deps", "cmd": "pip install -e ."})
         step_num += 1
@@ -139,7 +118,6 @@ def build_onboard_guide(store_path: Path, repo_root: Path) -> dict:
         steps.append({"step": step_num, "title": "Build", "cmd": "go build ./..."})
         step_num += 1
 
-    # Test
     if (repo_root / "pytest.ini").exists() or (repo_root / "pyproject.toml").exists():
         steps.append({"step": step_num, "title": "Run tests", "cmd": "pytest"})
         step_num += 1
@@ -156,7 +134,6 @@ def build_onboard_guide(store_path: Path, repo_root: Path) -> dict:
     step_num += 1
     steps.append({"step": step_num, "title": "Tour", "cmd": "reki tour ."})
 
-    # Wiki dir
     wiki_dir = repo_root / ".rekipedia" / "wiki"
     wiki_dir_str = str(wiki_dir) if wiki_dir.exists() else None
 
