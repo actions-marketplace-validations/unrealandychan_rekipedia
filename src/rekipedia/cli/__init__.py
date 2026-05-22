@@ -24,6 +24,7 @@ from rekipedia.cli.review import review_cmd
 from rekipedia.cli.setup import setup_cmd
 from rekipedia.cli.domain import domain_cmd
 from rekipedia.cli.tour import tour_cmd
+from rekipedia.cli.onboard import onboard_cmd
 
 
 @click.group()
@@ -53,3 +54,4 @@ main.add_command(review_cmd)
 main.add_command(setup_cmd)
 main.add_command(domain_cmd)
 main.add_command(tour_cmd)
+main.add_command(onboard_cmd)

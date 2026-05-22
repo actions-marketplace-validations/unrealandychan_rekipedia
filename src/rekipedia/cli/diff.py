@@ -130,7 +130,7 @@ def diff_cmd(repo: str, staged: bool, base: str | None, fmt: str) -> None:
 
     for changed_file in changed_files:
         file_symbols = sym_by_file.get(changed_file, [])
-        if not file_symbols and not has_impact:
+        if not file_symbols:
             results.append({
                 "file": changed_file,
                 "symbol": None,
