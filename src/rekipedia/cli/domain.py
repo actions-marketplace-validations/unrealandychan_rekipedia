@@ -25,10 +25,14 @@ def domain_cmd(repo: str, output: str | None, fmt: str) -> None:
     from rekipedia.analysis.domain import classify_domain
 
     repo_path = Path(repo).resolve()
-    db_path = repo_path / ".rekipedia" / "rekipedia.db"
+    db_path = repo_path / ".rekipedia" / "store.db"
+    if not db_path.exists():
+        alt = repo_path / ".rekipedia" / "rekipedia.db"
+        if alt.exists():
+            db_path = alt
 
     if not db_path.exists():
-        console.print(f"[red]No rekipedia DB at {db_path}. Run `reki scan` first.[/red]")
+        console.print(f"[red]No rekipedia DB at {repo_path / '.rekipedia' / 'store.db'}. Run `reki scan` first.[/red]")
         raise click.Abort()
 
     store = SqliteStore(db_path)

@@ -18,7 +18,11 @@ def search_cmd(query, output_dir, all_repos, kind):
     else:
         from rekipedia.analysis.cross_repo_search import _search_single_repo
         from pathlib import Path
-        db = Path(output_dir) / '.rekipedia' / 'rekipedia.db'
+        db = Path(output_dir) / '.rekipedia' / 'store.db'
+        if not db.exists():
+            alt = Path(output_dir) / '.rekipedia' / 'rekipedia.db'
+            if alt.exists():
+                db = alt
         if not db.exists():
             console.print('[red]No rekipedia DB. Run reki scan first.[/red]')
             raise click.Abort()
