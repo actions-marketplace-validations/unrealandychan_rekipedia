@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 
+{% block wrap_class %}graph-wrap{% endblock %}
+
 {% block content %}
 <style>
-  /* Graph page overrides — full-bleed canvas */
-  .main { padding: 0; max-width: none; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  /* Graph page — full-bleed: sidebar | full-height graph panel */
+  .main        { padding: 0 !important; overflow: hidden; }
+  .graph-wrap  { display: flex; flex-direction: column; height: calc(100vh - var(--topbar-h, 52px)); overflow: hidden; }
 
   #graph-header {
     padding: 1.1rem 2rem 0.9rem;

@@ -355,7 +355,7 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
 
             # Also collect files directly from relationships
             for row in raw_rels:
-                file_ = (row[4] if isinstance(row, (list, tuple)) else row.get("file")) or ""
+                file_ = row.get("file") if isinstance(row, dict) else (row[4] if isinstance(row, (list, tuple)) else "")
                 if file_ and file_ not in file_kind:
                     file_kind[file_] = "module"
                     parts = file_.replace("\\", "/").split("/")
@@ -397,23 +397,57 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
             edges: list[dict] = []
             MAX_EDGES = 1500
 
+            # Build suffix index: "sqlite_store.py" → ["src/rekipedia/storage/sqlite_store.py", ...]
+            suffix_index: dict[str, list[str]] = {}
+            for nid in node_ids:
+                # index by each suffix segment: "a/b/c.py" → keys: "a/b/c.py", "b/c.py", "c.py"
+                parts = nid.replace("\\", "/").split("/")
+                for i in range(len(parts)):
+                    key = "/".join(parts[i:])
+                    suffix_index.setdefault(key, []).append(nid)
+
+            def resolve_module_to_file(module: str) -> str | None:
+                """Convert dotted module name or file path to a node_id file path."""
+                path_base = module.replace(".", "/")
+                candidates = [
+                    f"{path_base}.py",
+                    f"{path_base}/__init__.py",
+                    f"{path_base}.go",
+                    f"{path_base}.ts",
+                    f"{path_base}.js",
+                ]
+                # Direct match first
+                for cand in candidates:
+                    if cand in node_ids:
+                        return cand
+                # Suffix match: try each candidate against suffix_index
+                for cand in candidates:
+                    matches = suffix_index.get(cand)
+                    if matches:
+                        return matches[0]
+                # Try last segment only
+                last = module.split(".")[-1]
+                for ext in (".py", ".go", ".ts", ".js"):
+                    key = last + ext
+                    matches = suffix_index.get(key)
+                    if matches and len(matches) == 1:
+                        return matches[0]
+                return None
+
             for row in raw_rels:
-                src_file = (row[4] if isinstance(row, (list, tuple)) else row.get("file")) or ""
-                to_module = (row[2] if isinstance(row, (list, tuple)) else row.get("to")) or ""
-                kind_str = (row[3] if isinstance(row, (list, tuple)) else row.get("kind")) or "imports"
+                src_file = row.get("file") if isinstance(row, dict) else (row[4] if isinstance(row, (list, tuple)) else "")
+                to_module = row.get("to") if isinstance(row, dict) else (row[1] if isinstance(row, (list, tuple)) else "")
+                kind_str = row.get("kind") if isinstance(row, dict) else (row[2] if isinstance(row, (list, tuple)) else "imports")
+                src_file  = (src_file  or "").strip()
+                to_module = (to_module or "").strip()
+                kind_str  = (kind_str  or "imports")
 
                 if not src_file or not to_module:
                     continue
                 if src_file not in node_ids:
                     continue
 
-                # Try to resolve target module → file path
-                tgt_file = None
-                for cand in module_to_candidates(to_module):
-                    if cand in node_ids:
-                        tgt_file = cand
-                        break
-
+                tgt_file = resolve_module_to_file(to_module)
                 if not tgt_file or tgt_file == src_file:
                     continue
 

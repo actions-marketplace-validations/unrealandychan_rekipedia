@@ -86,7 +86,7 @@
 
 <!-- ── Main content ─────────────────────────────────────────── -->
 <main class="main">
-  <div class="content-wrap">
+  <div class="{% block wrap_class %}content-wrap{% endblock %}">
     {% block content %}{% endblock %}
   </div>
 </main>
