@@ -22,7 +22,7 @@
   --radius:       8px;
   --radius-sm:    5px;
   --shadow:       0 1px 3px rgba(0,0,0,.4);
-  --sidebar-w:    256px;
+  --sidebar-w:    280px;
   --topbar-h:     52px;
 }
 
@@ -108,7 +108,7 @@ body {
 .sidebar-title {
   font-size: 0.9rem; font-weight: 700; color: var(--text);
   letter-spacing: -0.2px; line-height: 1.2;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  word-break: break-word;
 }
 .sidebar-subtitle { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.3px; }
 .sidebar-nav { padding: 0.75rem; flex: 1; }
@@ -119,10 +119,10 @@ body {
   display: block; font-weight: 600;
 }
 .sidebar a {
-  display: flex; align-items: center; gap: 0.5rem;
+  display: flex; align-items: flex-start; gap: 0.5rem;
   padding: 0.38rem 0.6rem; border-radius: var(--radius-sm);
   color: var(--muted); text-decoration: none; font-size: 0.855rem;
-  transition: all 0.15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: all 0.15s; word-break: break-word; line-height: 1.35;
 }
 .sidebar a:hover { background: var(--accent-dim); color: var(--text); }
 .sidebar a.active { background: var(--accent-dim); color: var(--accent); font-weight: 500; }
@@ -161,7 +161,7 @@ body {
 /* ── Main ──────────────────────────────────────────────────────── */
 .main {
   flex: 1; padding: 2.5rem 3rem;
-  min-width: 0; max-width: 900px;
+  min-width: 0;
 }
 
 /* ── Prose (wiki pages) ──────────────────────────────────────── */
