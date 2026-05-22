@@ -32,7 +32,7 @@ def domain_cmd(repo: str, output: str | None, fmt: str) -> None:
             db_path = alt
 
     if not db_path.exists():
-        console.print(f"[red]No rekipedia DB at {repo_path / '.rekipedia' / 'store.db'}. Run `reki scan` first.[/red]")
+        console.print(f"[red]No rekipedia DB at {db_path}. Run `reki scan` first.[/red]")
         raise click.Abort()
 
     store = SqliteStore(db_path)

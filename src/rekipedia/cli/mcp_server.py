@@ -65,7 +65,7 @@ class _StoreCache:
         alt = self._rekipedia_dir / "rekipedia.db"
         if alt.exists():
             return alt
-        return store  # default to store.db (will not exist yet if unscannd)
+        return store  # default to store.db (will not exist yet if unscanned)
 
     # ── public accessors ──────────────────────────────────────────────────────
 

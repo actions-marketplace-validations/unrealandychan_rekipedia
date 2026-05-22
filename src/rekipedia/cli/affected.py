@@ -155,7 +155,7 @@ def affected_cmd(
             db_path = alt
     if not db_path.exists():
         raise click.ClickException(
-            f"No rekipedia DB at {Path(output_dir) / '.rekipedia' / 'store.db'}. Run `reki scan` first."
+            f"No rekipedia DB at {db_path}. Run `reki scan` first."
         )
 
     store = SqliteStore(db_path)
