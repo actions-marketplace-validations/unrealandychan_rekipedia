@@ -109,7 +109,7 @@ def test_onboard_cmd_invalid_scan_schema(tmp_path):
     db.commit()
     db.close()
 
-    runner = CliRunner()
+    runner = CliRunner(mix_stderr=True)
     result = runner.invoke(onboard_cmd, [str(tmp_path)])
     assert result.exit_code == 1
     assert "incompatible version" in result.output.lower()
