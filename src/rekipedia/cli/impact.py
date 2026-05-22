@@ -16,9 +16,13 @@ def impact_cmd(target_file, depth, output_dir):
     from rekipedia.storage.sqlite_store import SqliteStore
     from rekipedia.analysis.impact import compute_impact
 
-    db_path = Path(output_dir) / ".rekipedia" / "rekipedia.db"
+    db_path = Path(output_dir) / ".rekipedia" / "store.db"
     if not db_path.exists():
-        console.print(f"[red]No rekipedia DB at {db_path}. Run reki scan first.[/red]")
+        alt = Path(output_dir) / ".rekipedia" / "rekipedia.db"
+        if alt.exists():
+            db_path = alt
+    if not db_path.exists():
+        console.print(f"[red]No rekipedia DB at {Path(output_dir) / '.rekipedia' / 'store.db'}. Run reki scan first.[/red]")
         raise click.Abort()
 
     store = SqliteStore(db_path)

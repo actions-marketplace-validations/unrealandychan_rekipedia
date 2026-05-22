@@ -46,7 +46,8 @@ class _StoreCache:
     """
 
     def __init__(self, output_dir: str):
-        self.db_path = Path(output_dir) / ".rekipedia" / "rekipedia.db"
+        self._rekipedia_dir = Path(output_dir) / ".rekipedia"
+        self.db_path = self._resolve_db_path()
         self._store = None
         self._symbols: list = []
         self._rels: list = []
@@ -56,6 +57,15 @@ class _StoreCache:
         self._file_index: dict[str, list] = {}   # lower(file) → [symbols]
         self._callers_index: dict[str, list] = {}  # symbol → [callers]
         self._callees_index: dict[str, list] = {}  # symbol → [callees]
+
+    def _resolve_db_path(self) -> Path:
+        store = self._rekipedia_dir / "store.db"
+        if store.exists():
+            return store
+        alt = self._rekipedia_dir / "rekipedia.db"
+        if alt.exists():
+            return alt
+        return store  # default to store.db (will not exist yet if unscannd)
 
     # ── public accessors ──────────────────────────────────────────────────────
 
@@ -102,6 +112,7 @@ class _StoreCache:
     # ── internals ─────────────────────────────────────────────────────────────
 
     def _refresh(self):
+        self.db_path = self._resolve_db_path()
         if not self.db_path.exists():
             return
         try:
