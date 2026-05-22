@@ -35,13 +35,12 @@ def domain_cmd(repo: str, output: str | None, fmt: str) -> None:
         console.print(f"[red]No rekipedia DB at {db_path}. Run `reki scan` first.[/red]")
         raise click.Abort()
 
-    store = SqliteStore(db_path)
-    run_id = store.get_latest_run_id(str(repo_path))
-    if not run_id:
-        console.print("[red]No successful scan runs found. Run `reki scan` first.[/red]")
-        raise click.Abort()
-
-    result = classify_domain(store, run_id, repo_path)
+    with SqliteStore(db_path) as store:
+        run_id = store.get_latest_run_id(str(repo_path))
+        if not run_id:
+            console.print("[red]No successful scan runs found. Run `reki scan` first.[/red]")
+            raise click.Abort()
+        result = classify_domain(store, run_id, repo_path)
 
     if fmt == "json":
         out = json.dumps(result, indent=2)

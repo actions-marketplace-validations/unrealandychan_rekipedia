@@ -25,16 +25,14 @@ def impact_cmd(target_file, depth, output_dir):
         console.print(f"[red]No rekipedia DB at {db_path}. Run `reki scan` first.[/red]")
         raise click.Abort()
 
-    store = SqliteStore(db_path)
-    run_id = store.latest_run_id()
-    if not run_id:
-        console.print("[red]No scan runs found.[/red]")
-        raise click.Abort()
-
-    symbols = store.get_all_symbols(run_id)
-    relationships = store.get_all_relationships(run_id)
-
-    result = compute_impact(target_file, relationships, symbols, depth=depth)
+    with SqliteStore(db_path) as store:
+        run_id = store.latest_run_id()
+        if not run_id:
+            console.print("[red]No scan runs found.[/red]")
+            raise click.Abort()
+        symbols = store.get_all_symbols(run_id)
+        relationships = store.get_all_relationships(run_id)
+        result = compute_impact(target_file, relationships, symbols, depth=depth)
 
     tree = Tree(f"[bold cyan]Impact: {target_file}[/bold cyan] (depth={depth})")
     affected = tree.add(f"[yellow]Affected files ({len(result['affected_files'])})[/yellow]")
