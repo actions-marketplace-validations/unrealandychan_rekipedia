@@ -1,4 +1,20 @@
-     1|## v0.17.2 — 2026-05-20
+     1|## v0.17.3 — 2026-05-23
+
+### Fixes & Code Quality
+
+- **Progress bar flicker fixed** — removed `SpinnerColumn` from the page-build progress bar; spinner was racing with `ThreadPoolExecutor` update calls causing `⠼`/`⠏` alternation. Added `refresh_per_second=4` for smoother rendering.
+- **Ruff lint cleanup** — reduced lint errors from 485 → 217 (55% reduction):
+  - Fixed missing `TYPE_CHECKING` imports (`AnalysisResult`, `Callable`, `WikiPlan`) resolving `F821` undefined-name errors
+  - Replaced 7× `try/except/pass` blocks with `contextlib.suppress()` (SIM105)
+  - Removed dead code: unused `loop`/`executor` in SSE handler, unused `entry_set` in diagram builder, unused `cur` variables in SQLite store
+  - Renamed ambiguous single-letter `l` variables → `line`/`lang`/`ln` (E741)
+  - Added `strict=True` to 3 FAISS `zip()` calls (B905)
+  - Replaced `os.getcwd()` with `Path.cwd()` in MCP server and terminal links (PTH109)
+  - Auto-fixed 263 issues: import sorting, unused `noqa` directives, type annotation modernisation
+
+---
+
+## v0.17.2 — 2026-05-20
 
 ### Features
 
