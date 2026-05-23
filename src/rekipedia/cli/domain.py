@@ -1,11 +1,13 @@
 """`reki domain` — map codebase to business domain layers (API/Service/Data/UI/Utility)."""
 from __future__ import annotations
 
+import contextlib
 import json
 from pathlib import Path
 
 import click
 from rich.console import Console
+from rich.tree import Tree
 
 console = Console()
 
@@ -19,10 +21,16 @@ console = Console()
     type=click.Choice(["text", "json"]),
     help="Output format.",
 )
-def domain_cmd(repo: str, output: str | None, fmt: str) -> None:
+@click.option("--biz", is_flag=True, default=False, help="Run LLM-driven business domain analysis.")
+@click.option("--json", "json_out", is_flag=True, default=False, help="Output business domain graph as JSON (use with --biz).")
+def domain_cmd(repo: str, output: str | None, fmt: str, biz: bool, json_out: bool) -> None:  # noqa: C901
     """Map codebase to business domain layers (API/Service/Data/UI/Utility)."""
-    from rekipedia.storage.sqlite_store import SqliteStore
+    if biz:
+        _run_biz(repo, output, json_out)
+        return
+
     from rekipedia.analysis.domain import classify_domain
+    from rekipedia.storage.sqlite_store import SqliteStore
 
     repo_path = Path(repo).resolve()
     db_path = repo_path / ".rekipedia" / "store.db"
@@ -69,7 +77,7 @@ def domain_cmd(repo: str, output: str | None, fmt: str) -> None:
         dep_map.setdefault(d["from"], []).append((d["to"], d["count"]))
 
     layer_order = ["API", "Service", "Data", "UI", "Utility"]
-    shown_layers = [l for l in layer_order if l in layers]
+    shown_layers = [lay for lay in layer_order if lay in layers]
 
     for layer_name in shown_layers:
         info = layers[layer_name]
@@ -105,3 +113,75 @@ def domain_cmd(repo: str, output: str | None, fmt: str) -> None:
         console.print(f"[green]Written to {output}[/green]")
     else:
         click.echo(text_out)
+
+
+# ── Business domain sub-command ───────────────────────────────────────────────
+
+_COMPLEXITY_COLOUR = {"simple": "green", "moderate": "yellow", "complex": "red"}
+
+
+def _run_biz(repo: str, output: str | None, json_out: bool) -> None:
+    """Load store, run BizDomainAnalyzer, display results."""
+    from rekipedia.analysis.biz_domain import BizDomainAnalyzer
+    from rekipedia.models.contracts import AnalysisResult
+    from rekipedia.storage.sqlite_store import SqliteStore
+
+    repo_path = Path(repo).resolve()
+    db_path = repo_path / ".rekipedia" / "store.db"
+    if not db_path.exists():
+        alt = repo_path / ".rekipedia" / "rekipedia.db"
+        if alt.exists():
+            db_path = alt
+
+    if not db_path.exists():
+        console.print(f"[red]No rekipedia DB at {db_path}. Run `reki scan` first.[/red]")
+        raise click.Abort()
+
+    with SqliteStore(db_path) as store:
+        run_id = store.latest_run_id()
+        if not run_id:
+            console.print("[red]No scan runs found. Run `reki scan` first.[/red]")
+            raise click.Abort()
+
+        symbols = store.get_all_symbols(run_id)
+        relationships = store.get_all_relationships(run_id)
+        entry_points: list[str] = []
+        with contextlib.suppress(Exception):
+            entry_points = store.get_entry_points(run_id) or []
+
+    analysis_result = AnalysisResult(
+        shard_id="biz-domain",
+        files_seen=[],
+        entry_points=entry_points,
+        symbols=symbols,
+        relationships=relationships,
+    )
+
+    console.print("[dim]Running LLM business domain analysis…[/dim]")
+    analyzer = BizDomainAnalyzer()
+    graph = analyzer.analyze(analysis_result, project_name=repo_path.name)
+    analyzer.save(graph, repo_path)
+
+    if json_out:
+        out = graph.model_dump_json(indent=2)
+        if output:
+            Path(output).write_text(out)
+            console.print(f"[green]Written to {output}[/green]")
+        else:
+            click.echo(out)
+        return
+
+    # Rich tree display
+    root = Tree("📊 [bold]Business Domain Map[/bold]")
+    for domain in graph.domains:
+        colour = _COMPLEXITY_COLOUR.get(domain.complexity, "white")
+        domain_node = root.add(
+            f"🏢 [bold]{domain.name}[/bold]  [[{colour}]{domain.complexity}[/{colour}]]"
+        )
+        for flow in domain.flows:
+            flow_node = domain_node.add(f"🔄 [cyan]{flow.name}[/cyan]")
+            for i, step in enumerate(flow.steps, 1):
+                loc = f"  [dim]{step.file_path}:{step.line_range[0]}[/dim]" if step.file_path else ""
+                flow_node.add(f"{i}. {step.name}{loc}")
+
+    console.print(root)
