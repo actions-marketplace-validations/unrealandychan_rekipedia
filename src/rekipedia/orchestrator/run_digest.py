@@ -314,12 +314,12 @@ def run_digest(
         _vlog(f"  Wiki plan: {wiki_plan}")
 
         _page_rich = Progress(
-            SpinnerColumn(),
             TextColumn("[bold green]{task.description}"),
             BarColumn(),
             TaskProgressColumn(),
             TimeRemainingColumn(),
             transient=False,
+            refresh_per_second=4,
         )
 
         builder = PageBuilder(llm_config, doc_type=doc_type)
