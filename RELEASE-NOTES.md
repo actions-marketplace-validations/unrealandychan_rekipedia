@@ -1,4 +1,15 @@
-     1|## v0.17.3 — 2026-05-23
+     1|## v0.17.17 — 2026-05-23
+
+### New Features
+
+- **LLM-driven Business Domain Analyzer** (`reki domain --biz`) — Inspired by Understand-Anything's `domain-analyzer` agent. Extracts a three-level business hierarchy (Domain → Flow → Step) from your codebase using LLM analysis over symbols, relationships, hub nodes, and entry points. Output displayed as a Rich Tree with `file:line` citations per step, and saved to `.rekipedia/domain-graph.json`.
+  - `reki domain --biz` — Rich tree display
+  - `reki domain --biz --json` — raw JSON output (for MCP / dashboard integration)
+  - Scale: 2–6 domains, 2–5 flows per domain, 3–8 steps per flow
+
+---
+
+## v0.17.3 — 2026-05-23
 
 ### Fixes & Code Quality
 
