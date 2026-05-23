@@ -6,7 +6,6 @@ import webbrowser
 from pathlib import Path
 
 import click
-import yaml
 
 from rekipedia.models.contracts import LLMConfig
 
@@ -39,12 +38,12 @@ def serve_cmd(
         rekipedia serve --port 8080
         rekipedia serve --repo ./my-project --no-open
     """
-    import uvicorn  # noqa: PLC0415 — lazy import keeps startup fast
+    import uvicorn
 
     repo = repo.resolve()
     output_dir = (output_dir or repo / ".rekipedia").resolve()
 
-    from rekipedia.config.loader import load_config  # noqa: PLC0415
+    from rekipedia.config.loader import load_config
     cfg = load_config(repo)
     llm_raw = cfg.get("llm", {}) if isinstance(cfg, dict) else {}
     llm_config = LLMConfig(
@@ -54,7 +53,7 @@ def serve_cmd(
         temperature=llm_raw.get("temperature", 0.2),
     )
 
-    from rekipedia.server.app import create_app  # noqa: PLC0415
+    from rekipedia.server.app import create_app
 
     app = create_app(repo_root=repo, output_dir=output_dir, llm_config=llm_config)
 
@@ -65,7 +64,7 @@ def serve_cmd(
     click.echo(f"  model      : {llm_config.model}")
 
     if open_browser:
-        import threading  # noqa: PLC0415
+        import threading
 
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
 

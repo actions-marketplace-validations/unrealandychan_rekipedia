@@ -29,8 +29,8 @@ def main() -> None:
     files = shard_data.get("files", [])
 
     # Import extractors (available inside the container via PYTHONPATH)
-    from rekipedia.extractors import ALL_EXTRACTORS  # noqa: PLC0415
-    from rekipedia.models.contracts import AnalysisResult  # noqa: PLC0415
+    from rekipedia.extractors import ALL_EXTRACTORS
+    from rekipedia.models.contracts import AnalysisResult
 
     merged = AnalysisResult(shard_id=shard_id, files_seen=[], entry_points=[])
 
@@ -50,7 +50,7 @@ def main() -> None:
                     _merge(merged, result)
                     handled = True
                     break
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     merged.risks.append(f"extractor error on {rel_path}: {exc}")
                     break
 

@@ -24,7 +24,7 @@ class LocalRunner(BaseRunner):
     """Run extractors in-process (no Docker required)."""
 
     def run(self, shard: Shard, repo_root: Path) -> AnalysisResult:
-        from rekipedia.extractors import ALL_EXTRACTORS  # noqa: PLC0415
+        from rekipedia.extractors import ALL_EXTRACTORS
 
         merged = AnalysisResult(
             shard_id=shard.shard_id,
@@ -47,7 +47,7 @@ class LocalRunner(BaseRunner):
                         _merge(merged, result)
                         handled = True
                         break
-                    except Exception as exc:  # noqa: BLE001
+                    except Exception as exc:
                         merged.risks.append(f"extractor error on {file_info.path}: {exc}")
                         break
 

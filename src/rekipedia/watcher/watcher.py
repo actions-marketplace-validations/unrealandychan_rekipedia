@@ -1,7 +1,7 @@
 """Multi-repo daemon for rekipedia — watches directories and auto-indexes on change."""
 from __future__ import annotations
+
 import json
-import os
 import subprocess
 import sys
 import threading
@@ -100,8 +100,8 @@ class _RepoWatcher:
 def start_watching(repos: list[str] | None = None, debounce_seconds: float = 2.0) -> None:
     """Start watching repos. Blocks until interrupted."""
     try:
-        from watchdog.observers import Observer
         from watchdog.events import FileSystemEventHandler
+        from watchdog.observers import Observer
     except ImportError:
         print("watchdog not installed. Run: pip install watchdog")
         return

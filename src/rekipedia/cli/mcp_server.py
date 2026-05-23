@@ -1,9 +1,9 @@
 """reki mcp — MCP stdio server exposing rekipedia graph as AI tools."""
 from __future__ import annotations
+
 import json
-import sys
 import os
-import time
+import sys
 from pathlib import Path
 
 TOOLS = [
@@ -244,12 +244,12 @@ def _handle_tool(name: str, args: dict, cache: _StoreCache) -> str:
 
         elif name == "ask":
             question = args.get("question", "")
-            repo_path = Path(args.get("repo") or os.getcwd())
+            repo_path = Path(args.get("repo") or Path.cwd())
             out_dir = repo_path / ".rekipedia"
             if not out_dir.exists():
                 return json.dumps({"error": "No .rekipedia dir found. Run reki scan first."})
-            from rekipedia.orchestrator.run_ask import run_ask
             from rekipedia.models.contracts import LLMConfig
+            from rekipedia.orchestrator.run_ask import run_ask
             answer = run_ask(question, repo_path, out_dir, llm_config=LLMConfig())
             return json.dumps({"answer": answer})
 

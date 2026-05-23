@@ -2,12 +2,10 @@
 from __future__ import annotations
 
 import os
-import threading
 from pathlib import Path
 
 import click
 import pyfiglet
-import yaml
 from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown
@@ -39,7 +37,7 @@ def _print_banner() -> None:
 
 
 def _load_config(repo: Path) -> dict:
-    from rekipedia.config.loader import load_config  # noqa: PLC0415
+    from rekipedia.config.loader import load_config
     return load_config(repo)
 
 
@@ -57,12 +55,12 @@ def _build_llm_config(repo: Path, model: str | None) -> LLMConfig:
 import re as _re
 
 
-def _print_answer_citations(answer: str, repo_root: "Path", console) -> None:  # noqa: F821
+def _print_answer_citations(answer: str, repo_root: Path, console) -> None:
     """Print OSC-8 hyperlinks for any ``file:line`` references found in *answer*.
 
     Does nothing if no references are found or if OSC-8 is not supported.
     """
-    from rekipedia.utils.terminal_links import osc8_supported, file_hyperlink  # noqa: PLC0415
+    from rekipedia.utils.terminal_links import file_hyperlink, osc8_supported
 
     if not osc8_supported():
         return
@@ -112,7 +110,7 @@ def _answer_streaming(
     Returns:
         The full answer string, or None on error.
     """
-    from rekipedia.orchestrator.run_ask import run_ask, stream_ask  # noqa: PLC0415
+    from rekipedia.orchestrator.run_ask import run_ask, stream_ask
 
     # Print question header
     console.print(Rule(style="dim"))
@@ -245,7 +243,8 @@ def ask_cmd(
         rekipedia ask --repo ./my-project
         rekipedia ask --history-limit 20
     """
-    import datetime, json as _json  # noqa: PLC0415
+    import datetime
+    import json as _json
 
     repo = repo.resolve()
     output_dir = (output_dir or repo / ".rekipedia").resolve()

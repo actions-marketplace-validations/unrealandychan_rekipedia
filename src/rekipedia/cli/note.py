@@ -16,7 +16,7 @@ from rekipedia.storage.sqlite_store import SqliteStore
 
 def _get_store(ctx: click.Context) -> tuple[SqliteStore, Path]:
     """Resolve the store from context or CWD."""
-    repo_root = Path(ctx.obj.get("repo_root", ".")).resolve() if ctx.obj else Path(".").resolve()
+    repo_root = Path(ctx.obj.get("repo_root", ".")).resolve() if ctx.obj else Path().resolve()
     output_dir = repo_root / ".rekipedia"
     db_path = output_dir / "store.db"
     store = SqliteStore(db_path)
@@ -154,7 +154,7 @@ def note_import(ctx: click.Context, file: str, dry_run: bool) -> None:
             TaskProgressColumn(),
             transient=True,
         ) as progress:
-            task = progress.add_task(f"Importing notes…", total=len(new_notes))
+            task = progress.add_task("Importing notes…", total=len(new_notes))
             for n in new_notes:
                 store.upsert_note(content=n["content"], tags=n.get("tags", ""), source="import")
                 progress.advance(task)

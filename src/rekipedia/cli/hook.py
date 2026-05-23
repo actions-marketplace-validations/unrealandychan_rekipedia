@@ -1,7 +1,6 @@
 """rekipedia hook CLI — install/uninstall/status git post-commit hook."""
 from __future__ import annotations
 
-import os
 import stat
 from datetime import datetime
 from pathlib import Path
@@ -92,6 +91,6 @@ def status() -> None:
         return
 
     mtime = datetime.fromtimestamp(hook_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-    click.echo(f"Hook status: installed (rekipedia-managed)")
+    click.echo("Hook status: installed (rekipedia-managed)")
     click.echo(f"Last modified: {mtime}")
     click.echo(f"Path: {hook_path}")

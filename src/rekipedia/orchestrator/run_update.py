@@ -12,14 +12,15 @@ Flow:
 """
 from __future__ import annotations
 
+import contextlib
 import logging
 import uuid
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Callable
 
 from rekipedia.models.contracts import AnalysisResult, FileManifest, LLMConfig
-from rekipedia.orchestrator.run_digest import run_digest, _combine_results
+from rekipedia.orchestrator.run_digest import _combine_results, run_digest
 from rekipedia.orchestrator.sharding import ShardPlanner
 from rekipedia.orchestrator.snapshotter import Snapshotter
 from rekipedia.sandbox.runner import BaseRunner, get_runner
@@ -156,8 +157,8 @@ def run_update(
 
         # ── 7. Synthesise wiki pages ──────────────────────────────────
         _log("Synthesising wiki pages…")
-        from rekipedia.synthesis.page_builder import PageBuilder  # noqa: PLC0415
-        from rekipedia.synthesis.diagram_builder import DiagramBuilder  # noqa: PLC0415
+        from rekipedia.synthesis.diagram_builder import DiagramBuilder
+        from rekipedia.synthesis.page_builder import PageBuilder
 
         all_rels_raw = store.get_all_relationships(run_id)
 
@@ -223,8 +224,8 @@ def run_update(
 
         # ── 8. Export ─────────────────────────────────────────────────
         _log("Exporting…")
-        from rekipedia.exporters.markdown_export import MarkdownExporter  # noqa: PLC0415
-        from rekipedia.exporters.json_export import JsonExporter  # noqa: PLC0415
+        from rekipedia.exporters.json_export import JsonExporter
+        from rekipedia.exporters.markdown_export import MarkdownExporter
 
         MarkdownExporter(output_dir).export(pages, diagrams)
         JsonExporter(output_dir).export(run_id, current_files, combined, pages, diagrams)
@@ -234,7 +235,7 @@ def run_update(
 
         # ── 9. Incremental RAG embed ───────────────────────────────────
         try:
-            from rekipedia.rag.embedder import EmbedPipeline  # noqa: PLC0415
+            from rekipedia.rag.embedder import EmbedPipeline
             pipe = EmbedPipeline(output_dir, llm_config, store=store, run_id=run_id)
             if pipe.is_built():
                 _log("Updating RAG index (incremental)…")
@@ -247,15 +248,13 @@ def run_update(
                 )
                 _log(f"  RAG index updated — {n_reembedded} chunks re-embedded")
         except Exception as _rag_exc:
-            import logging as _logging  # noqa: PLC0415
+            import logging as _logging
             _logging.getLogger("rekipedia.run_update").warning("Incremental RAG embed failed (non-fatal): %s", _rag_exc)
 
     except Exception:
         # Best-effort status update — run_id may not exist yet if we raised early
-        try:
+        with contextlib.suppress(Exception):
             store.update_run_status(run_id, "failed")  # type: ignore[possibly-undefined]
-        except Exception:
-            pass
         store.close()
         raise
 

@@ -26,8 +26,6 @@ def _build_module_graph(rows: list[dict], entry_points: list[str] | None = None)
     Groups files by top-level package/directory so the diagram shows
     high-level architecture instead of a symbol soup.
     """
-    entry_set = set(entry_points or [])
-
     _EXTERNAL_PREFIXES = (
         "os", "sys", "re", "io", "json", "time", "math", "typing", "pathlib",
         "collections", "itertools", "functools", "dataclasses", "enum", "abc",
@@ -185,7 +183,7 @@ def _to_dict(row) -> dict:
         return row
     try:
         return dict(row)
-    except Exception:  # noqa: BLE001
+    except Exception:
         return {}
 
 

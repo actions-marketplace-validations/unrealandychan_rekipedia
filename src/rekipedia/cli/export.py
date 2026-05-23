@@ -105,8 +105,8 @@ def export_cmd(
 
     if fmt == "obsidian":
         obs_dir = Path(output) if output else out_dir / "obsidian-vault"
-        from rekipedia.analysis.graph_export import export_obsidian  # noqa: PLC0415
-        from rekipedia.storage.sqlite_store import SqliteStore  # noqa: PLC0415
+        from rekipedia.analysis.graph_export import export_obsidian
+        from rekipedia.storage.sqlite_store import SqliteStore
         db = out_dir / "rekipedia.db"
         if not db.exists():
             console.print("[red]No rekipedia DB. Run rekipedia scan first.[/red]")
@@ -120,8 +120,8 @@ def export_cmd(
         return
 
     if fmt in ("graphml", "cypher"):
-        from rekipedia.analysis.graph_export import export_graphml, export_cypher  # noqa: PLC0415
-        from rekipedia.storage.sqlite_store import SqliteStore  # noqa: PLC0415
+        from rekipedia.analysis.graph_export import export_cypher, export_graphml
+        from rekipedia.storage.sqlite_store import SqliteStore
         db = out_dir / "rekipedia.db"
         if not db.exists():
             console.print("[red]No rekipedia DB. Run rekipedia scan first.[/red]")
@@ -160,7 +160,7 @@ def export_cmd(
         if not manifest_path.exists():
             console.print("[red]No manifest.json found. Run rekipedia scan first.[/red]")
             sys.exit(1)
-        import shutil  # noqa: PLC0415
+        import shutil
         shutil.copy2(manifest_path, dest)
 
     size_kb = dest.stat().st_size / 1024
@@ -214,7 +214,7 @@ def _export_md(
             badges.append(f"importance: **{meta['importance']}**")
         if "section" in meta:
             badges.append(f"section: `{meta['section']}`")
-        if "tags" in meta and meta["tags"]:
+        if meta.get("tags"):
             badges.append("tags: " + ", ".join(f"`{t}`" for t in meta["tags"]))
         if badges:
             lines.append("> " + " · ".join(badges) + "\n\n")
@@ -248,12 +248,12 @@ def _export_zip(
 def _export_html(
     pages: list,
     pages_meta: dict,
-    out_dir: "Path",
-    dest: "Path | None",
+    out_dir: Path,
+    dest: Path | None,
     title: str,
-) -> "Path":
+) -> Path:
     """Write an interactive self-contained HTML wiki file."""
-    from rekipedia.exporters.html_export import HtmlExporter  # noqa: PLC0415
+    from rekipedia.exporters.html_export import HtmlExporter
 
     exporter = HtmlExporter(out_dir)
 

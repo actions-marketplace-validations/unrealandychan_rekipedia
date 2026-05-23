@@ -6,7 +6,7 @@ Reuses patterns from graph_analysis.py (hub_bridge, knowledge_gap).
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass

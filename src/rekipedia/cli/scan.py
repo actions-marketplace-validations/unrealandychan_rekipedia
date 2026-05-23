@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 
 import click
-import yaml
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
@@ -133,7 +132,7 @@ def scan_cmd(
         db_path = output_dir / "store.db"
         if db_path.exists():
             try:
-                from rekipedia.storage.sqlite_store import SqliteStore  # noqa: PLC0415
+                from rekipedia.storage.sqlite_store import SqliteStore
                 with SqliteStore(db_path) as _store:
                     _existing = _store.get_latest_run_id(str(repo))
                 if _existing:
@@ -181,10 +180,10 @@ def scan_cmd(
     # Parse languages filter — CLI flag takes priority; fall back to config.yml
     lang_list: list[str] | None = None
     if languages:
-        lang_list = [l.strip().lower() for l in languages.split(",") if l.strip()]
+        lang_list = [lang.strip().lower() for lang in languages.split(",") if lang.strip()]
         console.print(f"  languages: [cyan]{', '.join(lang_list)}[/cyan]")
     elif cfg.get("languages"):
-        lang_list = [l.strip().lower() for l in cfg["languages"] if l.strip()]
+        lang_list = [lang.strip().lower() for lang in cfg["languages"] if lang.strip()]
         console.print(f"  languages: [cyan]{', '.join(lang_list)}[/cyan] [dim](from config.yml)[/dim]")
     else:
         console.print("  languages: [cyan]all[/cyan]")
@@ -194,7 +193,7 @@ def scan_cmd(
 
     console.rule()
 
-    from rekipedia.orchestrator.run_digest import run_digest  # noqa: PLC0415
+    from rekipedia.orchestrator.run_digest import run_digest
 
     # In verbose mode: print each log line directly so tqdm + log interleave cleanly
     # In normal mode: update a Rich spinner so the user sees live phase labels
@@ -217,7 +216,7 @@ def scan_cmd(
                 doc_type=doc_type,
                 workers=workers,
             )
-        except Exception as exc:
+        except Exception:
             console.print_exception(show_locals=True)
             sys.exit(1)
     else:

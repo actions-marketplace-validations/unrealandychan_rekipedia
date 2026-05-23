@@ -23,12 +23,12 @@ class VectorStore(ABC):
     """Abstract base class for vector store backends."""
 
     @abstractmethod
-    def add(self, vecs: "np.ndarray", chunks: list[dict]) -> None:
+    def add(self, vecs: np.ndarray, chunks: list[dict]) -> None:
         """Add/upsert vectors with associated chunk metadata."""
         ...
 
     @abstractmethod
-    def search(self, q_vec: "np.ndarray", top_k: int) -> list[tuple[int, float]]:
+    def search(self, q_vec: np.ndarray, top_k: int) -> list[tuple[int, float]]:
         """Search for top_k nearest vectors. Returns list of (chunk_idx, score)."""
         ...
 
@@ -39,7 +39,7 @@ class VectorStore(ABC):
 
     @classmethod
     @abstractmethod
-    def load(cls, out_dir: Path, **kwargs: Any) -> "VectorStore":
+    def load(cls, out_dir: Path, **kwargs: Any) -> VectorStore:
         """Load a persisted store from out_dir."""
         ...
 
@@ -49,7 +49,7 @@ class VectorStore(ABC):
         ...
 
     @abstractmethod
-    def reconstruct_all(self) -> "np.ndarray | None":
+    def reconstruct_all(self) -> np.ndarray | None:
         """Return all vectors as numpy array, or None if unsupported (e.g. for MMR)."""
         ...
 
@@ -67,13 +67,13 @@ class FaissStore(VectorStore):
     def __init__(self, out_dir: Path) -> None:
         self._out_dir = out_dir
         self._index: Any = None  # faiss index or None
-        self._matrix: "np.ndarray | None" = None  # numpy fallback
+        self._matrix: np.ndarray | None = None  # numpy fallback
         self._use_faiss = False
         self._dim: int = 0
 
-    def add(self, vecs: "np.ndarray", chunks: list[dict]) -> None:  # noqa: ARG002
+    def add(self, vecs: np.ndarray, chunks: list[dict]) -> None:
         try:
-            import faiss as _faiss  # noqa: PLC0415
+            import faiss as _faiss
             self._use_faiss = True
         except ImportError:
             _faiss = None
@@ -83,7 +83,7 @@ class FaissStore(VectorStore):
         self._dim = mat.shape[1]
 
         if self._use_faiss:
-            import faiss as _faiss  # noqa: PLC0415, F811
+            import faiss as _faiss
             _faiss.normalize_L2(mat)
             idx = _faiss.IndexFlatL2(self._dim)
             idx.add(mat)
@@ -93,14 +93,14 @@ class FaissStore(VectorStore):
             mat /= np.where(norms == 0, 1, norms)
             self._matrix = mat
 
-    def search(self, q_vec: "np.ndarray", top_k: int) -> list[tuple[int, float]]:
+    def search(self, q_vec: np.ndarray, top_k: int) -> list[tuple[int, float]]:
         q = q_vec.astype("float32")
         if self._use_faiss and self._index is not None:
-            import faiss as _faiss  # noqa: PLC0415
+            import faiss as _faiss
             _faiss.normalize_L2(q)
             distances, indices = self._index.search(q, top_k)
             results = []
-            for dist, idx in zip(distances[0], indices[0]):
+            for dist, idx in zip(distances[0], indices[0], strict=True):
                 if idx < 0:
                     continue
                 results.append((int(idx), float(1.0 - dist / 2.0)))
@@ -120,7 +120,7 @@ class FaissStore(VectorStore):
         index_path = self._out_dir / self._INDEX_FILE
         npy_path = self._out_dir / self._NPY_FILE
         try:
-            import faiss as _faiss  # noqa: PLC0415
+            import faiss as _faiss
             if index_path.exists():
                 self._index = _faiss.read_index(str(index_path))
                 self._use_faiss = True
@@ -136,13 +136,13 @@ class FaissStore(VectorStore):
     def save(self) -> None:
         self._out_dir.mkdir(parents=True, exist_ok=True)
         if self._use_faiss and self._index is not None:
-            import faiss as _faiss  # noqa: PLC0415
+            import faiss as _faiss
             _faiss.write_index(self._index, str(self._out_dir / self._INDEX_FILE))
         elif self._matrix is not None:
             np.save(str(self._out_dir / self._NPY_FILE), self._matrix)
 
     @classmethod
-    def load(cls, out_dir: Path, **kwargs: Any) -> "FaissStore":  # noqa: ARG003
+    def load(cls, out_dir: Path, **kwargs: Any) -> FaissStore:
         store = cls(out_dir)
         store._try_load_index()
         return store
@@ -153,7 +153,7 @@ class FaissStore(VectorStore):
             or (self._out_dir / self._NPY_FILE).exists()
         )
 
-    def reconstruct_all(self) -> "np.ndarray | None":
+    def reconstruct_all(self) -> np.ndarray | None:
         if self._matrix is not None:
             return self._matrix
         # Try numpy fallback on disk
@@ -192,7 +192,7 @@ class QdrantStore(VectorStore):
         if self._client is not None:
             return self._client
         try:
-            from qdrant_client import QdrantClient  # noqa: PLC0415
+            from qdrant_client import QdrantClient
         except ImportError as exc:
             raise ImportError(
                 "qdrant-client is not installed. Install it with: pip install 'rekipedia[qdrant]'"
@@ -200,9 +200,9 @@ class QdrantStore(VectorStore):
         self._client = QdrantClient(url=self._url)
         return self._client
 
-    def add(self, vecs: "np.ndarray", chunks: list[dict]) -> None:  # noqa: ARG002
+    def add(self, vecs: np.ndarray, chunks: list[dict]) -> None:
         try:
-            from qdrant_client.models import Distance, PointStruct, VectorParams  # noqa: PLC0415
+            from qdrant_client.models import Distance, PointStruct, VectorParams
         except (ImportError, ModuleNotFoundError) as exc:
             raise ImportError(
                 "qdrant-client is not installed. Install it with: pip install 'rekipedia[qdrant]'"
@@ -226,7 +226,7 @@ class QdrantStore(VectorStore):
         ]
         client.upsert(collection_name=self._collection, points=points)
 
-    def search(self, q_vec: "np.ndarray", top_k: int) -> list[tuple[int, float]]:
+    def search(self, q_vec: np.ndarray, top_k: int) -> list[tuple[int, float]]:
         client = self._get_client()
         results = client.search(
             collection_name=self._collection,
@@ -239,7 +239,7 @@ class QdrantStore(VectorStore):
         pass  # Qdrant persists automatically
 
     @classmethod
-    def load(cls, out_dir: Path, **kwargs: Any) -> "QdrantStore":  # noqa: ARG003
+    def load(cls, out_dir: Path, **kwargs: Any) -> QdrantStore:
         url = kwargs.get("url", "http://localhost:6333")
         collection = kwargs.get("collection", "rekipedia")
         return cls(url=url, collection=collection)
@@ -252,7 +252,7 @@ class QdrantStore(VectorStore):
         except Exception:
             return False
 
-    def reconstruct_all(self) -> "np.ndarray | None":
+    def reconstruct_all(self) -> np.ndarray | None:
         return None  # Not supported
 
 
@@ -273,7 +273,7 @@ class ChromaStore(VectorStore):
         if self._collection is not None:
             return self._collection
         try:
-            import chromadb  # noqa: PLC0415
+            import chromadb
         except ImportError as exc:
             raise ImportError(
                 "chromadb is not installed. Install it with: pip install 'rekipedia[chroma]'"
@@ -285,14 +285,14 @@ class ChromaStore(VectorStore):
         )
         return self._collection
 
-    def add(self, vecs: "np.ndarray", chunks: list[dict]) -> None:  # noqa: ARG002
+    def add(self, vecs: np.ndarray, chunks: list[dict]) -> None:
         col = self._get_collection()
         ids = [str(i) for i in range(len(vecs))]
         embeddings = [vecs[i].tolist() for i in range(len(vecs))]
         metadatas = [{"chunk_idx": i} for i in range(len(vecs))]
         col.upsert(ids=ids, embeddings=embeddings, metadatas=metadatas)
 
-    def search(self, q_vec: "np.ndarray", top_k: int) -> list[tuple[int, float]]:
+    def search(self, q_vec: np.ndarray, top_k: int) -> list[tuple[int, float]]:
         col = self._get_collection()
         results = col.query(
             query_embeddings=[q_vec[0].tolist()],
@@ -300,7 +300,7 @@ class ChromaStore(VectorStore):
             include=["metadatas", "distances"],
         )
         out = []
-        for meta, dist in zip(results["metadatas"][0], results["distances"][0]):
+        for meta, dist in zip(results["metadatas"][0], results["distances"][0], strict=True):
             chunk_idx = int(meta["chunk_idx"])
             # Chroma cosine distance: 0=identical, 2=opposite. Convert to similarity.
             score = float(1.0 - dist)
@@ -311,7 +311,7 @@ class ChromaStore(VectorStore):
         pass  # Chroma PersistentClient persists automatically
 
     @classmethod
-    def load(cls, out_dir: Path, **kwargs: Any) -> "ChromaStore":  # noqa: ARG003
+    def load(cls, out_dir: Path, **kwargs: Any) -> ChromaStore:
         path = kwargs.get("path", ".rekipedia/chroma")
         collection = kwargs.get("collection", "rekipedia")
         return cls(path=path, collection=collection)
@@ -323,7 +323,7 @@ class ChromaStore(VectorStore):
         except Exception:
             return False
 
-    def reconstruct_all(self) -> "np.ndarray | None":
+    def reconstruct_all(self) -> np.ndarray | None:
         return None  # Not supported
 
 
@@ -334,7 +334,7 @@ class ChromaStore(VectorStore):
 def get_vector_store(
     output_dir: Path,
     cfg_dict: dict | None = None,
-    llm_config: Any = None,  # noqa: ARG001
+    llm_config: Any = None,
 ) -> VectorStore:
     """Return the configured VectorStore backend.
 

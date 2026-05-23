@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 
 import click
-import yaml
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 
@@ -54,7 +53,7 @@ _TAG_SEVERITY: dict[str, str] = {
 
 
 def _load_config(repo: Path) -> dict:
-    from rekipedia.config.loader import load_config  # noqa: PLC0415
+    from rekipedia.config.loader import load_config
     return load_config(repo)
 
 

@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Annotated, AsyncIterator
+from typing import Annotated
 
 import markdown as md
 from fastapi import FastAPI, Form, Request
@@ -228,12 +229,6 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
         """SSE endpoint — streams LLM tokens as Server-Sent Events."""
         async def _event_gen() -> AsyncIterator[str]:
             try:
-                import asyncio  # noqa: PLC0415
-                loop = asyncio.get_event_loop()
-                # stream_ask is a sync generator; run in threadpool to avoid blocking
-                import concurrent.futures  # noqa: PLC0415
-                executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-
                 # Load conversation history for multi-turn context
                 db_path = output_dir / "store.db"
                 chat_history: list[dict] = []

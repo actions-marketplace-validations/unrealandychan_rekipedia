@@ -17,10 +17,10 @@ ALL_EXTRACTORS = [
 
 __all__ = [
     "ALL_EXTRACTORS",
-    "PythonExtractor",
-    "TypeScriptExtractor",
-    "GoExtractor",
-    "RustExtractor",
-    "JavaExtractor",
     "ConfigExtractor",
+    "GoExtractor",
+    "JavaExtractor",
+    "PythonExtractor",
+    "RustExtractor",
+    "TypeScriptExtractor",
 ]

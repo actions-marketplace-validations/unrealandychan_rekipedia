@@ -11,10 +11,10 @@ from __future__ import annotations
 import json
 import sys
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
-from rekipedia.models.contracts import AnalysisResult, Symbol  # noqa: TCH001
+from rekipedia.models.contracts import AnalysisResult, Symbol
 
 # ── Severity → presentation mapping ─────────────────────────────────────────
 
@@ -44,10 +44,10 @@ _TEST_PATH_SUBSTRINGS = ("/test", "\\test", "_test", "test_", "spec_", "_spec")
 def _rekipedia_version() -> str:
     """Return the installed rekipedia package version string."""
     try:
-        from importlib.metadata import version as _pkg_version  # noqa: PLC0415
+        from importlib.metadata import version as _pkg_version
 
         return _pkg_version("rekipedia")
-    except Exception:  # noqa: BLE001
+    except Exception:
         return "unknown"
 
 
@@ -164,7 +164,7 @@ def _build_markdown(issues: list[dict], file_count: int) -> str:
         Full Markdown string ready to be written to disk.
     """
     ver = _rekipedia_version()
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     n_issues = len(issues)
 
     lines: list[str] = [
@@ -269,7 +269,7 @@ def write_refactor_outputs(
         summary[sev] = summary.get(sev, 0) + 1
 
     report: dict = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "rekipedia_version": ver,
         "summary": summary,
         "issues": issues,

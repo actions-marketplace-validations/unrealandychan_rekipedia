@@ -1,5 +1,6 @@
 """Cross-repo search — fan-out across multiple SQLite stores."""
 from __future__ import annotations
+
 import math
 import re
 from collections import Counter

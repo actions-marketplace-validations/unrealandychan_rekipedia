@@ -16,14 +16,14 @@ Usage::
 from __future__ import annotations
 
 import bisect
+import functools
 import hashlib
 import json
 import logging
-import functools
 import os
 import time
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 try:
     import numpy as np
@@ -38,14 +38,16 @@ try:
 except ImportError:
     _RAG_AVAILABLE = False
 
+from datetime import UTC
+
 from rekipedia.models.contracts import LLMConfig
 
 logger = logging.getLogger("rekipedia.rag.embedder")
 
 
 def _mmr(
-    query_vec: "np.ndarray",
-    candidate_vecs: "np.ndarray",
+    query_vec: np.ndarray,
+    candidate_vecs: np.ndarray,
     top_k: int,
     lambda_: float = 0.5,
 ) -> list[int]:
@@ -265,18 +267,18 @@ def _symbol_chunk_file_inner(path: Path, repo_root: Path) -> list[dict]:
 
     # Load tree-sitter parser
     try:
-        from tree_sitter import Language, Parser  # noqa: PLC0415
+        from tree_sitter import Language, Parser
         if lang_name == "python":
-            import tree_sitter_python as ts_lang  # noqa: PLC0415
+            import tree_sitter_python as ts_lang
             lang_obj = Language(ts_lang.language())
         elif lang_name in ("typescript", "javascript"):
-            import tree_sitter_typescript as ts_lang  # noqa: PLC0415
+            import tree_sitter_typescript as ts_lang
             if ext in (".tsx",):
                 lang_obj = Language(ts_lang.language_tsx())
             else:
                 lang_obj = Language(ts_lang.language_typescript())
         elif lang_name == "go":
-            import tree_sitter_go as ts_lang  # noqa: PLC0415
+            import tree_sitter_go as ts_lang
             lang_obj = Language(ts_lang.language())
         else:
             return _chunk_file(path, repo_root)
@@ -421,7 +423,7 @@ def _embed_batch(texts: list[str], model: str, llm_config: LLMConfig) -> np.ndar
     (e.g. a LiteLLM proxy), it is passed as ``api_base`` so litellm routes
     directly to that endpoint without overriding the model prefix.
     """
-    import litellm  # noqa: PLC0415
+    import litellm
 
     api_key = getattr(llm_config, "embed_api_key", None) or llm_config.api_key
     base_url = getattr(llm_config, "embed_base_url", None) or llm_config.base_url
@@ -482,7 +484,7 @@ class EmbedPipeline:
 
     @functools.cached_property
     def _faiss_index(self):
-        import faiss as _faiss  # noqa: PLC0415
+        import faiss as _faiss
         return _faiss.read_index(str(self._out / _INDEX_FILE))
 
     # ------------------------------------------------------------------
@@ -499,7 +501,7 @@ class EmbedPipeline:
         Returns number of chunks embedded.
         """
         try:
-            import faiss as _faiss  # noqa: PLC0415
+            import faiss as _faiss
             _HAS_FAISS = True
         except ImportError:
             _faiss = None
@@ -643,7 +645,7 @@ class EmbedPipeline:
                  Respects REKIPEDIA_RAG_MMR=0 env var to disable.
         """
         try:
-            import faiss as _faiss  # noqa: PLC0415
+            import faiss as _faiss
             _HAS_FAISS = True
         except ImportError:
             _faiss = None
@@ -671,7 +673,7 @@ class EmbedPipeline:
                 _faiss.normalize_L2(q_vec)
                 distances, indices = index.search(q_vec, top_k)
                 results = []
-                for dist, idx in zip(distances[0], indices[0]):
+                for dist, idx in zip(distances[0], indices[0], strict=True):
                     if idx < 0 or idx >= len(chunks):
                         continue
                     chunk = dict(chunks[idx])
@@ -764,7 +766,7 @@ class EmbedPipeline:
             return self.build(repo_root, progress_cb)
 
         try:
-            import faiss as _faiss  # noqa: PLC0415
+            import faiss as _faiss
             _HAS_FAISS = True
         except ImportError:
             _faiss = None
@@ -832,7 +834,7 @@ class EmbedPipeline:
                     logger.error("Embedding batch %d failed: %s", i // _EMBED_BATCH, exc)
                     dim = old_vecs.shape[1]
                     new_vecs_list.append(np.zeros((len(batch), dim), dtype=np.float32))
-                import time as _time  # noqa: PLC0415
+                import time as _time
                 if os.environ.get('REKIPEDIA_EMBED_RATE_LIMIT', '0') == '1':
                     _time.sleep(0.1)
 
@@ -909,5 +911,5 @@ class EmbedPipeline:
 # ---------------------------------------------------------------------------
 
 def _ts() -> str:
-    from datetime import datetime, timezone  # noqa: PLC0415
-    return datetime.now(timezone.utc).isoformat()
+    from datetime import datetime
+    return datetime.now(UTC).isoformat()

@@ -1,5 +1,6 @@
 """Blast-radius / impact analysis for rekipedia."""
 from __future__ import annotations
+
 from collections import deque
 
 # Relationship kinds that represent a dependency — changing the target

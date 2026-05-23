@@ -8,8 +8,9 @@ in both modes.
 """
 from __future__ import annotations
 
+import contextlib
 import functools  # noqa: F401 — used for future lru_cache if needed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -81,7 +82,7 @@ class SqliteStore:
             self._conn.close()
             self._conn = None
 
-    def __enter__(self) -> "SqliteStore":
+    def __enter__(self) -> SqliteStore:
         self.open()
         return self
 
@@ -261,10 +262,8 @@ class SqliteStore:
             )
             self._c.commit()
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 self._c.execute("ROLLBACK")
-            except Exception:
-                pass
             raise RuntimeError(f"upsert_files_batch failed: {exc}") from exc
 
     def upsert_pages_batch(self, run_id: str, pages: dict) -> None:
@@ -308,10 +307,8 @@ class SqliteStore:
             )
             self._c.commit()
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 self._c.execute("ROLLBACK")
-            except Exception:
-                pass
             raise RuntimeError(f"upsert_pages_batch failed: {exc}") from exc
 
     # ------------------------------------------------------------------
@@ -609,7 +606,7 @@ class SqliteStore:
                     f" FROM scan_symbols WHERE run_id = ?"
                 )
                 params = [to_run_id, from_run_id]
-            cur = self._c.execute(sql, params)
+            self._c.execute(sql, params)
             self._c.commit()
             # turso may return incorrect rowcount for INSERT SELECT; query actual count
             actual = self._c.execute(
@@ -617,10 +614,8 @@ class SqliteStore:
             ).fetchone()
             return actual[0] if actual else 0
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 self._c.execute("ROLLBACK")
-            except Exception:
-                pass
             raise RuntimeError(f"copy_unchanged_symbols failed: {exc}") from exc
 
     def copy_unchanged_relationships(
@@ -650,17 +645,15 @@ class SqliteStore:
                     f' FROM scan_relationships WHERE run_id = ?'
                 )
                 params = [to_run_id, from_run_id]
-            cur = self._c.execute(sql, params)
+            self._c.execute(sql, params)
             self._c.commit()
             actual = self._c.execute(
                 "SELECT COUNT(*) FROM scan_relationships WHERE run_id = ?", [to_run_id]
             ).fetchone()
             return actual[0] if actual else 0
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 self._c.execute("ROLLBACK")
-            except Exception:
-                pass
             raise RuntimeError(f"copy_unchanged_relationships failed: {exc}") from exc
 
     def upsert_page_sources(self, run_id: str, page_slug: str, file_paths: list[str]) -> None:
@@ -676,10 +669,8 @@ class SqliteStore:
             )
             self._c.commit()
         except Exception as exc:
-            try:
+            with contextlib.suppress(Exception):
                 self._c.execute("ROLLBACK")
-            except Exception:
-                pass
             raise RuntimeError(f"upsert_page_sources failed: {exc}") from exc
 
     def get_pages_for_files(self, run_id: str, file_paths: list[str]) -> set[str]:
@@ -971,4 +962,4 @@ class SqliteStore:
 # ── helpers ──────────────────────────────────────────────────────────
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()

@@ -28,13 +28,10 @@ import litellm
 from rekipedia.llm.client import LLMClient
 from rekipedia.models.contracts import LLMConfig
 from rekipedia.orchestrator.run_ask import (
-    _load_symbol_lines,
-    _load_wiki_pages,
+    _SYSTEM_PROMPT_PATH,
+    _build_full_system,
     _rag_chunks,
     _verify_scan,
-    _build_full_system,
-    _SYSTEM_PROMPT_PATH,
-    _RAG_TOP_K,
 )
 from rekipedia.storage.sqlite_store import SqliteStore
 

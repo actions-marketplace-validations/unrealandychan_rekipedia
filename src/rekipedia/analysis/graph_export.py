@@ -1,5 +1,6 @@
 """Graph export to GraphML, Neo4j Cypher, Obsidian wikilinks."""
 from __future__ import annotations
+
 from pathlib import Path
 from xml.etree import ElementTree as ET
 

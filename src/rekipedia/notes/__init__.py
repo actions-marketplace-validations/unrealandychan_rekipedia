@@ -55,7 +55,7 @@ def _import_markdown(path: Path) -> list[dict]:
         body_lines = []
         tags = ""
         # Check for tags: line at top of body
-        stripped = [l for l in current_lines if l.strip()]
+        stripped = [ln for ln in current_lines if ln.strip()]
         if stripped and stripped[0].lower().startswith("tags:"):
             tags = stripped[0].split(":", 1)[1].strip()
             body_lines = current_lines[current_lines.index(stripped[0]) + 1:]

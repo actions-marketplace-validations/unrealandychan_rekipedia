@@ -20,6 +20,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from rekipedia.llm.client import LLMCaller
     from rekipedia.models.contracts import AnalysisResult
 
@@ -141,7 +143,7 @@ Suggest dependency-reduction strategies (facade, adapter, or domain split).""",
 # ── Static analysis detectors ────────────────────────────────────────────────
 
 
-def detect_issues(combined: "AnalysisResult") -> list[RefactorIssue]:
+def detect_issues(combined: AnalysisResult) -> list[RefactorIssue]:
     """Run static analysis and return a list of RefactorIssues (no LLM calls).
 
     Detects:
@@ -301,10 +303,10 @@ def _find_cycles(adj: dict[str, set[str]]) -> list[frozenset[str]]:
                 if neighbour == path[0]:
                     # Back-edge to start: cycle found
                     key = frozenset(path)
-                    if key not in seen_sets and len(key) >= 2:  # noqa: PLR2004
+                    if key not in seen_sets and len(key) >= 2:
                         seen_sets.add(key)
                         found.append(key)
-                elif neighbour not in path and len(path) < 8:  # noqa: PLR2004
+                elif neighbour not in path and len(path) < 8:
                     stack.append((neighbour, path + [neighbour]))
 
     for node in list(adj):
@@ -320,7 +322,7 @@ def _find_cycles(adj: dict[str, set[str]]) -> list[frozenset[str]]:
 
 def _attach_callers(
     issues: list[RefactorIssue],
-    combined: "AnalysisResult",
+    combined: AnalysisResult,
     top_n: int = 5,
 ) -> None:
     """Populate issue.callers with the top-N callers for each issue symbol."""
@@ -383,17 +385,17 @@ class RefactorEnricher:
         enriched = enricher.enrich_all(combined, notes=tech_lead_notes)
     """
 
-    def __init__(self, caller: "LLMCaller | None" = None) -> None:
+    def __init__(self, caller: LLMCaller | None = None) -> None:
         self._caller = caller
 
     # ── Public API ───────────────────────────────────────────────────
 
     def enrich_all(
         self,
-        combined: "AnalysisResult",
+        combined: AnalysisResult,
         *,
         notes: list[dict] | None = None,
-        progress_cb: "Callable[[str], None] | None" = None,
+        progress_cb: Callable[[str], None] | None = None,
     ) -> list[RefactorIssue]:
         """Detect issues from *combined* and enrich them with LLM explanations.
 
@@ -413,7 +415,7 @@ class RefactorEnricher:
             _attach_notes(issues, notes)
         return self.enrich(issues, progress_cb=progress_cb)
 
-    def enrich(self, issues: list[RefactorIssue], *, progress_cb: "Callable[[str], None] | None" = None) -> list[RefactorIssue]:
+    def enrich(self, issues: list[RefactorIssue], *, progress_cb: Callable[[str], None] | None = None) -> list[RefactorIssue]:
         """Enrich *issues* with LLM explanations (batch, concurrent).
 
         If no LLM caller was provided the issues are returned unchanged —
@@ -440,7 +442,7 @@ class RefactorEnricher:
                 issue = futures[future]
                 try:
                     future.result()
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     logger.warning("Enrichment failed for %s/%s: %s", issue.kind, issue.symbol, exc)
                 finally:
                     _done += 1
@@ -451,7 +453,7 @@ class RefactorEnricher:
 
     def _enrich_one(self, issue: RefactorIssue) -> None:
         """Call the LLM for a single issue and mutate it in-place."""
-        assert self._caller is not None  # noqa: S101 (guarded by caller in enrich())
+        assert self._caller is not None
         prompt = _build_prompt(issue)
         try:
             raw = self._caller.call(prompt, system=_SYSTEM_PROMPT)

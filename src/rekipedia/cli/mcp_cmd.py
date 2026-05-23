@@ -1,5 +1,6 @@
 import click
 
+
 @click.command('mcp')
 @click.option('--output-dir', default='.', show_default=True)
 def mcp_cmd(output_dir):

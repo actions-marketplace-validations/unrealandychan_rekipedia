@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import json
 import re as _re
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 from rekipedia.llm.client import LLMClient
 from rekipedia.models.contracts import LLMConfig
@@ -91,7 +91,7 @@ def _rag_chunks(
 ) -> list[dict]:
     """Return top-k RAG chunks, or [] if index not available."""
     try:
-        from rekipedia.rag.embedder import EmbedPipeline  # noqa: PLC0415
+        from rekipedia.rag.embedder import EmbedPipeline
 
         pipe = EmbedPipeline(output_dir, llm_config)
         if not pipe.is_built():
@@ -375,7 +375,7 @@ def _prepare_ask(
     repo_root: Path,
     output_dir: Path,
     llm_config: LLMConfig | None,
-    history: list[dict] | None,  # noqa: ARG001 — reserved for future use
+    history: list[dict] | None,
     pinned_context: str = "",
 ) -> tuple[LLMClient, str]:
     """Validate scan, build system prompt, and init LLM client.
@@ -421,7 +421,7 @@ def run_ask(
     """
     import os as _os
     if _os.environ.get("REKIPEDIA_AGENT_ASK", "0") == "1":
-        from rekipedia.orchestrator.agent_ask import agent_run_ask  # noqa: PLC0415
+        from rekipedia.orchestrator.agent_ask import agent_run_ask
         return agent_run_ask(question, repo_root, output_dir, llm_config, history)
     pinned_str = _load_pinned_context(pinned_context or [], repo_root)
     client, full_system = _prepare_ask(question, repo_root, output_dir, llm_config, history, pinned_context=pinned_str)

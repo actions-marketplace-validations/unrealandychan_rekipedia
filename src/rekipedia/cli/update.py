@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 
 import click
-import yaml
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
@@ -16,7 +15,7 @@ console = Console()
 
 
 def _load_config(repo: Path) -> dict:
-    from rekipedia.config.loader import load_config  # noqa: PLC0415
+    from rekipedia.config.loader import load_config
     return load_config(repo)
 
 
@@ -61,12 +60,12 @@ def update_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path 
     console.print(f"  runner   : [cyan]{'local (--no-docker)' if no_docker else 'auto'}[/cyan]")
 
     lang_list: list[str] | None = (
-        [l.strip().lower() for l in languages.split(",") if l.strip()] if languages else None
+        [lang.strip().lower() for lang in languages.split(",") if lang.strip()] if languages else None
     )
     if lang_list:
         console.print(f"  languages: [cyan]{', '.join(lang_list)}[/cyan]")
 
-    from rekipedia.orchestrator.run_update import run_update  # noqa: PLC0415
+    from rekipedia.orchestrator.run_update import run_update
 
     with Progress(
         SpinnerColumn(),
