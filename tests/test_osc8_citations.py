@@ -135,8 +135,9 @@ class TestFileHyperlink:
 
     def test_default_repo_root_is_cwd(self):
         from rekipedia.utils import terminal_links as m
+        from pathlib import Path
         with patch.object(m, "osc8_supported", return_value=True):
-            with patch("os.getcwd", return_value="/cwd"):
+            with patch.object(Path, "cwd", return_value=Path("/cwd")):
                 result = m.file_hyperlink("src/api.py")
         assert "/cwd/src/api.py" in result
 
