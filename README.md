@@ -1,5 +1,7 @@
 # rekipedia
 
+[![PyPI version](https://img.shields.io/pypi/v/rekipedia.svg)](https://pypi.org/project/rekipedia/) [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/) [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![MCP](https://img.shields.io/badge/MCP-compatible-purple.svg)](https://modelcontextprotocol.io)
+
 **[English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md)**
 
 > Your AI tech lead — always available, always up to date.
@@ -7,6 +9,18 @@
 rekipedia scans any repository into a portable SQLite knowledge store and gives every developer an LLM-powered tech lead they can ask anything.
 
 No hallucinations — every answer is grounded in your actual codebase.
+
+---
+
+## Why rekipedia?
+
+| Problem | rekipedia |
+|---|---|
+| "Where does the auth logic live?" | `reki ask "how does auth work?"` → `src/auth.py:42` |
+| Onboarding new devs takes days | `reki onboard .` generates a guided walkthrough in seconds |
+| AI agents hallucinate about your codebase | `reki mcp` gives agents a grounded knowledge base with citations |
+| Refactor anxiety | `reki hotspots` surfaces hub nodes and bridge nodes before you touch anything |
+| Wiki goes stale immediately | `reki watch .` auto-reindexes on every file save |
 
 ---
 
@@ -24,24 +38,6 @@ uvx rekipedia init . && uvx rekipedia scan .
 pip install rekipedia          # core
 pip install "rekipedia[rag]"   # + semantic search (FAISS)
 ```
-
----
-
-## Quick Start — No API Key Needed
-
-Run a full static analysis without any LLM API key:
-
-```bash
-pip install rekipedia
-reki scan . --no-llm   # ~5-10s, zero API calls
-reki onboard .         # architecture overview
-reki tour .            # guided walkthrough by dependency depth
-reki domain .          # business domain layer map
-reki diff .            # impact analysis on changed files
-reki export . --format md  # export full wiki to markdown
-```
-
-> **Note:** `reki ask` (AI Q&A) requires an LLM API key. See [LLM Setup](#llm-setup) below.
 
 ---
 
@@ -160,4 +156,4 @@ make build    # wheel + npm tarball
 
 ## License
 
-Proprietary and Confidential — Copyright © 2026 Eddie Chan. All Rights Reserved.
+MIT License — see [LICENSE](LICENSE) for details.
