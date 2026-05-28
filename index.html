@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>rekipedia — Your AI Tech Lead</title>
+<meta name="description" content="Turn any codebase into a searchable wiki, grounded Q&A with file:line citations, and an MCP server for AI agents.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #08090a;
+    --bg-panel: #0f1011;
+    --bg-surface: #191a1b;
+    --bg-elevated: #28282c;
+    --text-primary: #f7f8f8;
+    --text-secondary: #d0d6e0;
+    --text-muted: #8a8f98;
+    --text-subtle: #62666d;
+    --accent: #5e6ad2;
+    --accent-bright: #7170ff;
+    --accent-hover: #828fff;
+    --green: #10b981;
+    --border: rgba(255,255,255,0.08);
+    --border-subtle: rgba(255,255,255,0.05);
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv01', 'ss03';
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(8,9,10,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 100%;
+  }
+  .nav-left { display: flex; align-items: center; gap: 8px; }
+  .nav-logo {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-logo svg { width: 22px; height: 22px; }
+  .nav-badge {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-subtle);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border-subtle);
+    padding: 2px 7px;
+    border-radius: 9999px;
+    font-family: var(--mono);
+  }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .nav-link {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .nav-link:hover { color: var(--text-primary); }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-ghost {
+    background: rgba(255,255,255,0.02);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.05); }
+
+  /* HERO */
+  .hero {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 96px 24px 80px;
+    text-align: center;
+  }
+  .hero-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    padding: 4px 12px 4px 8px;
+    border-radius: 9999px;
+    margin-bottom: 32px;
+  }
+  .hero-pill-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .hero h1 {
+    font-size: 56px;
+    font-weight: 600;
+    line-height: 1.02;
+    letter-spacing: -1.232px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+  }
+  .hero h1 span { color: var(--accent-bright); }
+  .hero p {
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 1.6;
+    color: var(--text-muted);
+    letter-spacing: -0.165px;
+    max-width: 560px;
+    margin: 0 auto 40px;
+  }
+  .hero-cta { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .hero-cta .btn-primary { font-size: 14px; padding: 9px 20px; }
+  .hero-cta .btn-ghost { font-size: 14px; padding: 9px 20px; }
+
+  /* TERMINAL DEMO */
+  .terminal-wrap {
+    max-width: 680px;
+    margin: 64px auto 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: rgba(0,0,0,0.4) 0px 8px 32px;
+  }
+  .terminal-bar {
+    background: var(--bg-elevated);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; }
+  .dot-yellow { background: #febc2e; }
+  .dot-green { background: #28c840; }
+  .terminal-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-subtle);
+    font-family: var(--mono);
+    margin-left: 6px;
+  }
+  .terminal-body {
+    padding: 20px 24px 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .t-cmd { color: var(--text-primary); }
+  .t-cmd::before { content: '$ '; color: var(--accent-bright); }
+  .t-ok { color: var(--green); }
+  .t-muted { color: var(--text-subtle); }
+  .t-cite { color: var(--accent-bright); }
+  .t-answer { color: var(--text-secondary); }
+  .t-blank { height: 8px; }
+
+  /* SECTION */
+  section { padding: 80px 24px; }
+  .section-inner { max-width: 1080px; margin: 0 auto; }
+  .section-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent-bright);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    font-family: var(--mono);
+  }
+  .section-title {
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.792px;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+  }
+  .section-sub {
+    font-size: 16px;
+    color: var(--text-muted);
+    max-width: 520px;
+    line-height: 1.6;
+  }
+
+  /* FEATURES GRID */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 56px;
+  }
+  .feature-card {
+    background: var(--bg);
+    padding: 28px 28px 32px;
+    transition: background 0.15s;
+  }
+  .feature-card:hover { background: rgba(255,255,255,0.02); }
+  .feature-icon {
+    width: 36px; height: 36px;
+    background: rgba(94,106,210,0.12);
+    border: 1px solid rgba(94,106,210,0.25);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    font-size: 16px;
+  }
+  .feature-cmd {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent-bright);
+    background: rgba(113,112,255,0.08);
+    border: 1px solid rgba(113,112,255,0.15);
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+  .feature-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    letter-spacing: -0.165px;
+  }
+  .feature-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* HOW IT WORKS */
+  .how-section { background: var(--bg-panel); border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 56px; }
+  .step { position: relative; padding-left: 0; }
+  .step-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent-bright);
+    background: rgba(113,112,255,0.08);
+    border: 1px solid rgba(113,112,255,0.2);
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .step h3 { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; letter-spacing: -0.165px; }
+  .step p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+  .step-code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-subtle);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 12px;
+  }
+
+  /* MCP SECTION */
+  .mcp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 56px;
+    align-items: start;
+  }
+  .mcp-text { }
+  .mcp-tools { display: flex; flex-direction: column; gap: 8px; }
+  .mcp-tool {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    transition: border-color 0.15s;
+  }
+  .mcp-tool:hover { border-color: rgba(113,112,255,0.3); }
+  .mcp-tool-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent-bright);
+    min-width: 140px;
+  }
+  .mcp-tool-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+  .mcp-note {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-top: 20px;
+  }
+  .mcp-note strong { color: var(--text-primary); font-weight: 500; }
+
+  /* INSTALL */
+  .install-section { background: var(--bg-panel); border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); }
+  .install-tabs { display: flex; gap: 4px; margin-bottom: 0; border-bottom: 1px solid var(--border-subtle); }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    font-feature-settings: 'cv01', 'ss03';
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: color 0.15s;
+    margin-bottom: -1px;
+  }
+  .tab-btn.active { color: var(--text-primary); border-bottom-color: var(--accent-bright); }
+  .tab-btn:hover:not(.active) { color: var(--text-secondary); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .install-box {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 20px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .install-box pre {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+  .install-box pre .cmd-prefix { color: var(--text-subtle); }
+  .copy-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 500;
+    font-family: inherit;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .copy-btn:hover { background: rgba(255,255,255,0.07); color: var(--text-primary); }
+  .install-tabs-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 32px; max-width: 560px; }
+
+  /* LLM TABLE */
+  .llm-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 32px;
+  }
+  .llm-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .llm-name { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+  .llm-desc { font-size: 12px; color: var(--text-muted); }
+  .llm-cmd { font-family: var(--mono); font-size: 11px; color: var(--text-subtle); margin-top: 8px; }
+
+  /* CTA BANNER */
+  .cta-banner {
+    max-width: 760px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 80px 24px;
+  }
+  .cta-banner h2 {
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.88px;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+  }
+  .cta-banner p { font-size: 16px; color: var(--text-muted); margin-bottom: 36px; }
+  .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .cta-btns .btn-primary { font-size: 14px; padding: 10px 22px; }
+  .cta-btns .btn-ghost { font-size: 14px; padding: 10px 22px; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border-subtle);
+    padding: 32px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1080px;
+    margin: 0 auto;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .footer-left { font-size: 13px; color: var(--text-subtle); }
+  .footer-left a { color: var(--text-muted); text-decoration: none; }
+  .footer-left a:hover { color: var(--text-primary); }
+  .footer-right { display: flex; gap: 20px; }
+  .footer-right a { font-size: 13px; color: var(--text-subtle); text-decoration: none; transition: color 0.15s; }
+  .footer-right a:hover { color: var(--text-primary); }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border-subtle); margin: 0; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 36px; letter-spacing: -0.792px; }
+    .hero p { font-size: 16px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; gap: 28px; }
+    .mcp-grid { grid-template-columns: 1fr; }
+    .llm-grid { grid-template-columns: 1fr 1fr; }
+    .section-title { font-size: 28px; }
+    nav .nav-link { display: none; }
+  }
+  @media (max-width: 480px) {
+    .hero { padding: 64px 20px 56px; }
+    .hero h1 { font-size: 30px; }
+    .llm-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-left">
+    <a href="#" class="nav-logo">
+      <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="22" height="22" rx="5" fill="#5e6ad2"/>
+        <path d="M6 7h10M6 11h7M6 15h5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      rekipedia
+    </a>
+    <span class="nav-badge">v0.17.26</span>
+  </div>
+  <div class="nav-right">
+    <a href="#features" class="nav-link">Features</a>
+    <a href="#mcp" class="nav-link">MCP</a>
+    <a href="#install" class="nav-link">Install</a>
+    <a href="https://github.com/unrealandychan/rekipedia" class="btn-ghost" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+      GitHub
+    </a>
+    <a href="#install" class="btn-primary">Get Started →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-pill">
+    <span class="hero-pill-dot"></span>
+    Now open source · MIT License
+  </div>
+  <h1>Your codebase,<br><span>finally understood</span></h1>
+  <p>rekipedia turns any repository into a searchable wiki with grounded Q&A, exact file:line citations, and an MCP server so your AI agent actually knows your code.</p>
+  <div class="hero-cta">
+    <a href="#install" class="btn-primary">pip install rekipedia →</a>
+    <a href="https://github.com/unrealandychan/rekipedia" class="btn-ghost" target="_blank">View on GitHub</a>
+  </div>
+
+  <div class="terminal-wrap">
+    <div class="terminal-bar">
+      <span class="dot dot-red"></span>
+      <span class="dot dot-yellow"></span>
+      <span class="dot dot-green"></span>
+      <span class="terminal-title">~/my-project</span>
+    </div>
+    <div class="terminal-body">
+      <div class="t-cmd">reki scan .</div>
+      <div class="t-ok">✔ Scanned 312 files · 4,891 symbols indexed</div>
+      <div class="t-ok">✔ Wiki generated · .rekipedia/wiki/</div>
+      <div class="t-muted">Done in 4.2s</div>
+      <div class="t-blank"></div>
+      <div class="t-cmd">reki ask "how does the auth flow work?"</div>
+      <div class="t-answer">The entry point is <span class="t-cite">src/auth/middleware.py:42</span></div>
+      <div class="t-answer"><span class="t-muted">AuthManager.verify()</span> validates the JWT and attaches</div>
+      <div class="t-answer">the user to the request context.</div>
+      <div class="t-answer"><span class="t-muted">Sources: src/auth/middleware.py:42, src/models/user.py:18</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-label">Features</div>
+    <div class="section-title">Everything you need to understand any codebase</div>
+    <p class="section-sub">From a first-time scan to live AI agent integration — rekipedia covers the full workflow.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <div class="feature-cmd">reki ask</div>
+        <div class="feature-title">Grounded Q&A</div>
+        <div class="feature-desc">Ask anything about your codebase and get answers with exact <code style="font-family:var(--mono);font-size:12px;color:var(--accent-bright)">file:line</code> citations. No hallucinations — every answer is sourced from your index.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌐</div>
+        <div class="feature-cmd">reki serve</div>
+        <div class="feature-title">Local Wiki UI</div>
+        <div class="feature-desc">Spin up a browseable wiki at <code style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">localhost:7070</code>. Auto-generated architecture docs, module maps, and relationship graphs — all from your actual code.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔌</div>
+        <div class="feature-cmd">reki mcp</div>
+        <div class="feature-title">MCP Server</div>
+        <div class="feature-desc">Expose your knowledge base as an MCP server. Claude Code, Cursor, and any MCP-compatible agent can query your codebase with structured tools — not just file dumps.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔥</div>
+        <div class="feature-cmd">reki hotspots</div>
+        <div class="feature-title">Architectural Risk</div>
+        <div class="feature-desc">Find hub nodes (files with 40+ dependents) and bridge nodes (the connective tissue between clusters) before you start a refactor. Know what you're touching.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🚀</div>
+        <div class="feature-cmd">reki onboard</div>
+        <div class="feature-title">Instant Onboarding</div>
+        <div class="feature-desc">Generate a structured architecture walkthrough for new team members in seconds. No more "read the code and figure it out" onboarding.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-cmd">reki watch</div>
+        <div class="feature-title">Always Fresh</div>
+        <div class="feature-desc">Auto-reindex on every file save. Your wiki stays in sync as you code — no manual rebuilds, no stale docs.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- HOW IT WORKS -->
+<section class="how-section">
+  <div class="section-inner">
+    <div class="section-label">How it works</div>
+    <div class="section-title">From repo to knowledge base in three steps</div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Scan your repo</h3>
+        <p>rekipedia parses every file into a SQLite knowledge store — symbols, call graphs, module relationships, and dependency trees.</p>
+        <div class="step-code">reki scan .</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Ask anything</h3>
+        <p>Query your codebase in plain English. Every answer comes with exact <code style="font-family:var(--mono);font-size:11px;color:var(--accent-bright)">file:line</code> citations — grounded, verifiable, no guessing.</p>
+        <div class="step-code">reki ask "where is rate limiting handled?"</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Connect your agent</h3>
+        <p>Start the MCP server and connect Claude Code or Cursor. Your AI agent now queries a real knowledge base — not just whatever you remember to paste in.</p>
+        <div class="step-code">reki mcp</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MCP -->
+<section id="mcp">
+  <div class="section-inner">
+    <div class="mcp-grid">
+      <div class="mcp-text">
+        <div class="section-label">MCP Integration</div>
+        <div class="section-title">Give your AI agent a real knowledge base</div>
+        <p class="mcp-note">Most "AI + codebase" tools work by dumping file contents into context windows. That doesn't scale, doesn't persist, and doesn't let agents reason about <strong>structure</strong>.</p>
+        <p class="mcp-note" style="margin-top:12px">With <code style="font-family:var(--mono);font-size:13px;color:var(--accent-bright)">reki mcp</code>, your agent can ask <strong>"If I change engine.py, what else breaks?"</strong> and get a real dependency graph back. Drop a <code style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">.mcp.json</code> in your project and Claude Code or Cursor connects automatically.</p>
+        <div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap;">
+          <span style="font-size:12px;font-weight:500;color:var(--text-muted);background:rgba(255,255,255,0.04);border:1px solid var(--border);padding:5px 12px;border-radius:9999px;">Claude Code</span>
+          <span style="font-size:12px;font-weight:500;color:var(--text-muted);background:rgba(255,255,255,0.04);border:1px solid var(--border);padding:5px 12px;border-radius:9999px;">Cursor</span>
+          <span style="font-size:12px;font-weight:500;color:var(--text-muted);background:rgba(255,255,255,0.04);border:1px solid var(--border);padding:5px 12px;border-radius:9999px;">Any MCP Client</span>
+        </div>
+      </div>
+      <div class="mcp-tools">
+        <div class="mcp-tool"><span class="mcp-tool-name">ask</span><span class="mcp-tool-desc">Grounded Q&A with file:line citations</span></div>
+        <div class="mcp-tool"><span class="mcp-tool-name">search_nodes</span><span class="mcp-tool-desc">Find symbols, functions, and classes by name or pattern</span></div>
+        <div class="mcp-tool"><span class="mcp-tool-name">get_context</span><span class="mcp-tool-desc">Full context for any symbol — callers, callees, docstring</span></div>
+        <div class="mcp-tool"><span class="mcp-tool-name">get_relationships</span><span class="mcp-tool-desc">Dependency graph between modules and files</span></div>
+        <div class="mcp-tool"><span class="mcp-tool-name">get_hub_nodes</span><span class="mcp-tool-desc">Most connected files — the load-bearing walls of your repo</span></div>
+        <div class="mcp-tool"><span class="mcp-tool-name">get_impact</span><span class="mcp-tool-desc">Blast radius analysis — what breaks if you change X?</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- INSTALL -->
+<section id="install" class="install-section">
+  <div class="section-inner">
+    <div class="section-label">Install</div>
+    <div class="section-title">Get started in seconds</div>
+
+    <div class="install-tabs-wrap">
+      <div class="install-tabs">
+        <button class="tab-btn active" onclick="switchTab(event,'pip')">pip</button>
+        <button class="tab-btn" onclick="switchTab(event,'uv')">uv / uvx</button>
+        <button class="tab-btn" onclick="switchTab(event,'npx')">npx</button>
+        <button class="tab-btn" onclick="switchTab(event,'rag')">With RAG</button>
+      </div>
+      <div id="tab-pip" class="tab-content active">
+        <div class="install-box">
+          <pre><span class="cmd-prefix">$ </span>pip install rekipedia</pre>
+          <button class="copy-btn" onclick="copyInstall(this,'pip install rekipedia')">Copy</button>
+        </div>
+      </div>
+      <div id="tab-uv" class="tab-content">
+        <div class="install-box">
+          <pre><span class="cmd-prefix">$ </span>uvx rekipedia init . && uvx rekipedia scan .</pre>
+          <button class="copy-btn" onclick="copyInstall(this,'uvx rekipedia init . && uvx rekipedia scan .')">Copy</button>
+        </div>
+      </div>
+      <div id="tab-npx" class="tab-content">
+        <div class="install-box">
+          <pre><span class="cmd-prefix">$ </span>npx rekipedia init . && npx rekipedia scan .</pre>
+          <button class="copy-btn" onclick="copyInstall(this,'npx rekipedia init . && npx rekipedia scan .')">Copy</button>
+        </div>
+      </div>
+      <div id="tab-rag" class="tab-content">
+        <div class="install-box">
+          <pre><span class="cmd-prefix">$ </span>pip install "rekipedia[rag]"</pre>
+          <button class="copy-btn" onclick="copyInstall(this,'pip install \"rekipedia[rag]\"')">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:48px;">
+      <div class="section-label" style="margin-bottom:16px;">LLM Support</div>
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:0;">Works with any OpenAI-compatible endpoint. Run local with Ollama or connect to any cloud provider.</p>
+      <div class="llm-grid">
+        <div class="llm-card"><div class="llm-name">Ollama (default)</div><div class="llm-desc">Run fully local, zero cost</div><div class="llm-cmd">REKIPEDIA_MODEL=ollama/llama4</div></div>
+        <div class="llm-card"><div class="llm-name">OpenAI</div><div class="llm-desc">GPT-4o, o1, and more</div><div class="llm-cmd">OPENAI_API_KEY=sk-...</div></div>
+        <div class="llm-card"><div class="llm-name">Anthropic</div><div class="llm-desc">Claude 3.5 Sonnet, Opus</div><div class="llm-cmd">REKIPEDIA_MODEL=claude-3-5-sonnet-...</div></div>
+        <div class="llm-card"><div class="llm-name">Google Gemini</div><div class="llm-desc">Gemini 2.0 Flash and Pro</div><div class="llm-cmd">REKIPEDIA_MODEL=gemini/gemini-2.0-flash</div></div>
+        <div class="llm-card"><div class="llm-name">OpenRouter</div><div class="llm-desc">100+ models via one key</div><div class="llm-cmd">REKIPEDIA_MODEL=openrouter/...</div></div>
+        <div class="llm-card"><div class="llm-name">Azure OpenAI</div><div class="llm-desc">Enterprise deployments</div><div class="llm-cmd">REKIPEDIA_MODEL=azure/gpt-4o</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-banner">
+  <h2>Stop copy-pasting code.<br>Start asking questions.</h2>
+  <p>rekipedia is MIT licensed, language-agnostic, and works anywhere Python runs.</p>
+  <div class="cta-btns">
+    <a href="https://github.com/unrealandychan/rekipedia" class="btn-primary" target="_blank">⭐ Star on GitHub</a>
+    <a href="#install" class="btn-ghost">View install options</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<hr class="divider">
+<footer>
+  <div class="footer-left">
+    Built by <a href="https://github.com/unrealandychan" target="_blank">Eddie Chan</a> · MIT License
+  </div>
+  <div class="footer-right">
+    <a href="https://github.com/unrealandychan/rekipedia" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/rekipedia/" target="_blank">PyPI</a>
+    <a href="https://github.com/unrealandychan/rekipedia/issues" target="_blank">Issues</a>
+  </div>
+</footer>
+
+<script>
+function switchTab(e, name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  e.target.classList.add('active');
+}
+function copyInstall(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1800);
+  });
+}
+</script>
+</body>
+</html>
