@@ -1,8 +1,5 @@
 name: "rekipedia — AI Codebase Wiki"
-description: >
-  Scan a repository with rekipedia and generate a structured AI-powered wiki.
-  Outputs a .rekipedia/ directory containing wiki pages, a knowledge graph,
-  and an optional interactive HTML export ready for GitHub Pages or download.
+description: "Scan any repo and generate an AI-powered wiki with file:line Q&A, dependency graphs, and MCP server support."
 
 branding:
   icon: "book-open"
