@@ -1,5 +1,5 @@
 """rekipedia — agentic repo-to-wiki knowledge store."""
-__version__ = "0.17.29"
+__version__ = "0.17.30"
 
 from rekipedia.api import (
     AskResult,
