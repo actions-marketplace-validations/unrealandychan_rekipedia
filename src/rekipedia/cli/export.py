@@ -111,10 +111,10 @@ def export_cmd(
         if not db.exists():
             console.print("[red]No rekipedia DB. Run rekipedia scan first.[/red]")
             sys.exit(1)
-        store = SqliteStore(db)
-        run_id = store.latest_run_id()
-        symbols = store.get_all_symbols(run_id)
-        rels = store.get_all_relationships(run_id)
+        with SqliteStore(db) as store:
+            run_id = store.latest_run_id()
+            symbols = store.get_all_symbols(run_id)
+            rels = store.get_all_relationships(run_id)
         written = export_obsidian(symbols, rels, obs_dir)
         console.print(f"[green]✅ Obsidian vault: {len(written)} notes written to {obs_dir}[/green]")
         return
@@ -126,10 +126,10 @@ def export_cmd(
         if not db.exists():
             console.print("[red]No rekipedia DB. Run rekipedia scan first.[/red]")
             sys.exit(1)
-        store = SqliteStore(db)
-        run_id = store.latest_run_id()
-        symbols = store.get_all_symbols(run_id)
-        rels = store.get_all_relationships(run_id)
+        with SqliteStore(db) as store:
+            run_id = store.latest_run_id()
+            symbols = store.get_all_symbols(run_id)
+            rels = store.get_all_relationships(run_id)
         ext_map = {"graphml": "graphml", "cypher": "cypher"}
         dest = Path(output) if output else out_dir / f"graph.{ext_map[fmt]}"
         dest.parent.mkdir(parents=True, exist_ok=True)

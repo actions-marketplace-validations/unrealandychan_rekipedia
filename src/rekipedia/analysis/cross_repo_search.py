@@ -74,11 +74,11 @@ def _search_single_repo(db_path: Path, query: str, kind: str | None = None) -> l
     """Search symbols in one repo's DB. Returns list of match dicts."""
     try:
         from rekipedia.storage.sqlite_store import SqliteStore
-        store = SqliteStore(db_path)
-        run_id = store.latest_run_id()
-        if not run_id:
-            return []
-        symbols = store.get_all_symbols(run_id)
+        with SqliteStore(db_path) as store:
+            run_id = store.latest_run_id()
+            if not run_id:
+                return []
+            symbols = store.get_all_symbols(run_id)
         query_tokens = _tokenize_symbol(query)
 
         # Compute per-corpus IDF — rare tokens get higher weight

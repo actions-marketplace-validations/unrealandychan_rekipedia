@@ -566,6 +566,20 @@ class SqliteStore:
         ).fetchone()
         return row[0] if row else None
 
+    def latest_run_id(self) -> str | None:
+        """Return the id of the most recent successful scan_run across all repos.
+
+        Convenience alias used by CLI commands that do not have a repo_path
+        in scope (e.g. ``reki export``, ``reki impact``, ``reki mcp``).
+        """
+        if "scan_runs" not in self._table_names():
+            return None
+        row = self._c.execute(
+            "SELECT id FROM scan_runs WHERE status = 'success'"
+            " ORDER BY started_at DESC LIMIT 1",
+        ).fetchone()
+        return row[0] if row else None
+
     def get_files_for_run(self, run_id: str) -> list[dict[str, Any]]:
         """Return all scan_files rows for *run_id* as plain dicts."""
         if "scan_files" not in self._table_names():

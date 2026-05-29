@@ -126,15 +126,15 @@ class _StoreCache:
     def _load(self, mtime: float):
         try:
             from rekipedia.storage.sqlite_store import SqliteStore
-            store = SqliteStore(self.db_path)
-            run_id = store.latest_run_id()
-            if not run_id:
-                return
-            symbols = store.get_all_symbols(run_id)
-            rels = store.get_all_relationships(run_id)
-            self._store = store
-            self._symbols = symbols
-            self._rels = rels
+            with SqliteStore(self.db_path) as store:
+                run_id = store.latest_run_id()
+                if not run_id:
+                    return
+                symbols = store.get_all_symbols(run_id)
+                rels = store.get_all_relationships(run_id)
+                self._store = store
+                self._symbols = symbols
+                self._rels = rels
             self._mtime = mtime
             self._rebuild_indices(symbols, rels)
         except Exception:

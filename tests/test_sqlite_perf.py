@@ -118,7 +118,7 @@ def test_copy_unchanged_sql_filtering(tmp_path):
 
     assert count == 2
     copied = store.get_all_symbols(to_run)
-    copied_files = {r[3] for r in copied}  # file is index 3
+    copied_files = {r["file"] for r in copied}  # file is dict key
     assert "src/file0.py" not in copied_files
     assert "src/file1.py" not in copied_files
     assert "src/file2.py" in copied_files
