@@ -1,0 +1,66 @@
+{
+  "run_id": "737e5781-6f30-4e05-841e-dd04a9221c40",
+  "generated_at": "2026-05-29T10:19:34.173439+00:00",
+  "file_count": 385,
+  "symbol_count": 2774,
+  "relationship_count": 12644,
+  "nav_order": [
+    "index",
+    "architecture",
+    "cli-and-api",
+    "core-modules",
+    "installation-and-setup",
+    "testing",
+    "technical-debt"
+  ],
+  "pages": [
+    {
+      "slug": "index",
+      "title": "Project Overview"
+    },
+    {
+      "slug": "architecture",
+      "title": "Architecture"
+    },
+    {
+      "slug": "cli-and-api",
+      "title": "CLI & API Reference"
+    },
+    {
+      "slug": "core-modules",
+      "title": "Core Modules"
+    },
+    {
+      "slug": "installation-and-setup",
+      "title": "Installation & Setup"
+    },
+    {
+      "slug": "testing",
+      "title": "Testing"
+    },
+    {
+      "slug": "technical-debt",
+      "title": "Technical Debt"
+    }
+  ],
+  "diagrams": [
+    "module-graph",
+    "class-hierarchy"
+  ],
+  "risks": [],
+  "build_commands": [
+    "uv build",
+    "CGO_ENABLED=0 go build -ldflags \"-s -w\" -o /tmp/reki ./cmd/rekipedia",
+    "hatch build",
+    "hatch build",
+    "docker build .",
+    "npm run build  # tsc"
+  ],
+  "test_commands": [
+    "pytest",
+    "go test ./... -v -count=1 -timeout 120s",
+    "pytest tests/ -v --timeout=60 \\",
+    "pip install pytest",
+    "pytest"
+  ]
+}
