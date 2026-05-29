@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -55,6 +56,7 @@ def run_digest(
     focus_globs: list[str] | None = None,
     doc_type: str = "default",
     workers: int = 4,
+    publish_dir: str | None = None,
 ) -> None:
     """Full scan pipeline.
 
@@ -470,11 +472,45 @@ def run_digest(
             )
             _log(TOKEN_COUNTER.summary())
 
+        if publish_dir:
+            _auto_publish(repo_root, output_dir, publish_dir)
+
     except Exception:
         store.update_run_status(run_id, "failed")
         raise
     finally:
         store.close()
+
+
+def _auto_publish(repo_root: Path, output_dir: Path, publish_dir: str) -> None:
+    """Copy wiki, diagrams, and manifest to publish_dir."""
+    pub = Path(publish_dir)
+    if not pub.is_absolute():
+        pub = (repo_root / pub).resolve()
+
+    # wiki/*.md
+    wiki_src = output_dir / "wiki"
+    wiki_dst = pub / "wiki"
+    if wiki_src.exists():
+        wiki_dst.mkdir(parents=True, exist_ok=True)
+        for md_file in wiki_src.glob("*.md"):
+            shutil.copy2(md_file, wiki_dst / md_file.name)
+
+    # diagrams/*.md
+    diag_src = output_dir / "diagrams"
+    diag_dst = pub / "diagrams"
+    if diag_src.exists():
+        diag_dst.mkdir(parents=True, exist_ok=True)
+        for md_file in diag_src.glob("*.md"):
+            shutil.copy2(md_file, diag_dst / md_file.name)
+
+    # exports/manifest.json
+    manifest_src = output_dir / "exports" / "manifest.json"
+    if manifest_src.exists():
+        pub.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(manifest_src, pub / "manifest.json")
+
+    _console.print(f"[green]✔[/] Published wiki to {pub}")
 
 
 def _combine_results(results: list[AnalysisResult]) -> AnalysisResult:

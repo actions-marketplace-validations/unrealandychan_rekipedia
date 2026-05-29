@@ -147,6 +147,7 @@ def scan_cmd(
 
     cfg = _load_config(repo)
     llm_cfg_raw = cfg.get("llm", {})
+    publish_dir: str | None = cfg.get("team", {}).get("publish_dir") if isinstance(cfg, dict) else None
 
     llm_config = LLMConfig(
         model=model or llm_cfg_raw.get("model", "ollama/llama4"),
@@ -215,6 +216,7 @@ def scan_cmd(
                 focus_globs=focus_list,
                 doc_type=doc_type,
                 workers=workers,
+                publish_dir=publish_dir,
             )
         except Exception:
             console.print_exception(show_locals=True)
@@ -246,6 +248,7 @@ def scan_cmd(
                     focus_globs=focus_list,
                     doc_type=doc_type,
                     workers=workers,
+                    publish_dir=publish_dir,
                 )
             except Exception as exc:
                 progress.stop()

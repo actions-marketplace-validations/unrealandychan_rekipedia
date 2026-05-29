@@ -151,6 +151,7 @@ export REKIPEDIA_MODEL=ollama/llama3
 | `reki update . --impact-only` | Incremental update, affected pages only |
 | `reki serve .` | Local web UI at `http://127.0.0.1:7070` |
 | `reki embed .` | Build FAISS semantic index |
+| `reki publish . [--output-dir PATH]` | Publish wiki to a git-tracked directory for team sharing |
 | `reki export . --format md\|zip\|json\|html` | Export the wiki |
 | `reki diff` | Show impact of uncommitted changes |
 | `reki hotspots` | Hub & bridge node detection |
@@ -163,11 +164,72 @@ export REKIPEDIA_MODEL=ollama/llama3
 
 ---
 
+## FAQ
+
+### Q: Why is `store.db` gitignored? How do teammates use rekipedia?
+
+`store.db` is a binary SQLite file containing machine-specific absolute paths — committing it would cause path mismatches on other machines and create noisy binary diffs. Each developer runs `reki scan .` locally to build their own store. To share the human-readable output with your team, use `reki publish .`, which copies the generated wiki pages to `docs/wiki/` so they can be committed and browsed in your repo or docs site.
+
+---
+
+### Q: What is `store.db` for vs the FAISS index? Why do I need both?
+
+They serve distinct purposes and are not interchangeable. `store.db` is a structured SQLite graph: it stores symbols, relationships, file manifests, and scan run history — the kind of data you query with precise filters ("find all callers of function X"). The FAISS index (built by `reki embed .`) stores dense embedding vectors for every chunk of your codebase, enabling fuzzy semantic search ("find code that handles authentication"). `reki ask` uses both together: BM25 keyword search over SQLite and vector similarity search over FAISS, then merges the results.
+
+---
+
+### Q: Can I use Postgres, MySQL, or another database instead of SQLite?
+
+Not currently. SQLite is the only supported backend for the structured symbol/relationship store, and it is intentional — SQLite is zero-config, portable, and requires no running server, which keeps `reki scan` self-contained. The `reki export .` command produces JSON exports (`symbols.json`, `relationships.json`) you can load into any database. Postgres/MySQL support is not on the roadmap, but the JSON exports make integration with your own tooling straightforward.
+
+---
+
+### Q: Does rekipedia support Qdrant or Chroma instead of FAISS?
+
+Yes. FAISS is the default vector backend, but Qdrant and Chroma are both supported as optional backends. Qdrant and Chroma are useful when you want a persistent, server-hosted vector store shared across machines — unlike the local FAISS index, a running Qdrant or Chroma instance can be queried by your whole team without each person running `reki embed`. Install the relevant extras (`pip install rekipedia[qdrant]` or `rekipedia[chroma]`) and configure the backend in `.rekipedia/config.yml`.
+
+---
+
+### Q: Do I need an OpenAI API key?
+
+No. rekipedia can run entirely without an LLM using the `--no-llm` flag — `reki scan . --no-llm` performs static analysis only, producing the symbol graph and wiki structure without AI-generated summaries. When you do want richer summaries and Q&A, rekipedia supports OpenAI, Anthropic, Ollama (local), Azure OpenAI, and any OpenAI-compatible endpoint. For fully offline usage, point it at a local [Ollama](https://ollama.com) instance — no internet required.
+
+---
+
+### Q: How do I share the wiki with my team without everyone running `reki scan`?
+
+Use `reki publish .`. This command copies the generated `wiki/*.md` and `diagrams/*.md` files into `docs/wiki/` (not gitignored), which can be committed and browsed directly in GitHub, your docs site, or any Markdown viewer — no local scan required. The best setup is to automate publishing in CI so the wiki stays current whenever the main branch changes (see the GitHub Actions question below).
+
+---
+
+### Q: How do I keep the wiki up to date automatically?
+
+Run `reki init --with-ci` to scaffold a GitHub Actions workflow (`.github/workflows/rekipedia-wiki.yml`) that runs `reki scan`, then `reki publish` on every push to `main`. The workflow commits any changes to `docs/wiki/` back to the repo automatically. Set `REKIPEDIA_API_KEY` as a repository secret for LLM-enriched pages; omit it and the workflow falls back to `--no-llm` mode at zero cost.
+
+---
+
+### Q: How does `reki ask` actually work under the hood?
+
+`reki ask "question"` runs a hybrid retrieval pipeline. First, it executes a BM25 keyword search against the SQLite store to find exact and near-exact symbol/token matches. In parallel, it encodes your question into an embedding vector and queries the FAISS (or Qdrant/Chroma) index for semantically similar chunks. The two result sets are merged and re-ranked by relevance score, then the top chunks are passed as context to your configured LLM, which synthesises a final answer with file:line citations. With `--no-llm`, retrieval results are returned directly without synthesis.
+
+---
+
+### Q: How large does `store.db` / the FAISS index get on a large repo?
+
+For a typical mid-size repo (50k–200k lines of code), `store.db` is usually 10–80 MB. The FAISS index in `.rekipedia/rag/` scales with the number of embedded chunks — expect 50–500 MB for the same size range, which is why `rag/` is gitignored by default. On very large monorepos (1M+ LOC), the FAISS index can exceed 1 GB; in that case, switching to a server-backed Qdrant instance is recommended so the index lives outside your working directory.
+
+---
+
+### Q: Can rekipedia scan private or fully offline repos?
+
+Yes, fully. `reki scan` is pure static analysis — it never sends your source code anywhere. With `--no-llm`, the entire pipeline is offline and air-gap safe. When LLM features are enabled, only retrieved *chunks* (not your full source) are sent to the LLM provider as context; if you use Ollama, even that stays local. There are no telemetry calls, no license checks against a remote server, and no requirement for internet access beyond reaching your chosen LLM API endpoint.
+
+---
+
 ## Coming Soon
 
 - **Hosted wiki** — share your knowledge base with a link, no self-hosting required
 - **Team sync** — collaborative wiki with conflict-free merge for distributed teams
-- **GitHub Action** — auto-update wiki on every push
 - **VS Code extension** — inline `reki ask` from your editor
 
 ---
