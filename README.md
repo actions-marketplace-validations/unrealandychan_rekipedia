@@ -152,7 +152,11 @@ export REKIPEDIA_MODEL=ollama/llama3
 | `reki serve .` | Local web UI at `http://127.0.0.1:7070` |
 | `reki embed .` | Build FAISS semantic index |
 | `reki publish . [--output-dir PATH]` | Publish wiki to a git-tracked directory for team sharing |
-| `reki export . --format md\|zip\|json\|html` | Export the wiki |
+| `reki export . --format bundle` | Export a content-addressed wiki bundle for team sync |
+| `reki merge <bundle-A> <bundle-B> [--base BASE]` | Three-way wiki merge — conflict-free team sync |
+| `reki pull [URL]` | Fetch and merge a remote wiki bundle (HTTPS/S3/GCS) |
+| `reki watch . --publish` | Auto-index + auto-publish wiki on every file save |
+| `reki export . --format md\|zip\|json\|html\|bundle` | Export the wiki |
 | `reki diff` | Show impact of uncommitted changes |
 | `reki hotspots` | Hub & bridge node detection |
 | `reki refactor . --dry-run` | Preview refactor suggestions |
@@ -208,6 +212,18 @@ Run `reki init --with-ci` to scaffold a GitHub Actions workflow (`.github/workfl
 
 ---
 
+### Q: How does team sync work for distributed teams?
+
+rekipedia's team sync is a multi-layer system for conflict-free wiki collaboration:
+
+1. **Bundle** — `reki export --format bundle` creates a deterministic, content-addressed snapshot with a stable `bundle_id` and per-page hash trailers.
+2. **Merge** — `reki merge bundle-A bundle-B --base bundle-base` performs a three-way merge: pages changed by only one developer are accepted automatically; only genuinely divergent pages produce conflict markers.
+3. **Git merge driver** — `reki init --with-merge-driver` registers a git merge driver so `git merge` and `git pull` automatically use rekipedia's merge logic — no `<<<<<<` conflicts in generated wiki files.
+4. **Live sync** — `reki watch . --publish` publishes the wiki after every incremental update, keeping `docs/wiki/` in sync as you code. Set `team.sync_dir` in `.rekipedia/config.yml` for the default target.
+5. **Remote pull** — `reki pull <url>` fetches a bundle from HTTPS, S3, or GCS and merges it locally. Combine with `reki init --with-ci --with-upload s3` to have CI upload a fresh bundle after every main-branch push.
+
+---
+
 ### Q: How does `reki ask` actually work under the hood?
 
 `reki ask "question"` runs a hybrid retrieval pipeline. First, it executes a BM25 keyword search against the SQLite store to find exact and near-exact symbol/token matches. In parallel, it encodes your question into an embedding vector and queries the FAISS (or Qdrant/Chroma) index for semantically similar chunks. The two result sets are merged and re-ranked by relevance score, then the top chunks are passed as context to your configured LLM, which synthesises a final answer with file:line citations. With `--no-llm`, retrieval results are returned directly without synthesis.
@@ -229,7 +245,6 @@ Yes, fully. `reki scan` is pure static analysis — it never sends your source c
 ## Coming Soon
 
 - **Hosted wiki** — share your knowledge base with a link, no self-hosting required
-- **Team sync** — collaborative wiki with conflict-free merge for distributed teams
 - **VS Code extension** — inline `reki ask` from your editor
 
 ---
