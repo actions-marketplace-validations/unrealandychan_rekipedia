@@ -19,6 +19,7 @@ from rekipedia.cli.merge_driver_cmd import merge_driver_cmd
 from rekipedia.cli.note import note_cmd
 from rekipedia.cli.onboard import onboard_cmd
 from rekipedia.cli.publish import publish_cmd
+from rekipedia.cli.pull_cmd import pull_cmd
 from rekipedia.cli.refactor import refactor_cmd
 from rekipedia.cli.review import review_cmd
 from rekipedia.cli.scan import scan_cmd
@@ -60,4 +61,5 @@ main.add_command(tour_cmd)
 main.add_command(onboard_cmd)
 main.add_command(publish_cmd)
 main.add_command(merge_cmd)
+main.add_command(pull_cmd)
 main.add_command(merge_driver_cmd)

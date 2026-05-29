@@ -126,6 +126,35 @@ jobs:
             git push
 """
 
+_GH_ACTIONS_TEMPLATE_S3_UPLOAD_STEP = """\
+      # Upload wiki bundle to S3 (requires AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY secrets
+      # and REKIPEDIA_S3_BUCKET repository variable)
+      - name: Upload wiki bundle to S3
+        if: github.ref == 'refs/heads/main'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          reki export --format bundle --output /tmp/wiki-bundle/
+          cd /tmp/wiki-bundle && zip -r wiki-bundle.zip .
+          aws s3 cp wiki-bundle.zip s3://${{ vars.REKIPEDIA_S3_BUCKET }}/wiki-bundle.zip
+"""
+
+_GH_ACTIONS_TEMPLATE_GCS_UPLOAD_STEP = """\
+      # Upload wiki bundle to GCS (requires GCP_CREDENTIALS secret (base64 service account JSON)
+      # and REKIPEDIA_GCS_BUCKET repository variable)
+      - name: Upload wiki bundle to GCS
+        if: github.ref == 'refs/heads/main'
+        env:
+          GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+        run: |
+          echo "$GCP_CREDENTIALS" | base64 -d > /tmp/gcp-creds.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json
+          reki export --format bundle --output /tmp/wiki-bundle/
+          cd /tmp/wiki-bundle && zip -r wiki-bundle.zip .
+          gsutil cp wiki-bundle.zip gs://${{ vars.REKIPEDIA_GCS_BUCKET }}/wiki-bundle.zip
+"""
+
 _AGENT_CONTENT_TEMPLATE = """\
 # rekipedia — AI Codebase Intelligence
 
@@ -160,7 +189,7 @@ The knowledge store lives in `.rekipedia/store.db` — portable, local, no cloud
 """
 
 
-def _write_github_actions(repo_path: Path, force: bool = False) -> None:
+def _write_github_actions(repo_path: Path, force: bool = False, with_upload: str | None = None) -> None:
     """Write the GitHub Actions workflow that keeps the wiki up-to-date."""
     workflow_path = repo_path / ".github" / "workflows" / "rekipedia-wiki.yml"
 
@@ -171,7 +200,12 @@ def _write_github_actions(repo_path: Path, force: bool = False) -> None:
         return
 
     workflow_path.parent.mkdir(parents=True, exist_ok=True)
-    workflow_path.write_text(_GH_ACTIONS_TEMPLATE, encoding="utf-8")
+    content = _GH_ACTIONS_TEMPLATE
+    if with_upload == "s3":
+        content += _GH_ACTIONS_TEMPLATE_S3_UPLOAD_STEP
+    elif with_upload == "gcs":
+        content += _GH_ACTIONS_TEMPLATE_GCS_UPLOAD_STEP
+    workflow_path.write_text(content, encoding="utf-8")
     console.print(
         f"[green]✔[/green]  Created [bold]{workflow_path}[/bold] (GitHub Actions CI)"
     )
@@ -239,7 +273,7 @@ def _setup_merge_driver(repo_path: Path) -> None:
     )
 
 
-def run_init(repo_path: Path, no_agent_files: bool = False, with_ci: bool = False, with_merge_driver: bool = False) -> None:
+def run_init(repo_path: Path, no_agent_files: bool = False, with_ci: bool = False, with_merge_driver: bool = False, with_upload: str | None = None) -> None:
     wiki_dir = repo_path / ".rekipedia"
     config_path = wiki_dir / "config.yml"
     gitignore_path = repo_path / ".gitignore"
@@ -282,7 +316,7 @@ def run_init(repo_path: Path, no_agent_files: bool = False, with_ci: bool = Fals
     if with_ci:
         console.print()
         console.print("[bold]Writing GitHub Actions workflow…[/bold]")
-        _write_github_actions(repo_path)
+        _write_github_actions(repo_path, with_upload=with_upload)
 
     if with_merge_driver:
         console.print()
@@ -334,6 +368,16 @@ def run_init(repo_path: Path, no_agent_files: bool = False, with_ci: bool = Fals
         "for wiki markdown files. .gitattributes should be committed; .git/config is local-only."
     ),
 )
-def init_cmd(repo: Path, no_agent_files: bool, with_ci: bool, with_merge_driver: bool) -> None:
+@click.option(
+    "--with-upload",
+    type=click.Choice(["s3", "gcs"]),
+    default=None,
+    help="Add bundle upload step to CI workflow (s3 or gcs)",
+)
+def init_cmd(repo: Path, no_agent_files: bool, with_ci: bool, with_merge_driver: bool, with_upload: str | None) -> None:
     """Initialise rekipedia in REPO (default: current directory)."""
-    run_init(repo.resolve(), no_agent_files=no_agent_files, with_ci=with_ci, with_merge_driver=with_merge_driver)
+    if with_upload and not with_ci:
+        from rich import print as rprint
+        rprint("[red]Error:[/] --with-upload requires --with-ci")
+        return
+    run_init(repo.resolve(), no_agent_files=no_agent_files, with_ci=with_ci, with_merge_driver=with_merge_driver, with_upload=with_upload)
