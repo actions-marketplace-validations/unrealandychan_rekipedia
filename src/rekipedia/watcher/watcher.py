@@ -6,6 +6,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 CONFIG_PATH = Path.home() / ".rekipedia" / "watch.json"
@@ -65,9 +66,15 @@ def remove_repo(path: str) -> None:
 
 
 class _RepoWatcher:
-    def __init__(self, repo_path: str, debounce_seconds: float = 3.0):
+    def __init__(
+        self,
+        repo_path: str,
+        debounce_seconds: float = 3.0,
+        post_update_hook: Callable[[], None] | None = None,
+    ):
         self.repo_path = repo_path
         self.debounce = debounce_seconds
+        self.post_update_hook = post_update_hook
         self._dirty = False
         self._lock = threading.Lock()
         self._timer: threading.Timer | None = None
@@ -95,9 +102,19 @@ class _RepoWatcher:
             )
         except Exception as e:
             print(f"[reki watch] Update failed: {e}", flush=True)
+            return
+        if self.post_update_hook is not None:
+            try:
+                self.post_update_hook()
+            except Exception as e:
+                print(f"[reki watch] Publish failed: {e}", flush=True)
 
 
-def start_watching(repos: list[str] | None = None, debounce_seconds: float = 2.0) -> None:
+def start_watching(
+    repos: list[str] | None = None,
+    debounce_seconds: float = 2.0,
+    post_update_hook: Callable[[], None] | None = None,
+) -> None:
     """Start watching repos. Blocks until interrupted."""
     try:
         from watchdog.events import FileSystemEventHandler
@@ -127,7 +144,7 @@ def start_watching(repos: list[str] | None = None, debounce_seconds: float = 2.0
     observer = Observer()
     watchers = []
     for repo in repos:
-        rw = _RepoWatcher(repo, debounce_seconds=debounce_seconds)
+        rw = _RepoWatcher(repo, debounce_seconds=debounce_seconds, post_update_hook=post_update_hook)
         handler = _Handler(rw)
         observer.schedule(handler, repo, recursive=True)
         watchers.append(rw)

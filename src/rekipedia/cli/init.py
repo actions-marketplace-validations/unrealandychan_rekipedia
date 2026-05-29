@@ -195,7 +195,51 @@ def _write_agent_files(repo_path: Path, force: bool = False) -> None:
             console.print(f"[green]✔[/green]  Created [bold]{file_path}[/bold] ({platform})")
 
 
-def run_init(repo_path: Path, no_agent_files: bool = False, with_ci: bool = False) -> None:
+_GITATTRIBUTES_LINES = (
+    ".rekipedia/wiki/*.md merge=reki-wiki\n"
+    "docs/wiki/*.md       merge=reki-wiki\n"
+)
+
+
+def _setup_merge_driver(repo_path: Path) -> None:
+    """Write .gitattributes entries and register git merge driver in .git/config."""
+    import subprocess
+
+    gitattributes_path = repo_path / ".gitattributes"
+    if gitattributes_path.exists():
+        existing = gitattributes_path.read_text(encoding="utf-8")
+        if "merge=reki-wiki" in existing:
+            console.print(
+                "[yellow]⚠[/yellow]  .gitattributes already contains merge=reki-wiki entries — skipping."
+            )
+        else:
+            with gitattributes_path.open("a", encoding="utf-8") as fh:
+                fh.write(_GITATTRIBUTES_LINES)
+            console.print("[green]✔[/green]  Added merge=reki-wiki entries to .gitattributes")
+    else:
+        gitattributes_path.write_text(_GITATTRIBUTES_LINES, encoding="utf-8")
+        console.print("[green]✔[/green]  Created .gitattributes with merge=reki-wiki entries")
+
+    git_config_cmds = [
+        ["git", "config", "merge.reki-wiki.name", "rekipedia wiki merge driver"],
+        ["git", "config", "merge.reki-wiki.driver", "reki merge-driver %O %A %B"],
+        ["git", "config", "merge.reki-wiki.recursive", "binary"],
+    ]
+    for cmd in git_config_cmds:
+        result = subprocess.run(cmd, cwd=repo_path, capture_output=True, text=True)
+        if result.returncode != 0:
+            console.print(f"[red]✗[/red]  git config failed: {result.stderr.strip()}")
+        else:
+            console.print(f"[green]✔[/green]  Ran: {' '.join(cmd[2:])}")
+
+    console.print()
+    console.print(
+        "  [dim]Tip: commit [bold].gitattributes[/bold] so teammates get the merge driver.\n"
+        "  [bold].git/config[/bold] is local-only and not committed.[/dim]"
+    )
+
+
+def run_init(repo_path: Path, no_agent_files: bool = False, with_ci: bool = False, with_merge_driver: bool = False) -> None:
     wiki_dir = repo_path / ".rekipedia"
     config_path = wiki_dir / "config.yml"
     gitignore_path = repo_path / ".gitignore"
@@ -240,6 +284,11 @@ def run_init(repo_path: Path, no_agent_files: bool = False, with_ci: bool = Fals
         console.print("[bold]Writing GitHub Actions workflow…[/bold]")
         _write_github_actions(repo_path)
 
+    if with_merge_driver:
+        console.print()
+        console.print("[bold]Setting up git merge driver…[/bold]")
+        _setup_merge_driver(repo_path)
+
     console.print()
     console.print("[bold green]rekipedia initialised.[/bold green]")
     console.print(
@@ -276,6 +325,15 @@ def run_init(repo_path: Path, no_agent_files: bool = False, with_ci: bool = Fals
         "Uses the REKIPEDIA_API_KEY secret when present; falls back to --no-llm otherwise."
     ),
 )
-def init_cmd(repo: Path, no_agent_files: bool, with_ci: bool) -> None:
+@click.option(
+    "--with-merge-driver",
+    is_flag=True,
+    default=False,
+    help=(
+        "Register reki-wiki as a git merge driver and write .gitattributes entries "
+        "for wiki markdown files. .gitattributes should be committed; .git/config is local-only."
+    ),
+)
+def init_cmd(repo: Path, no_agent_files: bool, with_ci: bool, with_merge_driver: bool) -> None:
     """Initialise rekipedia in REPO (default: current directory)."""
-    run_init(repo.resolve(), no_agent_files=no_agent_files, with_ci=with_ci)
+    run_init(repo.resolve(), no_agent_files=no_agent_files, with_ci=with_ci, with_merge_driver=with_merge_driver)
