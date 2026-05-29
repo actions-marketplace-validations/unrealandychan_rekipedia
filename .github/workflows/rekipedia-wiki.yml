@@ -32,7 +32,7 @@ jobs:
           cache: pip
 
       - name: Install rekipedia
-        run: pip install rekipedia
+        run: pip install -e ".[dev]" -q
 
       - name: Scan codebase
         env:
