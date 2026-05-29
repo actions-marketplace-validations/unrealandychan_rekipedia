@@ -14,6 +14,7 @@ from rekipedia.cli.hook import hook_cmd
 from rekipedia.cli.impact import impact_cmd
 from rekipedia.cli.init import init_cmd
 from rekipedia.cli.mcp_cmd import mcp_cmd
+from rekipedia.cli.merge_cmd import merge_cmd
 from rekipedia.cli.note import note_cmd
 from rekipedia.cli.onboard import onboard_cmd
 from rekipedia.cli.publish import publish_cmd
@@ -57,3 +58,4 @@ main.add_command(domain_cmd)
 main.add_command(tour_cmd)
 main.add_command(onboard_cmd)
 main.add_command(publish_cmd)
+main.add_command(merge_cmd)
