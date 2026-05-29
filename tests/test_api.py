@@ -311,6 +311,9 @@ class TestTopLevelImport:
         assert rekipedia.Citation is Citation
 
     def test_version_still_present(self):
+        import re
+
         import rekipedia
 
-        assert rekipedia.__version__ == "0.17.29"
+        assert rekipedia.__version__ is not None
+        assert re.match(r"^\d+\.\d+\.\d+", rekipedia.__version__)
