@@ -47,8 +47,8 @@ def watch_start(path, debounce, publish):
     Use --publish to auto-publish the wiki after each update.
     The publish target is resolved from team.sync_dir, then team.publish_dir in config.
     """
-    from rekipedia.watcher.watcher import start_watching
     from rekipedia.config.loader import load_config
+    from rekipedia.watcher.watcher import start_watching
 
     repos = [str(Path(path).resolve())] if path else None
 
