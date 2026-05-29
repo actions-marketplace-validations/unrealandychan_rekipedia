@@ -20,7 +20,7 @@ from rich.console import Console
 
 console = Console()
 
-_FORMAT_CHOICES = click.Choice(["md", "zip", "json", "html", "graphml", "cypher", "obsidian"], case_sensitive=False)
+_FORMAT_CHOICES = click.Choice(["md", "zip", "json", "html", "graphml", "cypher", "obsidian", "bundle"], case_sensitive=False)
 
 
 @click.command("export")
@@ -102,6 +102,19 @@ def export_cmd(
 
     doc_title = title or repo.name
     fmt = fmt.lower()
+
+    if fmt == "bundle":
+        from rekipedia.exporters.bundle_export import BundleExporter
+
+        bundle_dir = Path(output) if output else out_dir / "bundle"
+        bundle_dir.mkdir(parents=True, exist_ok=True)
+        exporter = BundleExporter(wiki_dir, diagrams_dir, repo)
+        manifest = exporter.export(bundle_dir)
+        console.print(
+            f"[green]Bundle exported:[/] {bundle_dir}  "
+            f"(bundle_id={manifest['bundle_id']}, {len(manifest['pages'])} pages)"
+        )
+        return
 
     if fmt == "obsidian":
         obs_dir = Path(output) if output else out_dir / "obsidian-vault"
