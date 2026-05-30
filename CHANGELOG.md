@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.19.0] - 2026-05-29
+### Added
+- `reki init --with-copilot`: writes `.vscode/mcp.json` (VS Code Copilot MCP, `"servers"` format) and enables `chat.mcp.enabled` in `.vscode/settings.json`.
+- `reki init --with-codex`: writes `.codex/instructions.md` and `codex-mcp-hint.md` with Codex CLI `~/.codex/config.toml` setup instructions.
+- `reki init --with-cursor`: writes `.cursor/mcp.json` and `.cursor/rules/rekipedia.mdc` with `alwaysApply: true`.
+- `reki init --with-all-ai`: convenience flag — runs `--with-copilot`, `--with-codex`, and `--with-cursor` in one command.
+- Two new MCP tools: `list_wiki_pages` (enumerate all wiki pages) and `get_wiki_page` (read a page by name). Available in `reki mcp` server.
+- Per-tool tailored agent instruction files: `CLAUDE.md`, `AGENTS.md`, and `.github/copilot-instructions.md` now each contain tool-specific MCP setup instructions rather than a generic template.
+
 ## [0.18.0] - 2026-05-29
 ### Added
 - `reki export --format bundle` — deterministic, content-addressed wiki snapshot with stable `bundle_id` and per-page hash trailers for team sync. Closes #182.

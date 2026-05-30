@@ -119,6 +119,34 @@ Claude Code and Cursor will automatically discover this config. The agent can th
 - `get_relationships` — dependency graph queries
 - `get_hub_nodes` — architectural hotspots
 - `get_impact` — change impact analysis
+- `list_wiki_pages` — enumerate all wiki pages
+- `get_wiki_page` — read a specific wiki page by name
+---
+## AI CLI tool integration
+
+rekipedia integrates natively with the major AI coding assistants via MCP (Model Context Protocol). After scanning your codebase, run:
+
+```bash
+reki init --with-all-ai    # configure Copilot + Codex + Cursor in one step
+# or pick individually:
+reki init --with-copilot   # GitHub Copilot (VS Code) — writes .vscode/mcp.json
+reki init --with-codex     # Codex CLI — writes .codex/instructions.md + setup hint
+reki init --with-cursor    # Cursor — writes .cursor/mcp.json + rules
+```
+
+Once configured, each tool automatically gets access to these rekipedia MCP tools:
+
+| MCP Tool | What it does |
+|---|---|
+| `ask` | Natural-language Q&A grounded in the scanned wiki |
+| `search_nodes` | Fast symbol lookup by name |
+| `get_context` | Symbols and relationships for a file |
+| `get_relationships` | Callers and callees for a symbol |
+| `get_hub_nodes` | Architectural chokepoints |
+| `get_impact` | Blast-radius for a changed file |
+| `get_knowledge_gaps` | Untested high-call-count symbols |
+| `list_wiki_pages` | List all wiki pages |
+| `get_wiki_page` | Read a specific wiki page by name |
 
 ---
 
@@ -165,6 +193,7 @@ export REKIPEDIA_MODEL=ollama/llama3
 | `reki review` | LLM-powered PR review |
 | `reki watch .` | Auto-index on file change |
 | `reki hook install` | Install git post-commit hook |
+| `reki init --with-all-ai` | Configure MCP for GitHub Copilot, Codex CLI, and Cursor in one step |
 
 ---
 
