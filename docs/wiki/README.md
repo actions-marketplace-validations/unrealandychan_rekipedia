@@ -9,6 +9,6 @@
 - [CLI & API Reference](wiki/cli-and-api.md)
 - [Core Modules](wiki/core-modules.md)
 - [Installation & Setup](wiki/installation-and-setup.md)
-- [Testing](wiki/testing.md)
 - [Technical Debt](wiki/technical-debt.md)
+- [Testing](wiki/testing.md)
 

@@ -12,12 +12,12 @@ flowchart LR
   invoke["invoke"]
   join["join"]
   len["len"]
+  loads["loads"]
   lower["lower"]
   mkdir["mkdir"]
   patch["patch"]
   read_text["read_text"]
   run_digest["run_digest"]
-  run_update["run_update"]
   str["str"]
   write_text["write_text"]
 
@@ -26,15 +26,15 @@ flowchart LR
   create_app -.->|calls| get
   create_app -.->|calls| join
   create_app -.->|calls| len
+  create_app -.->|calls| loads
   create_app -.->|calls| lower
   create_app -.->|calls| read_text
   create_app -.->|calls| str
+  invoke -.->|calls| CliRunner
   invoke -.->|calls| str
   run_digest -.->|calls| LLMConfig
   run_digest -.->|calls| append
   run_digest -.->|calls| get
   run_digest -.->|calls| len
-  run_digest -.->|calls| lower
-  run_digest -.->|calls| str
 
 ```
