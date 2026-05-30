@@ -5,8 +5,8 @@ section: None
 tags: [cli, api, reference]
 pin: false
 importance: 50
-created_at: 2026-05-30T01:57:01Z
-rekipedia_version: 0.18.0
+created_at: 2026-05-30T02:00:16Z
+rekipedia_version: 0.19.0
 ---
 
 # CLI & API Reference
