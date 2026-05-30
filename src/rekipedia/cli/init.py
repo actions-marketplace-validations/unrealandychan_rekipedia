@@ -1,6 +1,7 @@
 """`rekipedia init` command — scaffold the .rekipedia/ bundle in a repo."""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import click
@@ -155,37 +156,146 @@ _GH_ACTIONS_TEMPLATE_GCS_UPLOAD_STEP = """\
           gsutil cp wiki-bundle.zip gs://${{ vars.REKIPEDIA_GCS_BUCKET }}/wiki-bundle.zip
 """
 
-_AGENT_CONTENT_TEMPLATE = """\
+_CLAUDE_MD_TEMPLATE = """\
 # rekipedia — AI Codebase Intelligence
 
-This repository uses [rekipedia](https://github.com/unrealandychan/rekipedia) to maintain a structured wiki and answer questions about the codebase.
+This repository uses [rekipedia](https://github.com/unrealandychan/rekipedia) to maintain a structured wiki and knowledge store.
 
-## Available commands
+## MCP server (recommended)
 
-| Command | What it does |
-|---------|-------------|
-| `reki scan .` | Full scan — extract symbols, generate wiki pages, build knowledge store |
-| `reki update .` | Incremental refresh — only re-processes changed files |
-| `reki ask "<question>"` | Ask anything about the codebase — grounded answers with file:line citations |
-| `reki serve .` | Start local web UI at http://127.0.0.1:7070 to browse wiki & ask questions |
-| `reki embed .` | Build / rebuild the semantic search index (FAISS) for hybrid RAG |
-| `reki export .` | Export wiki to a single file (--format md|zip|json) |
+rekipedia exposes an MCP server — use it before reading source files:
+
+```json
+// .mcp.json is already configured at the repo root
+```
+
+Available MCP tools: `ask`, `search_nodes`, `get_context`, `get_relationships`, `get_hub_nodes`, `get_impact`, `get_knowledge_gaps`, `list_wiki_pages`, `get_wiki_page`
+
+## CLI fallback
+
+```bash
+reki ask "<question>"      # grounded Q&A with file:line citations
+reki search "<symbol>"     # symbol lookup
+reki scan .                # full rescan after big changes
+reki update .              # incremental refresh
+```
+
+## Rules
+
+- Always call `ask` MCP tool (or `reki ask`) BEFORE reading source files
+- After significant changes, run `reki update .` to keep the wiki current
+"""
+
+_AGENTS_MD_TEMPLATE = """\
+# rekipedia — AI Codebase Intelligence
+
+This repository uses [rekipedia](https://github.com/unrealandychan/rekipedia) to maintain a structured wiki and knowledge store.
+
+## MCP server
+
+rekipedia runs as an MCP server. Configure in `~/.codex/config.toml`:
+
+```toml
+[[mcp_servers]]
+name = "rekipedia"
+command = ["reki", "mcp"]
+```
+
+Available MCP tools: `ask`, `search_nodes`, `get_context`, `get_relationships`, `get_hub_nodes`, `get_impact`, `get_knowledge_gaps`, `list_wiki_pages`, `get_wiki_page`
+
+## CLI fallback
+
+```bash
+reki ask "<question>"      # grounded Q&A with file:line citations
+reki search "<symbol>"     # symbol lookup
+reki scan .                # full rescan after big changes
+reki update .              # incremental refresh
+```
+
+## Rules
+
+- Always call `ask` MCP tool (or `reki ask`) BEFORE reading source files
+- After significant changes, run `reki update .` to keep the wiki current
+"""
+
+_COPILOT_INSTRUCTIONS_TEMPLATE = """\
+# rekipedia — AI Codebase Intelligence
+
+This repository uses [rekipedia](https://github.com/unrealandychan/rekipedia) to maintain a structured wiki and knowledge store.
+
+## MCP server (VS Code Copilot)
+
+rekipedia is configured as an MCP server in `.vscode/mcp.json`. Use MCP tools before reading source files:
+
+Available tools: `ask`, `search_nodes`, `get_context`, `get_relationships`, `get_hub_nodes`, `get_impact`, `get_knowledge_gaps`, `list_wiki_pages`, `get_wiki_page`
 
 ## When to use rekipedia
 
-- Before answering questions about the codebase architecture, run `reki ask "<your question>"` to get grounded context
-- After making significant changes, run `reki update .` to keep the wiki current
-- When asked to understand how a feature works, check the wiki first with `reki ask`
-- When onboarding to an unfamiliar part of the codebase, use `reki ask` for guided explanation
+- Before answering architecture questions — use `ask`
+- Before editing a file — use `get_context` to understand its symbols
+- After the user asks how a feature works — use `ask` first
+- To understand what breaks if a file changes — use `get_impact`
 
-## Setup (first time)
+## CLI
 
 ```bash
-reki scan .          # generates the wiki and knowledge store
-reki embed .         # builds semantic search index (optional, for RAG)
+reki ask "<question>"
+reki search "<symbol>"
+reki update .
+```
+"""
+
+_VSCODE_MCP_JSON = {
+    "servers": {
+        "rekipedia": {
+            "type": "stdio",
+            "command": "reki",
+            "args": ["mcp"],
+            "description": "rekipedia codebase knowledge — ask questions, search symbols, get impact analysis",
+        }
+    }
+}
+
+_CURSOR_MCP_JSON = {
+    "mcpServers": {
+        "rekipedia": {
+            "command": "reki",
+            "args": ["mcp"],
+            "description": "rekipedia codebase knowledge — ask questions, search symbols, get impact analysis",
+        }
+    }
+}
+
+_CURSOR_RULES_MDC = """\
+---
+description: Use rekipedia MCP tools before reading source files
+alwaysApply: true
+---
+
+# rekipedia codebase intelligence
+
+Always use rekipedia MCP tools before reading source files or answering architecture questions.
+
+Available tools: `ask`, `search_nodes`, `get_context`, `get_relationships`, `get_hub_nodes`, `get_impact`, `get_knowledge_gaps`, `list_wiki_pages`, `get_wiki_page`
+
+- Use `ask` for any natural-language question about the codebase
+- Use `get_context` before editing any file
+- Use `get_impact` before refactoring
+"""
+
+_CODEX_MCP_HINT_MD = """\
+# rekipedia MCP server — Codex CLI setup
+
+Add the following to `~/.codex/config.toml` to enable rekipedia in Codex CLI:
+
+```toml
+[[mcp_servers]]
+name = "rekipedia"
+command = ["reki", "mcp"]
 ```
 
-The knowledge store lives in `.rekipedia/store.db` — portable, local, no cloud required.
+Available MCP tools: `ask`, `search_nodes`, `get_context`, `get_relationships`,
+`get_hub_nodes`, `get_impact`, `get_knowledge_gaps`, `list_wiki_pages`, `get_wiki_page`
 """
 
 
@@ -214,19 +324,70 @@ def _write_github_actions(repo_path: Path, force: bool = False, with_upload: str
 def _write_agent_files(repo_path: Path, force: bool = False) -> None:
     """Write agent instruction files for Claude Code, Codex/OpenAI, and GitHub Copilot."""
     files = [
-        (repo_path / "CLAUDE.md", "Claude Code"),
-        (repo_path / "AGENTS.md", "Codex / OpenAI Agents"),
-        (repo_path / ".github" / "copilot-instructions.md", "GitHub Copilot"),
+        (repo_path / "CLAUDE.md", "Claude Code", _CLAUDE_MD_TEMPLATE),
+        (repo_path / "AGENTS.md", "Codex / OpenAI Agents", _AGENTS_MD_TEMPLATE),
+        (repo_path / ".github" / "copilot-instructions.md", "GitHub Copilot", _COPILOT_INSTRUCTIONS_TEMPLATE),
     ]
-    for file_path, platform in files:
+    for file_path, platform, template in files:
         if file_path.exists() and not force:
             console.print(
                 f"[yellow]⚠[/yellow]  [bold]{file_path}[/bold] already exists — skipping."
             )
         else:
             file_path.parent.mkdir(parents=True, exist_ok=True)
-            file_path.write_text(_AGENT_CONTENT_TEMPLATE, encoding="utf-8")
+            file_path.write_text(template, encoding="utf-8")
             console.print(f"[green]✔[/green]  Created [bold]{file_path}[/bold] ({platform})")
+
+
+def _write_copilot_files(repo_path: Path) -> None:
+    """Write .vscode/mcp.json and update .vscode/settings.json for GitHub Copilot."""
+    vscode_dir = repo_path / ".vscode"
+    vscode_dir.mkdir(parents=True, exist_ok=True)
+
+    mcp_path = vscode_dir / "mcp.json"
+    mcp_path.write_text(json.dumps(_VSCODE_MCP_JSON, indent=2) + "\n", encoding="utf-8")
+    console.print("[green]✔[/green]  Created .vscode/mcp.json (GitHub Copilot MCP)")
+
+    settings_path = vscode_dir / "settings.json"
+    if settings_path.exists():
+        try:
+            settings = json.loads(settings_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            settings = {}
+    else:
+        settings = {}
+    settings["chat.mcp.enabled"] = True
+    settings_path.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
+    console.print("[green]✔[/green]  Updated .vscode/settings.json (chat.mcp.enabled: true)")
+
+
+def _write_codex_files(repo_path: Path) -> None:
+    """Write codex-mcp-hint.md and .codex/instructions.md for Codex CLI."""
+    hint_path = repo_path / "codex-mcp-hint.md"
+    hint_path.write_text(_CODEX_MCP_HINT_MD, encoding="utf-8")
+    console.print("[green]✔[/green]  Created codex-mcp-hint.md (Codex CLI MCP setup instructions)")
+
+    codex_dir = repo_path / ".codex"
+    codex_dir.mkdir(parents=True, exist_ok=True)
+    instructions_path = codex_dir / "instructions.md"
+    instructions_path.write_text(_AGENTS_MD_TEMPLATE, encoding="utf-8")
+    console.print("[green]✔[/green]  Created .codex/instructions.md (Codex agent instructions)")
+
+
+def _write_cursor_files(repo_path: Path) -> None:
+    """Write .cursor/mcp.json and .cursor/rules/rekipedia.mdc for Cursor."""
+    cursor_dir = repo_path / ".cursor"
+    cursor_dir.mkdir(parents=True, exist_ok=True)
+
+    mcp_path = cursor_dir / "mcp.json"
+    mcp_path.write_text(json.dumps(_CURSOR_MCP_JSON, indent=2) + "\n", encoding="utf-8")
+    console.print("[green]✔[/green]  Created .cursor/mcp.json (Cursor MCP)")
+
+    rules_dir = cursor_dir / "rules"
+    rules_dir.mkdir(parents=True, exist_ok=True)
+    rules_path = rules_dir / "rekipedia.mdc"
+    rules_path.write_text(_CURSOR_RULES_MDC, encoding="utf-8")
+    console.print("[green]✔[/green]  Created .cursor/rules/rekipedia.mdc (Cursor rules)")
 
 
 _GITATTRIBUTES_LINES = (
@@ -273,7 +434,22 @@ def _setup_merge_driver(repo_path: Path) -> None:
     )
 
 
-def run_init(repo_path: Path, no_agent_files: bool = False, with_ci: bool = False, with_merge_driver: bool = False, with_upload: str | None = None) -> None:
+def run_init(  # noqa: C901
+    repo_path: Path,
+    no_agent_files: bool = False,
+    with_ci: bool = False,
+    with_merge_driver: bool = False,
+    with_upload: str | None = None,
+    with_copilot: bool = False,
+    with_codex: bool = False,
+    with_cursor: bool = False,
+    with_all_ai: bool = False,
+) -> None:
+    if with_all_ai:
+        with_copilot = True
+        with_codex = True
+        with_cursor = True
+
     wiki_dir = repo_path / ".rekipedia"
     config_path = wiki_dir / "config.yml"
     gitignore_path = repo_path / ".gitignore"
@@ -322,6 +498,21 @@ def run_init(repo_path: Path, no_agent_files: bool = False, with_ci: bool = Fals
         console.print()
         console.print("[bold]Setting up git merge driver…[/bold]")
         _setup_merge_driver(repo_path)
+
+    if with_copilot:
+        console.print()
+        console.print("[bold]Writing GitHub Copilot files…[/bold]")
+        _write_copilot_files(repo_path)
+
+    if with_codex:
+        console.print()
+        console.print("[bold]Writing Codex CLI files…[/bold]")
+        _write_codex_files(repo_path)
+
+    if with_cursor:
+        console.print()
+        console.print("[bold]Writing Cursor files…[/bold]")
+        _write_cursor_files(repo_path)
 
     console.print()
     console.print("[bold green]rekipedia initialised.[/bold green]")
@@ -374,10 +565,54 @@ def run_init(repo_path: Path, no_agent_files: bool = False, with_ci: bool = Fals
     default=None,
     help="Add bundle upload step to CI workflow (s3 or gcs)",
 )
-def init_cmd(repo: Path, no_agent_files: bool, with_ci: bool, with_merge_driver: bool, with_upload: str | None) -> None:
+@click.option(
+    "--with-copilot",
+    is_flag=True,
+    default=False,
+    help="Write .vscode/mcp.json and update .vscode/settings.json for GitHub Copilot.",
+)
+@click.option(
+    "--with-codex",
+    is_flag=True,
+    default=False,
+    help="Write codex-mcp-hint.md and .codex/instructions.md for Codex CLI.",
+)
+@click.option(
+    "--with-cursor",
+    is_flag=True,
+    default=False,
+    help="Write .cursor/mcp.json and .cursor/rules/rekipedia.mdc for Cursor.",
+)
+@click.option(
+    "--with-all-ai",
+    is_flag=True,
+    default=False,
+    help="Enable all AI tool integrations: --with-copilot, --with-codex, --with-cursor.",
+)
+def init_cmd(
+    repo: Path,
+    no_agent_files: bool,
+    with_ci: bool,
+    with_merge_driver: bool,
+    with_upload: str | None,
+    with_copilot: bool,
+    with_codex: bool,
+    with_cursor: bool,
+    with_all_ai: bool,
+) -> None:
     """Initialise rekipedia in REPO (default: current directory)."""
     if with_upload and not with_ci:
         from rich import print as rprint
         rprint("[red]Error:[/] --with-upload requires --with-ci")
         return
-    run_init(repo.resolve(), no_agent_files=no_agent_files, with_ci=with_ci, with_merge_driver=with_merge_driver, with_upload=with_upload)
+    run_init(
+        repo.resolve(),
+        no_agent_files=no_agent_files,
+        with_ci=with_ci,
+        with_merge_driver=with_merge_driver,
+        with_upload=with_upload,
+        with_copilot=with_copilot,
+        with_codex=with_codex,
+        with_cursor=with_cursor,
+        with_all_ai=with_all_ai,
+    )
