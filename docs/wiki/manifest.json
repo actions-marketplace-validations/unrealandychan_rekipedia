@@ -1,13 +1,13 @@
 {
-  "run_id": "857690ac-4f6b-477e-9650-c20ed40f9c0b",
-  "generated_at": "2026-05-30T02:00:16.481834+00:00",
-  "file_count": 399,
-  "symbol_count": 2799,
-  "relationship_count": 12788,
+  "run_id": "ef359078-205f-4e05-9195-0454971a64f8",
+  "generated_at": "2026-06-01T03:36:31.954860+00:00",
+  "file_count": 404,
+  "symbol_count": 2828,
+  "relationship_count": 12954,
   "nav_order": [
     "index",
-    "architecture",
     "cli-and-api",
+    "architecture",
     "core-modules",
     "testing",
     "installation-and-setup",
@@ -19,12 +19,12 @@
       "title": "Project Overview"
     },
     {
-      "slug": "architecture",
-      "title": "Architecture"
-    },
-    {
       "slug": "cli-and-api",
       "title": "CLI & API Reference"
+    },
+    {
+      "slug": "architecture",
+      "title": "Architecture"
     },
     {
       "slug": "core-modules",

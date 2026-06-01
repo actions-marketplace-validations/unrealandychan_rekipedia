@@ -5,8 +5,8 @@ section: getting-started
 tags: [getting-started, deployment]
 pin: false
 importance: 50
-created_at: 2026-05-30T02:00:16Z
-rekipedia_version: 0.19.0
+created_at: 2026-06-01T03:36:31Z
+rekipedia_version: 0.20.0
 ---
 
 # Installation & Setup

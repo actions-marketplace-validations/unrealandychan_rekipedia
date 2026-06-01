@@ -33,8 +33,8 @@ flowchart LR
   invoke -.->|calls| CliRunner
   invoke -.->|calls| str
   run_digest -.->|calls| LLMConfig
+  run_digest -.->|calls| Path
   run_digest -.->|calls| append
   run_digest -.->|calls| get
-  run_digest -.->|calls| len
 
 ```
