@@ -58,6 +58,14 @@ llm:
   # Leave blank to use the same model as above (not recommended for large repos).
   # embed_model: text-embedding-3-small
   # embed_provider: openai
+
+# Document extraction (PDF, DOCX, PPTX, XLSX) — requires: pip install 'rekipedia[docs]'
+documents:
+  enabled: false           # set to true to extract text from PDF/DOCX/PPTX/XLSX files
+  extensions: [.pdf, .docx, .pptx, .xlsx]
+  max_file_size_mb: 50
+  embed_chunks: true       # include document chunks in reki embed index
+  wiki_page_per_doc: true  # generate a wiki summary page per document
 """
 
 _GITIGNORE_ENTRY = ".rekipedia/store.db\n"

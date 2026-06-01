@@ -475,6 +475,44 @@ def run_digest(
         if publish_dir:
             _auto_publish(repo_root, output_dir, publish_dir)
 
+        # ── Document extraction (opt-in) ─────────────────────────────
+        from rekipedia.config.loader import load_config as _load_config
+        _doc_cfg = _load_config(repo_root).get("documents", {})
+        if _doc_cfg.get("enabled", False):
+            _vlog("Extracting document files…")
+            _log("Extracting documents…")
+            from rekipedia.extractors.document_extractor import DocumentExtractor, SUPPORTED_EXTENSIONS
+            _doc_extractor = DocumentExtractor()
+            _max_mb = _doc_cfg.get("max_file_size_mb", 50) * 1024 * 1024
+            _doc_extensions = set(_doc_cfg.get("extensions", list(SUPPORTED_EXTENSIONS)))
+            _doc_files = [
+                repo_root / f.path
+                for f in files
+                if Path(f.path).suffix.lower() in _doc_extensions
+                and (repo_root / f.path).stat().st_size <= _max_mb
+            ]
+            _vlog(f"  Found {len(_doc_files)} document file(s)")
+            _all_doc_chunks = []
+            for _doc_path in _doc_files:
+                _chunks = _doc_extractor.extract(_doc_path)
+                _rel = str(_doc_path.relative_to(repo_root))
+                for _c in _chunks:
+                    _c.doc_path = _rel
+                _all_doc_chunks.extend(_chunks)
+                if _doc_cfg.get("wiki_page_per_doc", True) and _chunks:
+                    _doc_text = "\n\n".join(f"**Page {c.page_number}:** {c.text}" for c in _chunks[:20])
+                    _slug = "doc-" + _rel.replace("/", "-").replace(".", "-")
+                    _title = f"📄 {Path(_rel).name}"
+                    _summary = f"# {_title}\n\n**Source:** `{_rel}`\n\n{_doc_text}"
+                    store.upsert_page(run_id, _slug, _title, _summary)
+            if _all_doc_chunks:
+                store.upsert_document_chunks(run_id, [
+                    {"doc_path": c.doc_path, "page_number": c.page_number,
+                     "text": c.text, "bounding_box": c.bounding_box}
+                    for c in _all_doc_chunks
+                ])
+                _vlog(f"  Stored {len(_all_doc_chunks)} document chunk(s)")
+
     except Exception:
         store.update_run_status(run_id, "failed")
         raise

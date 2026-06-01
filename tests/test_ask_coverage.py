@@ -24,7 +24,10 @@ from rekipedia.orchestrator.run_ask import (
 class TestLoadConfig:
     def test_returns_empty_dict_when_no_config(self, tmp_path):
         result = _load_config(tmp_path)
-        assert result == {}
+        # Since _DEFAULT_CONFIG now provides defaults, result is no longer empty.
+        # It should at minimum contain the 'documents' section.
+        assert "documents" in result
+        assert result["documents"]["enabled"] is False
 
     def test_parses_yaml_when_file_exists(self, tmp_path):
         cfg_dir = tmp_path / ".rekipedia"
@@ -32,7 +35,8 @@ class TestLoadConfig:
         cfg_file = cfg_dir / "config.yml"
         cfg_file.write_text("llm:\n  model: gpt-4\n  temperature: 0.5\n")
         result = _load_config(tmp_path)
-        assert result == {"llm": {"model": "gpt-4", "temperature": 0.5}}
+        assert result["llm"] == {"model": "gpt-4", "temperature": 0.5}
+        assert "documents" in result  # defaults always present
 
     def test_empty_yaml_file_returns_empty_dict(self, tmp_path):
         cfg_dir = tmp_path / ".rekipedia"
@@ -40,7 +44,7 @@ class TestLoadConfig:
         cfg_file = cfg_dir / "config.yml"
         cfg_file.write_text("")
         result = _load_config(tmp_path)
-        assert result == {}
+        assert "documents" in result  # defaults always present
 
 
 # ---------------------------------------------------------------------------

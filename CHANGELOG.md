@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.20.0] - 2026-06-01
+### Added
+- **Document extraction** (`rekipedia[docs]`): parse PDF, DOCX, PPTX, and XLSX files via `liteparse`. Opt-in via `documents.enabled: true` in `.rekipedia/config.yml`. Closes #199.
+- `document_chunks` SQLite table (migration 006): stores page-level text and bounding boxes for all extracted document pages. Cascade-deleted when a scan run is removed. Closes #200.
+- `reki embed` now includes document chunks in the FAISS index when `documents.embed_chunks: true` (default). Closes #201.
+- `reki scan` auto-generates a wiki summary page per document file (e.g., `📄 api.pdf`) when `documents.wiki_page_per_doc: true` (default). Closes #203.
+- `reki onboard` now shows a **📄 Documentation Files** table listing all PDF/DOCX/PPTX/XLSX files in the repo. Closes #204.
+- New `documents` config section added to default config with sensible opt-in defaults. All existing repos unaffected until `enabled: true` is set.
+### Changed
+- `config/loader.py`: `load_config()` now merges built-in `_DEFAULT_CONFIG` before global and local overrides, ensuring all config keys always have a valid default.
+
 ## [0.19.0] - 2026-05-29
 ### Added
 - `reki init --with-copilot`: writes `.vscode/mcp.json` (VS Code Copilot MCP, `"servers"` format) and enables `chat.mcp.enabled` in `.vscode/settings.json`.

@@ -529,6 +529,24 @@ class EmbedPipeline:
                 continue
             all_chunks.extend(_symbol_chunk_file(f, repo_root))
 
+        # Include document chunks if documents are enabled
+        try:
+            from rekipedia.config.loader import load_config as _load_doc_config
+            _doc_cfg = _load_doc_config(repo_root).get("documents", {})
+            if _doc_cfg.get("enabled", False) and _doc_cfg.get("embed_chunks", True):
+                if self._store is not None and self._run_id:
+                    doc_chunk_rows = self._store.get_document_chunks(self._run_id)
+                    for row in doc_chunk_rows:
+                        all_chunks.append({
+                            "text": row["text"],
+                            "path": row["doc_path"],
+                            "start_line": row["page_number"],
+                            "end_line": row["page_number"],
+                            "source": "document",
+                        })
+        except Exception as _doc_exc:
+            logger.debug("Document chunk embedding skipped: %s", _doc_exc)
+
         n = len(all_chunks)
         if n == 0:
             logger.warning("No chunks to embed in %s", repo_root)

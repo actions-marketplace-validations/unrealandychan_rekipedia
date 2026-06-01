@@ -77,7 +77,7 @@ def test_embed_missing_rekipedia(tmp_path: Path) -> None:
 
 def test_load_config_returns_empty_when_no_file(tmp_path: Path) -> None:
     from rekipedia.cli.scan import _load_config
-    assert _load_config(tmp_path) == {}
+    assert "documents" in _load_config(tmp_path)
 
 
 def test_load_config_reads_yaml(tmp_path: Path) -> None:

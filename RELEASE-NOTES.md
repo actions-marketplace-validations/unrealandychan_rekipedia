@@ -1,4 +1,28 @@
-     1|## v0.17.17 — 2026-05-23
+     1|## v0.20.0 — Document Intelligence (2026-06-01)
+
+### 📄 Document Extraction
+Install the optional extra:
+```bash
+pip install 'rekipedia[docs]'
+```
+
+Then opt-in in `.rekipedia/config.yml`:
+```yaml
+documents:
+  enabled: true
+```
+
+`reki scan` will extract text from `.pdf`, `.docx`, `.pptx`, `.xlsx` files, store page-level chunks in SQLite, generate a wiki page per document, and include chunks in `reki embed` for RAG-powered `reki ask` queries.
+
+### 📋 reki onboard now lists documentation files
+`reki onboard` shows a new **📄 Documentation Files** table.
+
+### ⚙️ Config defaults
+`load_config()` now merges built-in defaults first, so all config keys always have a valid fallback — no more `KeyError` on missing sections.
+
+---
+
+## v0.17.17 — 2026-05-23
 
 ### New Features
 

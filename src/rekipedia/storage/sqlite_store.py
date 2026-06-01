@@ -524,6 +524,54 @@ class SqliteStore:
         )
         self._c.commit()
 
+    def upsert_document_chunks(self, run_id: str, chunks: list[dict]) -> None:
+        """Insert document chunks for a run. Each dict must have:
+        doc_path, page_number, text, and optionally bounding_box (dict).
+        """
+        import json as _json
+        self._c.executemany(
+            """
+            INSERT INTO document_chunks (run_id, doc_path, page_number, text, bbox_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    run_id,
+                    c["doc_path"],
+                    c.get("page_number", 1),
+                    c["text"],
+                    _json.dumps(c.get("bounding_box") or {}) if c.get("bounding_box") else None,
+                )
+                for c in chunks
+            ],
+        )
+        self._c.commit()
+
+    def get_document_chunks(self, run_id: str, doc_path: str | None = None) -> list[dict]:
+        """Return document chunks for a run, optionally filtered by doc_path."""
+        import json as _json
+        if doc_path:
+            rows = self._c.execute(
+                "SELECT doc_path, page_number, text, bbox_json FROM document_chunks "
+                "WHERE run_id = ? AND doc_path = ? ORDER BY page_number",
+                (run_id, doc_path),
+            ).fetchall()
+        else:
+            rows = self._c.execute(
+                "SELECT doc_path, page_number, text, bbox_json FROM document_chunks "
+                "WHERE run_id = ? ORDER BY doc_path, page_number",
+                (run_id,),
+            ).fetchall()
+        return [
+            {
+                "doc_path": r[0],
+                "page_number": r[1],
+                "text": r[2],
+                "bounding_box": _json.loads(r[3]) if r[3] else {},
+            }
+            for r in rows
+        ]
+
     def get_rationale_notes(self, run_id: str) -> list[dict[str, Any]]:
         if "scan_rationale" not in self._table_names():
             return []

@@ -98,7 +98,7 @@ def test_missing_both(tmp_path, monkeypatch):
 
     from rekipedia.config.loader import load_config
     result = load_config(repo)
-    assert result == {}
+    assert "documents" in result  # _DEFAULT_CONFIG always present
 
 
 def test_xdg_config_home(tmp_path, monkeypatch):

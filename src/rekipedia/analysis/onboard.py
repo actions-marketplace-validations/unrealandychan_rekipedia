@@ -137,6 +137,19 @@ def build_onboard_guide(store_path: Path, repo_root: Path) -> dict:
     wiki_dir = repo_root / ".rekipedia" / "wiki"
     wiki_dir_str = str(wiki_dir) if wiki_dir.exists() else None
 
+    # Document files section
+    doc_files_list: list[dict] = []
+    try:
+        from rekipedia.extractors.document_extractor import SUPPORTED_EXTENSIONS
+        all_files_for_docs = list((repo_root).rglob("*"))
+        doc_files_list = [
+            {"path": str(f.relative_to(repo_root)), "size_bytes": f.stat().st_size}
+            for f in all_files_for_docs
+            if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
+        ]
+    except Exception:
+        pass
+
     return {
         "repo": str(repo_root),
         "generated_at": datetime.now(UTC).isoformat(),
@@ -147,4 +160,5 @@ def build_onboard_guide(store_path: Path, repo_root: Path) -> dict:
         "patterns": patterns,
         "wiki_dir": wiki_dir_str,
         "_counts": {"files": file_count, "symbols": symbol_count},
+        "doc_files": doc_files_list,
     }
