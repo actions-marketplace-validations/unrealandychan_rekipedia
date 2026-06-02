@@ -504,7 +504,7 @@
       </svg>
       rekipedia
     </a>
-    <span class="nav-badge">v0.17.26</span>
+    <span class="nav-badge">v0.21.0</span>
   </div>
   <div class="nav-right">
     <a href="#features" class="nav-link">Features</a>
@@ -522,7 +522,7 @@
 <div class="hero">
   <div class="hero-pill">
     <span class="hero-pill-dot"></span>
-    Now open source · MIT License
+    v0.21.0 is out — modular storage, sectioned CLI &amp; more
   </div>
   <h1>Your codebase,<br><span>finally understood</span></h1>
   <p>rekipedia turns any repository into a searchable wiki with grounded Q&A, exact file:line citations, and an MCP server so your AI agent actually knows your code.</p>
@@ -552,6 +552,23 @@
     </div>
   </div>
 </div>
+
+<!-- WHATS NEW -->
+<section id="whats-new" style="padding:48px 24px 0;">
+  <div class="section-inner">
+    <div class="section-label">What's New</div>
+    <div class="section-title" style="font-size:24px;margin-bottom:20px;">v0.21.0 highlights</div>
+    <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;max-width:640px;">
+      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">Modular storage layer</strong> — <code style="font-family:var(--mono);font-size:12px;color:var(--accent-bright)">sqlite_store.py</code> split into focused storage modules for cleaner architecture and easier extension.</span></li>
+      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">Unified RefactorIssue model</strong> — consistent issue tracking shared across all refactor analysis modules.</span></li>
+      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">Sectioned CLI help</strong> — <code style="font-family:var(--mono);font-size:12px;color:var(--accent-bright)">reki --help</code> now organized into Core / Analysis / Team sync / Setup sections.</span></li>
+      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">Go port charter ADR</strong> — architecture decision record added for the upcoming Go port.</span></li>
+      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">CONTRIBUTING.md improvements</strong> &amp; various refactor quality enhancements.</span></li>
+    </ul>
+  </div>
+</section>
+
+<hr class="divider" style="margin-top:48px;">
 
 <!-- FEATURES -->
 <section id="features">
@@ -613,7 +630,7 @@
       <div class="step">
         <div class="step-num">1</div>
         <h3>Scan your repo</h3>
-        <p>rekipedia parses every file into a SQLite knowledge store — symbols, call graphs, module relationships, and dependency trees.</p>
+        <p>rekipedia parses every file into a modular storage layer — symbols, call graphs, module relationships, and dependency trees, backed by focused storage modules for performance and clarity.</p>
         <div class="step-code">reki scan .</div>
       </div>
       <div class="step">
