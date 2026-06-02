@@ -5,7 +5,7 @@ section: development
 tags: [internals, contributing]
 pin: false
 importance: 50
-created_at: 2026-06-02T01:23:40Z
+created_at: 2026-06-02T01:25:49Z
 rekipedia_version: 0.20.0
 ---
 
