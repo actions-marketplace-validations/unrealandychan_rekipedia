@@ -1,0 +1,49 @@
+{
+  "name": "vscode-rekipedia",
+  "displayName": "Rekipedia",
+  "description": "AI-powered codebase intelligence: Ask, Search, Wiki Browse, and Scan — powered by rekipedia",
+  "version": "0.1.0",
+  "publisher": "unrealandychan",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other", "Programming Languages"],
+  "keywords": ["rekipedia", "codebase", "ai", "documentation", "search"],
+  "icon": "media/icon.png",
+  "repository": { "type": "git", "url": "https://github.com/unrealandychan/rekipedia" },
+  "activationEvents": ["workspaceContains:.rekipedia"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "rekipedia.ask", "title": "reki: Ask", "category": "Rekipedia" },
+      { "command": "rekipedia.search", "title": "reki: Search Symbols", "category": "Rekipedia" },
+      { "command": "rekipedia.scan", "title": "reki: Scan Workspace", "category": "Rekipedia" },
+      { "command": "rekipedia.refreshWiki", "title": "reki: Refresh Wiki", "category": "Rekipedia" }
+    ],
+    "views": {
+      "explorer": [
+        { "id": "rekipediaWiki", "name": "Rekipedia Wiki", "when": "rekipedia.active" }
+      ]
+    },
+    "configuration": {
+      "title": "Rekipedia",
+      "properties": {
+        "rekipedia.rekiPath": { "type": "string", "default": "", "description": "Path to reki binary. Leave empty to auto-detect from venv or PATH." },
+        "rekipedia.wikiDir": { "type": "string", "default": "docs/wiki", "description": "Relative path to wiki directory." },
+        "rekipedia.autoScan": { "type": "boolean", "default": false, "description": "Automatically scan on workspace open." }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "node esbuild.js --production",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  }
+}
