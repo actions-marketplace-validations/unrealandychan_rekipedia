@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from rekipedia.models.contracts import RefactorIssue as _RefactorIssue
+
 from rekipedia.analysis.refactor_writer import (
     _build_markdown,
     detect_issues,
@@ -54,11 +56,11 @@ def test_detect_god_class_above_threshold() -> None:
 
     assert len(issues) == 1
     issue = issues[0]
-    assert issue["kind"] == "god_class"
-    assert issue["symbol"] == "BigClass"
-    assert issue["severity"] == "high"
-    assert issue["metrics"]["fan_in"] == 6
-    assert issue["metrics"]["fan_out"] == 5
+    assert issue.kind == "god_class"
+    assert issue.symbol == "BigClass"
+    assert issue.severity == "high"
+    assert issue.metrics["fan_in"] == 6
+    assert issue.metrics["fan_out"] == 5
 
 
 def test_detect_god_class_below_threshold() -> None:
@@ -67,7 +69,7 @@ def test_detect_god_class_below_threshold() -> None:
     rels = [_rel("A", "SmallClass"), _rel("SmallClass", "B"), _rel("SmallClass", "C")]
     combined = _analysis(symbols=[sym], relationships=rels)
     issues = detect_issues(combined)
-    god_class_issues = [i for i in issues if i["kind"] == "god_class"]
+    god_class_issues = [i for i in issues if i.kind == "god_class"]
     assert god_class_issues == []
 
 
@@ -77,9 +79,9 @@ def test_detect_god_class_callers_capped() -> None:
     rels = [_rel(f"c{i}", "HugClass") for i in range(30)]
     combined = _analysis(symbols=[sym], relationships=rels)
     issues = detect_issues(combined)
-    god_issues = [i for i in issues if i["kind"] == "god_class"]
+    god_issues = [i for i in issues if i.kind == "god_class"]
     assert len(god_issues) == 1
-    assert len(god_issues[0]["callers"]) <= 20
+    assert len(god_issues[0].callers) <= 20
 
 
 # ── detect_issues: dead code ───────────────────────────────────────────────
@@ -89,8 +91,8 @@ def test_detect_dead_code_zero_callers() -> None:
     sym = _sym("orphaned_func")
     combined = _analysis(symbols=[sym], relationships=[])
     issues = detect_issues(combined)
-    dead = [i for i in issues if i["kind"] == "dead_code"]
-    assert any(i["symbol"] == "orphaned_func" for i in dead)
+    dead = [i for i in issues if i.kind == "dead_code"]
+    assert any(i.symbol == "orphaned_func" for i in dead)
 
 
 def test_detect_dead_code_with_callers_excluded() -> None:
@@ -98,15 +100,15 @@ def test_detect_dead_code_with_callers_excluded() -> None:
     rels = [_rel("some_caller", "live_func")]
     combined = _analysis(symbols=[sym], relationships=rels)
     issues = detect_issues(combined)
-    dead = [i for i in issues if i["kind"] == "dead_code"]
-    assert not any(i["symbol"] == "live_func" for i in dead)
+    dead = [i for i in issues if i.kind == "dead_code"]
+    assert not any(i.symbol == "live_func" for i in dead)
 
 
 def test_detect_dead_code_skips_entry_points() -> None:
     sym = _sym("main_func")
     combined = _analysis(symbols=[sym], entry_points=["main_func"])
     issues = detect_issues(combined)
-    dead = [i for i in issues if i["symbol"] == "main_func"]
+    dead = [i for i in issues if i.symbol == "main_func"]
     assert dead == []
 
 
@@ -114,7 +116,7 @@ def test_detect_dead_code_skips_dunder() -> None:
     sym = _sym("__init__", kind="function")
     combined = _analysis(symbols=[sym])
     issues = detect_issues(combined)
-    dead = [i for i in issues if i["symbol"] == "__init__"]
+    dead = [i for i in issues if i.symbol == "__init__"]
     assert dead == []
 
 
@@ -122,7 +124,7 @@ def test_detect_dead_code_skips_test_helpers() -> None:
     sym = _sym("test_something")
     combined = _analysis(symbols=[sym])
     issues = detect_issues(combined)
-    dead = [i for i in issues if i["symbol"] == "test_something"]
+    dead = [i for i in issues if i.symbol == "test_something"]
     assert dead == []
 
 
@@ -130,7 +132,7 @@ def test_detect_dead_code_skips_test_file_symbols() -> None:
     sym = Symbol(name="helper", kind="function", file="tests/test_util.py")
     combined = _analysis(symbols=[sym])
     issues = detect_issues(combined)
-    dead = [i for i in issues if i["symbol"] == "helper"]
+    dead = [i for i in issues if i.symbol == "helper"]
     assert dead == []
 
 
@@ -145,7 +147,7 @@ def test_issues_sorted_high_before_low() -> None:
     ]
     combined = _analysis(symbols=[god_sym, dead_sym], relationships=rels)
     issues = detect_issues(combined)
-    sev_order = [i["severity"] for i in issues]
+    sev_order = [i.severity for i in issues]
     # All "high" before all "low"
     seen_low = False
     for s in sev_order:
@@ -166,15 +168,15 @@ def test_build_markdown_header() -> None:
 
 
 def test_build_markdown_high_section() -> None:
-    issue = {
-        "kind": "god_class",
-        "symbol": "BigClass",
-        "file": "src/big.py",
-        "severity": "high",
-        "metrics": {"lines": 300, "fan_in": 10, "fan_out": 5},
-        "suggestion": "Split BigClass",
-        "callers": ["a", "b"],
-    }
+    issue = _RefactorIssue(
+        kind="god_class",
+        symbol="BigClass",
+        file="src/big.py",
+        severity="high",
+        metrics={"lines": 300, "fan_in": 10, "fan_out": 5},
+        suggestion="Split BigClass",
+        callers=["a", "b"],
+    )
     md = _build_markdown([issue], file_count=5)
     assert "🔴" in md
     assert "High Priority" in md
@@ -183,15 +185,15 @@ def test_build_markdown_high_section() -> None:
 
 
 def test_build_markdown_low_section() -> None:
-    issue = {
-        "kind": "dead_code",
-        "symbol": "old_fn",
-        "file": "src/utils.py",
-        "severity": "low",
-        "metrics": {"fan_in": 0, "fan_out": 0},
-        "suggestion": "Remove `old_fn` — 0 callers detected",
-        "callers": [],
-    }
+    issue = _RefactorIssue(
+        kind="dead_code",
+        symbol="old_fn",
+        file="src/utils.py",
+        severity="low",
+        metrics={"fan_in": 0, "fan_out": 0},
+        suggestion="Remove `old_fn` — 0 callers detected",
+        callers=[],
+    )
     md = _build_markdown([issue], file_count=3)
     assert "🟢" in md
     assert "Quick Wins" in md
@@ -200,15 +202,15 @@ def test_build_markdown_low_section() -> None:
 
 def test_build_markdown_no_empty_sections() -> None:
     """Sections with no issues should not appear."""
-    issue = {
-        "kind": "dead_code",
-        "symbol": "stale_fn",
-        "file": "src/old.py",
-        "severity": "low",
-        "metrics": {"fan_in": 0, "fan_out": 0},
-        "suggestion": "Remove `stale_fn` — 0 callers detected",
-        "callers": [],
-    }
+    issue = _RefactorIssue(
+        kind="dead_code",
+        symbol="stale_fn",
+        file="src/old.py",
+        severity="low",
+        metrics={"fan_in": 0, "fan_out": 0},
+        suggestion="Remove `stale_fn` — 0 callers detected",
+        callers=[],
+    )
     md = _build_markdown([issue], file_count=1)
     assert "🔴" not in md  # no high-priority issues
     assert "🟡" not in md  # no medium-priority issues

@@ -14,7 +14,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 
-from rekipedia.models.contracts import AnalysisResult, Symbol
+from rekipedia.models.contracts import AnalysisResult, RefactorIssue, Symbol
 
 # ── Severity → presentation mapping ─────────────────────────────────────────
 
@@ -51,7 +51,7 @@ def _rekipedia_version() -> str:
         return "unknown"
 
 
-def detect_issues(combined: AnalysisResult) -> list[dict]:
+def detect_issues(combined: AnalysisResult) -> list[RefactorIssue]:
     """Detect refactoring issues from an ``AnalysisResult``.
 
     Detects:
@@ -68,7 +68,7 @@ def detect_issues(combined: AnalysisResult) -> list[dict]:
         ``kind``, ``symbol``, ``file``, ``severity``, ``metrics``,
         ``suggestion``, and ``callers``.
     """
-    issues: list[dict] = []
+    issues: list[RefactorIssue] = []
 
     # ── Build fan-in / fan-out maps ───────────────────────────────────────────
     fan_in: dict[str, int] = defaultdict(int)   # incoming call edges per symbol
@@ -105,17 +105,15 @@ def detect_issues(combined: AnalysisResult) -> list[dict]:
         lines = max(0, line_end - line_start)
 
         unique_callers = list(dict.fromkeys(callers_map.get(name, [])))
-        issues.append({
-            "kind": "god_class",
-            "symbol": name,
-            "file": sym.file,
-            "severity": "high",
-            "metrics": {"lines": lines, "fan_in": sym_fan_in, "fan_out": sym_fan_out},
-            "suggestion": (
-                f"Split `{name}` into smaller, single-responsibility classes"
-            ),
-            "callers": unique_callers[:20],
-        })
+        issues.append(RefactorIssue(
+            kind="god_class",
+            symbol=name,
+            file=sym.file,
+            severity="high",
+            metrics={"lines": lines, "fan_in": sym_fan_in, "fan_out": sym_fan_out},
+            suggestion=f"Split `{name}` into smaller, single-responsibility classes",
+            callers=unique_callers[:20],
+        ))
 
     # ── 2. Dead Code detection ────────────────────────────────────────────────
     for name, sym in sym_lookup.items():
@@ -136,24 +134,24 @@ def detect_issues(combined: AnalysisResult) -> list[dict]:
         if callers_map.get(name):
             continue
 
-        issues.append({
-            "kind": "dead_code",
-            "symbol": name,
-            "file": sym.file,
-            "severity": "low",
-            "metrics": {"fan_in": 0, "fan_out": fan_out[name]},
-            "suggestion": f"Remove `{name}` — 0 callers detected",
-            "callers": [],
-        })
+        issues.append(RefactorIssue(
+            kind="dead_code",
+            symbol=name,
+            file=sym.file,
+            severity="low",
+            metrics={"fan_in": 0, "fan_out": fan_out[name]},
+            suggestion=f"Remove `{name}` — 0 callers detected",
+            callers=[],
+        ))
 
     # ── Sort: high → medium → low, then alphabetically ───────────────────────
     _order = {"high": 0, "medium": 1, "low": 2}
-    issues.sort(key=lambda x: (_order.get(x["severity"], 99), x["symbol"]))
+    issues.sort(key=lambda x: (_order.get(x.severity, 99), x.symbol))
 
     return issues
 
 
-def _build_markdown(issues: list[dict], file_count: int) -> str:
+def _build_markdown(issues: list[RefactorIssue], file_count: int) -> str:
     """Render REFACTOR.md content from the detected issues list.
 
     Args:
@@ -175,9 +173,9 @@ def _build_markdown(issues: list[dict], file_count: int) -> str:
         "",
     ]
 
-    by_severity: dict[str, list[dict]] = {"high": [], "medium": [], "low": []}
+    by_severity: dict[str, list[RefactorIssue]] = {"high": [], "medium": [], "low": []}
     for issue in issues:
-        sev = issue.get("severity", "low")
+        sev = issue.severity or "low"
         by_severity.setdefault(sev, []).append(issue)
 
     for sev in ("high", "medium", "low"):
@@ -193,19 +191,19 @@ def _build_markdown(issues: list[dict], file_count: int) -> str:
         if sev == "low":
             # Dead code — compact bulleted list
             for issue in sev_issues:
-                sym = issue["symbol"]
-                file_ = issue.get("file", "")
-                note = issue.get("suggestion", "").replace(f"Remove `{sym}` — ", "")
+                sym = issue.symbol
+                file_ = issue.file or ""
+                note = issue.suggestion.replace(f"Remove `{sym}` — ", "")
                 prefix = f"`{file_}:`" if file_ else ""
                 lines.append(f"- {prefix}`{sym}()` — {note}")
             lines.append("")
         else:
             for i, issue in enumerate(sev_issues, 1):
-                sym = issue["symbol"]
-                kind = issue.get("kind", "")
-                file_ = issue.get("file", "")
-                metrics = issue.get("metrics", {})
-                suggestion = issue.get("suggestion", "")
+                sym = issue.symbol
+                kind = issue.kind or ""
+                file_ = issue.file or ""
+                metrics = issue.metrics or {}
+                suggestion = issue.suggestion or ""
                 fan_in = metrics.get("fan_in", 0)
                 fan_out = metrics.get("fan_out", 0)
                 lines_count = metrics.get("lines", 0)
@@ -265,14 +263,14 @@ def write_refactor_outputs(
     ver = _rekipedia_version()
     summary: dict[str, int] = {"high": 0, "medium": 0, "low": 0}
     for issue in issues:
-        sev = issue.get("severity", "low")
+        sev = issue.severity or "low"
         summary[sev] = summary.get(sev, 0) + 1
 
     report: dict = {
         "generated_at": datetime.now(UTC).isoformat(),
         "rekipedia_version": ver,
         "summary": summary,
-        "issues": issues,
+        "issues": [i.to_dict() for i in issues],
     }
     json_path = output_dir / "refactor_report.json"
     json_path.write_text(

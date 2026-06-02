@@ -8,6 +8,8 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 
+from rekipedia.models.contracts import RefactorIssue
+
 
 @dataclass
 class RefactorConfig:
@@ -17,18 +19,6 @@ class RefactorConfig:
     high_fan_in: int = 20               # > N callers
     high_fan_out: int = 15              # > N dependencies
     deep_inheritance_depth: int = 3     # depth > N
-
-
-@dataclass
-class RefactorIssue:
-    """A single detected refactoring issue."""
-
-    kind: str           # "god_class" | "circular_dep" | "dead_code" | "high_fan_in" | "high_fan_out" | "deep_inheritance"
-    symbol: str         # affected symbol name
-    file: str
-    severity: str       # "high" | "medium" | "low"
-    metrics: dict       # raw numbers (degree, depth, etc.)
-    callers: list[str]  # affected callers / dependents
 
 
 # ---------------------------------------------------------------------------

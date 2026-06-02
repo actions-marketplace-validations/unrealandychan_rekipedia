@@ -16,8 +16,9 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
+
+from rekipedia.models.contracts import RefactorIssue
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -35,42 +36,6 @@ _LARGE_FILE_BYTES_THRESHOLD = 500_000   # 500 KB — flag files that are simply 
 _HIGH_COUPLING_OUT_THRESHOLD = 10
 _DEAD_CODE_MIN_FILE_SYMBOLS = 3  # ignore tiny files; only flag in larger files
 _MAX_ENRICHER_WORKERS = 4
-
-# ── Data model ───────────────────────────────────────────────────────────────
-
-
-@dataclass
-class RefactorIssue:
-    """A single refactoring issue detected by static analysis."""
-
-    kind: str           # "god_class" | "circular_dep" | "dead_code" | "large_file" | "high_coupling"
-    symbol: str         # primary symbol / file name
-    file: str           # source file path
-    metrics: dict       # raw numeric metrics (degree, symbol_count, …)
-    callers: list[str] = field(default_factory=list)   # top-5 callers
-    notes: list[str] = field(default_factory=list)     # relevant tech-lead notes
-
-    # Populated by LLM enrichment (empty when --no-llm)
-    problem: str = ""
-    suggestion: str = ""
-    start_here: str = ""
-    risk: str = ""
-
-    def to_dict(self) -> dict:
-        """Return a plain dict representation suitable for JSON serialisation."""
-        return {
-            "kind": self.kind,
-            "symbol": self.symbol,
-            "file": self.file,
-            "metrics": self.metrics,
-            "callers": self.callers,
-            "notes": self.notes,
-            "problem": self.problem,
-            "suggestion": self.suggestion,
-            "start_here": self.start_here,
-            "risk": self.risk,
-        }
-
 
 # ── Prompt templates ─────────────────────────────────────────────────────────
 
