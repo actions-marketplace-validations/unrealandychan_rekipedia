@@ -52,103 +52,12 @@ def _rekipedia_version() -> str:
 
 
 def detect_issues(combined: AnalysisResult) -> list[RefactorIssue]:
-    """Detect refactoring issues from an ``AnalysisResult``.
+    """Delegate to the canonical detector in refactor_detector.py.
 
-    Detects:
-    * **god_class** (high severity) — classes/interfaces whose combined
-      fan-in + fan-out degree exceeds ``_GOD_CLASS_DEGREE_THRESHOLD``.
-    * **dead_code** (low severity) — functions/methods with zero callers that
-      are not entry-points, test helpers, or dunder methods.
-
-    Args:
-        combined: ``AnalysisResult`` produced by the scan pipeline.
-
-    Returns:
-        Sorted list of issue dicts, each containing:
-        ``kind``, ``symbol``, ``file``, ``severity``, ``metrics``,
-        ``suggestion``, and ``callers``.
+    Kept here for backward-compatibility with existing imports.
     """
-    issues: list[RefactorIssue] = []
-
-    # ── Build fan-in / fan-out maps ───────────────────────────────────────────
-    fan_in: dict[str, int] = defaultdict(int)   # incoming call edges per symbol
-    fan_out: dict[str, int] = defaultdict(int)  # outgoing call edges per symbol
-    callers_map: dict[str, list[str]] = defaultdict(list)
-
-    for rel in combined.relationships:
-        if rel.from_:
-            fan_out[rel.from_] += 1
-        if rel.to:
-            fan_in[rel.to] += 1
-        if str(rel.kind) in ("call", "calls") and rel.from_ and rel.to:
-            callers_map[rel.to].append(rel.from_)
-
-    # ── Build symbol lookup ───────────────────────────────────────────────────
-    sym_lookup: dict[str, Symbol] = {sym.name: sym for sym in combined.symbols}
-    entry_points: set[str] = set(combined.entry_points)
-
-    # ── 1. God Class detection ────────────────────────────────────────────────
-    for name, sym in sym_lookup.items():
-        kind_str = str(sym.kind)
-        if kind_str not in ("class", "interface"):
-            continue
-
-        sym_fan_in = fan_in[name]
-        sym_fan_out = fan_out[name]
-        degree = sym_fan_in + sym_fan_out
-
-        if degree < _GOD_CLASS_DEGREE_THRESHOLD:
-            continue
-
-        line_start = sym.line_start or 0
-        line_end = sym.line_end or 0
-        lines = max(0, line_end - line_start)
-
-        unique_callers = list(dict.fromkeys(callers_map.get(name, [])))
-        issues.append(RefactorIssue(
-            kind="god_class",
-            symbol=name,
-            file=sym.file,
-            severity="high",
-            metrics={"lines": lines, "fan_in": sym_fan_in, "fan_out": sym_fan_out},
-            suggestion=f"Split `{name}` into smaller, single-responsibility classes",
-            callers=unique_callers[:20],
-        ))
-
-    # ── 2. Dead Code detection ────────────────────────────────────────────────
-    for name, sym in sym_lookup.items():
-        kind_str = str(sym.kind)
-        if kind_str not in ("function", "method"):
-            continue
-        if name in entry_points:
-            continue
-        # Exclude test helpers and dunder methods
-        if any(name.startswith(p) for p in _TEST_PREFIXES):
-            continue
-        if name.startswith("__") and name.endswith("__"):
-            continue
-        # Also skip symbols defined in test files
-        if any(s in sym.file for s in _TEST_PATH_SUBSTRINGS):
-            continue
-
-        if callers_map.get(name):
-            continue
-
-        issues.append(RefactorIssue(
-            kind="dead_code",
-            symbol=name,
-            file=sym.file,
-            severity="low",
-            metrics={"fan_in": 0, "fan_out": fan_out[name]},
-            suggestion=f"Remove `{name}` — 0 callers detected",
-            callers=[],
-        ))
-
-    # ── Sort: high → medium → low, then alphabetically ───────────────────────
-    _order = {"high": 0, "medium": 1, "low": 2}
-    issues.sort(key=lambda x: (_order.get(x.severity, 99), x.symbol))
-
-    return issues
+    from rekipedia.analysis.refactor_detector import detect_issues as _detect
+    return _detect(combined)
 
 
 def _build_markdown(issues: list[RefactorIssue], file_count: int) -> str:
