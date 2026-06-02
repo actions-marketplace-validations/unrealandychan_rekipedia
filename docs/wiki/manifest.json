@@ -1,22 +1,26 @@
 {
-  "run_id": "72e8faf2-3253-4c2d-b891-b1698999cb23",
-  "generated_at": "2026-06-02T13:08:15.236923+00:00",
-  "file_count": 421,
-  "symbol_count": 2863,
-  "relationship_count": 13012,
+  "run_id": "d028b88c-25f9-4e3e-a46c-45f0c154e5b7",
+  "generated_at": "2026-06-02T13:11:45.817621+00:00",
+  "file_count": 424,
+  "symbol_count": 2877,
+  "relationship_count": 13045,
   "nav_order": [
     "architecture",
+    "cli-and-api",
     "index",
     "core-modules",
-    "cli-and-api",
-    "installation-and-setup",
+    "technical-debt",
     "testing",
-    "technical-debt"
+    "installation-and-setup"
   ],
   "pages": [
     {
       "slug": "architecture",
       "title": "Architecture"
+    },
+    {
+      "slug": "cli-and-api",
+      "title": "CLI & API Reference"
     },
     {
       "slug": "index",
@@ -27,20 +31,16 @@
       "title": "Core Modules"
     },
     {
-      "slug": "cli-and-api",
-      "title": "CLI & API Reference"
-    },
-    {
-      "slug": "installation-and-setup",
-      "title": "Installation & Setup"
+      "slug": "technical-debt",
+      "title": "Technical Debt"
     },
     {
       "slug": "testing",
       "title": "Testing"
     },
     {
-      "slug": "technical-debt",
-      "title": "Technical Debt"
+      "slug": "installation-and-setup",
+      "title": "Installation & Setup"
     }
   ],
   "diagrams": [
