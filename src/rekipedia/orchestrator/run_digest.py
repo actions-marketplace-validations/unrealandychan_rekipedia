@@ -505,6 +505,14 @@ def run_digest(
                     _title = f"📄 {Path(_rel).name}"
                     _summary = f"# {_title}\n\n**Source:** `{_rel}`\n\n{_doc_text}"
                     store.upsert_page(run_id, _slug, _title, _summary)
+                    if _doc_cfg.get("thumbnails", False) and _doc_path.suffix.lower() == ".pdf":
+                        _thumb_bytes = _doc_extractor.thumbnail(_doc_path, dpi=_doc_cfg.get("thumbnail_dpi", 150))
+                        if _thumb_bytes:
+                            _assets_dir = output_dir / "wiki" / "assets"
+                            _assets_dir.mkdir(parents=True, exist_ok=True)
+                            (_assets_dir / f"{_slug}-thumb.png").write_bytes(_thumb_bytes)
+                            _summary = f"![thumbnail](assets/{_slug}-thumb.png)\n\n{_summary}"
+                            store.upsert_page(run_id, _slug, _title, _summary)
             if _all_doc_chunks:
                 store.upsert_document_chunks(run_id, [
                     {"doc_path": c.doc_path, "page_number": c.page_number,

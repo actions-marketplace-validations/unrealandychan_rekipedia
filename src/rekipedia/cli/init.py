@@ -66,6 +66,8 @@ documents:
   max_file_size_mb: 50
   embed_chunks: true       # include document chunks in reki embed index
   wiki_page_per_doc: true  # generate a wiki summary page per document
+  thumbnails: false          # generate first-page PNG thumbnail per PDF (requires liteparse)
+  thumbnail_dpi: 150         # DPI for thumbnail rendering
 """
 
 _GITIGNORE_ENTRY = ".rekipedia/store.db\n"
@@ -105,7 +107,12 @@ jobs:
           cache: pip
 
       - name: Install rekipedia
-        run: pip install rekipedia
+        run: |
+          pip install rekipedia
+          if find . -name "*.pdf" -o -name "*.docx" -o -name "*.pptx" | grep -q .; then
+            echo "Document files found — installing liteparse support"
+            pip install "rekipedia[docs]"
+          fi
 
       - name: Scan codebase
         env:

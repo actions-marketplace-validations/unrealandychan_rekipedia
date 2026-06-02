@@ -1,4 +1,18 @@
-     1|## v0.20.0 — Document Intelligence (2026-06-01)
+     1|## v0.20.1 — PDF Thumbnails & CI liteparse Auto-Detect (2026-06-02)
+
+### 📸 PDF Thumbnail Previews in Wiki Pages (#205)
+- `DocumentExtractor.thumbnail()` — new method that generates a first-page PNG thumbnail from PDFs using `liteparse.screenshot()`. Returns raw PNG bytes or `None` if unavailable.
+- Wiki pages for PDF documents now embed the thumbnail at the top when `documents.thumbnails: true` is set in config.
+- Thumbnails are saved to `output_dir/wiki/assets/{slug}-thumb.png`.
+- New `--no-thumbnails` flag on `reki scan` to skip thumbnail generation even when enabled in config.
+- New config defaults: `thumbnails: false`, `thumbnail_dpi: 150`.
+
+### 🔧 CI Scaffold with liteparse Auto-Detect (#206)
+- The GitHub Actions CI template (`reki init --with-ci`) now auto-detects PDF/DOCX/PPTX files in the repo and installs `rekipedia[docs]` (which includes liteparse) automatically.
+
+---
+
+## v0.20.0 — Document Intelligence (2026-06-01)
 
 ### 📄 Document Extraction
 Install the optional extra:

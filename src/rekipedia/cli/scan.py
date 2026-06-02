@@ -82,6 +82,7 @@ def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
 )
 @click.option("--workers", "-w", default=None, type=int, metavar="N",
     help="Number of parallel workers for file extraction (default: min(4, cpu_count))")
+@click.option("--no-thumbnails", "no_thumbnails", is_flag=True, default=False, help="Skip PDF thumbnail generation even if enabled in config.")
 def scan_cmd(
     repo: Path,
     model: str | None,
@@ -98,6 +99,7 @@ def scan_cmd(
     focus: tuple[str, ...],
     doc_type: str,
     workers: int | None,
+    no_thumbnails: bool,
 ) -> None:
     """Scan REPO and (re)build the rekipedia knowledge store.
 
@@ -148,6 +150,8 @@ def scan_cmd(
     cfg = _load_config(repo)
     llm_cfg_raw = cfg.get("llm", {})
     publish_dir: str | None = cfg.get("team", {}).get("publish_dir") if isinstance(cfg, dict) else None
+    if no_thumbnails and isinstance(cfg.get("documents"), dict):
+        cfg["documents"]["thumbnails"] = False
 
     llm_config = LLMConfig(
         model=model or llm_cfg_raw.get("model", "ollama/llama4"),

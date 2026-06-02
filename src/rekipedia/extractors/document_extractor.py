@@ -111,3 +111,21 @@ class DocumentExtractor:
         except Exception as exc:
             logger.warning("Failed to extract %s: %s", path, exc)
             return []
+
+    def thumbnail(self, path: Path, dpi: int = 150) -> bytes | None:
+        """Generate a PNG thumbnail of the first page. Returns raw PNG bytes or None."""
+        if not self._check_available():
+            return None
+        if path.suffix.lower() != ".pdf":
+            return None
+        try:
+            import liteparse
+            pages = liteparse.screenshot(str(path), pages=[0], dpi=dpi)
+            if pages:
+                import io
+                buf = io.BytesIO()
+                pages[0].save(buf, format="PNG")
+                return buf.getvalue()
+        except Exception as exc:
+            logger.warning("Failed to generate thumbnail for %s: %s", path, exc)
+        return None

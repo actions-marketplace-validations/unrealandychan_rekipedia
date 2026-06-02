@@ -15,6 +15,8 @@ _DEFAULT_CONFIG: dict = {
         "max_file_size_mb": 50,    # skip files larger than this
         "embed_chunks": True,      # include document chunks in RAG embed index
         "wiki_page_per_doc": True, # generate a wiki page summarising each document
+        "thumbnails": False,
+        "thumbnail_dpi": 150,
     }
 }
 
