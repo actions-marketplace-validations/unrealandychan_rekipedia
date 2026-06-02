@@ -5,7 +5,7 @@ section: architecture
 tags: [architecture, internals]
 pin: false
 importance: 50
-created_at: 2026-06-02T01:25:49Z
+created_at: 2026-06-02T01:28:30Z
 rekipedia_version: 0.20.0
 ---
 
