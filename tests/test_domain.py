@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 
-from rekipedia.analysis.domain import _classify_file, classify_domain
+from rekipedia.analysis.layer_classifier import _classify_file, classify_domain
 from rekipedia.cli.domain import domain_cmd
 
 # ── unit: _classify_file ─────────────────────────────────────────────────

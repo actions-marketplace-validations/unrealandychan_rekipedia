@@ -173,6 +173,46 @@ git push origin py/v1.3.0
 
 ---
 
+## Docker Sandbox
+
+`DockerSandboxRunner` runs the rekipedia extractor pipeline inside an isolated Docker container so that untrusted repository code cannot make outbound network calls or affect the host filesystem. The repo is mounted **read-only**, the container runs with `--network none`, and LLM calls happen on the host after extraction completes. When Docker is available and the sandbox image is present, `get_runner()` selects it automatically; otherwise it falls back to `LocalRunner` (in-process).
+
+### Building the sandbox image
+
+A `Dockerfile.sandbox` is included in the repo root:
+
+```bash
+docker build -f Dockerfile.sandbox -t rekipedia-sandbox:latest .
+```
+
+### Activating the Docker sandbox
+
+Once the image is built, the sandbox is activated **automatically** the next time you run any `reki` command — no extra flags needed. `get_runner()` detects the image via `docker image inspect rekipedia-sandbox:latest` and selects `DockerSandboxRunner` when found.
+
+To force the in-process runner even when the image is present, pass `force_local=True` to `get_runner()` programmatically or simply remove/retag the image.
+
+---
+
+## AgentPlanner (Experimental)
+
+`AgentPlanner` is an **experimental** multi-turn, tool-calling wiki planner. Instead of generating a single-shot JSON plan, the LLM incrementally builds the wiki structure by calling `add_section`, `add_page`, and `finalize` tools across up to 20 iterations. This produces richer, more coherent wiki layouts at the cost of extra LLM round-trips.
+
+### Activating AgentPlanner
+
+Set the environment variable `REKIPEDIA_AGENT_PLANNER=1` before running a scan:
+
+```bash
+REKIPEDIA_AGENT_PLANNER=1 reki scan .
+```
+
+The default (`0`) uses the standard single-shot planner.
+
+### Current status
+
+AgentPlanner is **experimental** — it works but has not been hardened for production use. There is currently no graduation plan or timeline for promoting it to the default planner. Feedback and bug reports are welcome via GitHub Issues.
+
+---
+
 ## Reporting Issues
 
 Found a bug or have a suggestion? [Open an issue](https://github.com/unrealandychan/rekipedia/issues/new/choose) and include:

@@ -29,7 +29,7 @@ def domain_cmd(repo: str, output: str | None, fmt: str, biz: bool, json_out: boo
         _run_biz(repo, output, json_out)
         return
 
-    from rekipedia.analysis.domain import classify_domain
+    from rekipedia.analysis.layer_classifier import classify_domain
     from rekipedia.storage.sqlite_store import SqliteStore
 
     repo_path = Path(repo).resolve()
@@ -122,7 +122,7 @@ _COMPLEXITY_COLOUR = {"simple": "green", "moderate": "yellow", "complex": "red"}
 
 def _run_biz(repo: str, output: str | None, json_out: bool) -> None:
     """Load store, run BizDomainAnalyzer, display results."""
-    from rekipedia.analysis.biz_domain import BizDomainAnalyzer
+    from rekipedia.analysis.domain_flow_analyzer import BizDomainAnalyzer
     from rekipedia.models.contracts import AnalysisResult
     from rekipedia.storage.sqlite_store import SqliteStore
 

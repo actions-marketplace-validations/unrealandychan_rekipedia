@@ -31,7 +31,55 @@ from rekipedia.cli.update import update_cmd
 from rekipedia.cli.watch import watch_cmd
 
 
-@click.group()
+SECTIONS = [
+    ("Core", ["scan", "ask", "mcp", "serve"]),
+    ("Analysis", ["hotspots", "diff", "impact", "refactor", "review"]),
+    ("Team sync", ["publish", "export", "merge", "pull", "watch"]),
+    ("Setup", ["init", "hook", "embed"]),
+]
+
+
+class SectionedGroup(click.Group):
+    """A Click Group that displays commands grouped into named sections."""
+
+    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        # Build a map of command name -> help line
+        commands = {}
+        for name in self.list_commands(ctx):
+            cmd = self.get_command(ctx, name)
+            if cmd is None or cmd.hidden:
+                continue
+            help_text = cmd.get_short_help_str(limit=formatter.width or 80)
+            commands[name] = help_text
+
+        # Collect all commands that appear in sections
+        sectioned: set[str] = set()
+        for _, names in SECTIONS:
+            sectioned.update(names)
+
+        # Build section rows
+        section_data = []
+        for section_name, names in SECTIONS:
+            rows = []
+            for name in names:
+                if name in commands:
+                    rows.append((name, commands[name]))
+            if rows:
+                section_data.append((section_name, rows))
+
+        # Other commands not in any section
+        other_rows = [(name, help_text) for name, help_text in commands.items() if name not in sectioned]
+
+        all_sections = section_data
+        if other_rows:
+            all_sections = all_sections + [("Other", other_rows)]
+
+        for section_name, rows in all_sections:
+            with formatter.section(section_name):
+                formatter.write_dl(rows)
+
+
+@click.group(cls=SectionedGroup)
 @click.version_option(package_name="rekipedia")
 def main() -> None:
     """rekipedia — agentic repo-to-wiki knowledge store."""

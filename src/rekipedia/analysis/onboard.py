@@ -29,7 +29,7 @@ def build_onboard_guide(store_path: Path, repo_root: Path) -> dict:
         "wiki_dir": str | None
     }
     """
-    from rekipedia.analysis.domain import _classify_file
+    from rekipedia.analysis.layer_classifier import _classify_file
     from rekipedia.storage.sqlite_store import SqliteStore
 
     symbol_count = 0

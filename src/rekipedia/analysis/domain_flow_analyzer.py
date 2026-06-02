@@ -13,7 +13,7 @@ from pydantic import BaseModel
 if TYPE_CHECKING:
     from rekipedia.models.contracts import AnalysisResult
 
-logger = logging.getLogger("rekipedia.analysis.biz_domain")
+logger = logging.getLogger("rekipedia.analysis.domain_flow_analyzer")
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
 

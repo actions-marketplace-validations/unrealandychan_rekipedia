@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 
-from rekipedia.analysis.biz_domain import (
+from rekipedia.analysis.domain_flow_analyzer import (
     BizDomainAnalyzer,
     BizDomainGraph,
     DomainNode,
@@ -230,7 +230,7 @@ class TestDomainCmdBiz:
 
         runner = CliRunner()
         with patch("rekipedia.storage.sqlite_store.SqliteStore", return_value=store_mock), \
-             patch("rekipedia.analysis.biz_domain.BizDomainAnalyzer") as MockAnalyzer:
+             patch("rekipedia.analysis.domain_flow_analyzer.BizDomainAnalyzer") as MockAnalyzer:
             instance = MockAnalyzer.return_value
             instance.analyze.return_value = graph
             instance.save.return_value = tmp_path / ".rekipedia" / "domain-graph.json"
@@ -247,7 +247,7 @@ class TestDomainCmdBiz:
 
         runner = CliRunner()
         with patch("rekipedia.storage.sqlite_store.SqliteStore", return_value=store_mock), \
-             patch("rekipedia.analysis.biz_domain.BizDomainAnalyzer") as MockAnalyzer:
+             patch("rekipedia.analysis.domain_flow_analyzer.BizDomainAnalyzer") as MockAnalyzer:
             instance = MockAnalyzer.return_value
             instance.analyze.return_value = graph
             instance.save.return_value = tmp_path / ".rekipedia" / "domain-graph.json"
@@ -272,7 +272,7 @@ class TestDomainCmdBiz:
 
         runner = CliRunner()
         with patch("rekipedia.storage.sqlite_store.SqliteStore", return_value=store_mock), \
-             patch("rekipedia.analysis.biz_domain.BizDomainAnalyzer") as MockAnalyzer:
+             patch("rekipedia.analysis.domain_flow_analyzer.BizDomainAnalyzer") as MockAnalyzer:
             instance = MockAnalyzer.return_value
             instance.analyze.return_value = graph
             instance.save.return_value = tmp_path / ".rekipedia" / "domain-graph.json"
