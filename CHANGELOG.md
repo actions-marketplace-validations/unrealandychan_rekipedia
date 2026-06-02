@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.21.0] - 2026-06-02
+### Changed
+- Unified `RefactorIssue` Pydantic model — all refactor analysis modules now use the single canonical model from `contracts.py` instead of ad-hoc dicts. Closes #208.
+- Consolidated three independent refactor detection implementations into a single canonical `refactor_detector.detect_issues()` entry point. Closes #207.
+- Split `sqlite_store.py` (1041 lines) into focused modules: `storage/connection.py`, `storage/migrations.py`, `storage/writes.py`, `storage/reads.py`, `storage/analytics.py`. `SqliteStore` remains as a thin facade. Closes #212.
+- Renamed `analysis/domain.py` → `layer_classifier.py` and `analysis/biz_domain.py` → `domain_flow_analyzer.py` for clarity. Closes #214.
+- Unified dual progress-reporting paths in `run_digest.py` into a single `StepEmitter`. Closes #216.
+- Fixed `--with-refactor` redundant re-extraction when rationale notes already present in DB. Closes #213.
+### Added
+- CLI help output now groups 51 commands into labelled sections: Core, Analysis, Team sync, Setup. Closes #215.
+- Documented `AgentPlanner` experimental env var (`REKIPEDIA_AGENT_PLANNER=1`) in CONTRIBUTING.md. Closes #211.
+- Documented `DockerSandboxRunner` Docker image build process in CONTRIBUTING.md. Closes #210.
+- Added Go port charter: `go/README.md` section and ADR at `docs/adr/0001-go-port-charter.md`. Closes #209.
+
 ## [0.20.0] - 2026-06-01
 ### Added
 - **Document extraction** (`rekipedia[docs]`): parse PDF, DOCX, PPTX, and XLSX files via `liteparse`. Opt-in via `documents.enabled: true` in `.rekipedia/config.yml`. Closes #199.

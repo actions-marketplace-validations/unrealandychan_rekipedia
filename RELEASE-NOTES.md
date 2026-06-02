@@ -1,4 +1,25 @@
-     1|## v0.20.1 — PDF Thumbnails & CI liteparse Auto-Detect (2026-06-02)
+     1|## v0.21.0 — Refactor Intelligence & Developer Experience (2026-06-02)
+
+### 🏗️ Refactor Analysis Improvements
+- **Unified RefactorIssue model** — all detection, enrichment, and writing modules now share one canonical Pydantic model from `contracts.py`. Eliminates schema drift between detection stages. (#208)
+- **Single detection entry point** — three previously independent `detect_issues()` implementations consolidated into `refactor_detector.detect_issues()`. Enricher and writer delegate to it. (#207)
+- **Fixed `--with-refactor` double-scan** — rationale notes already stored in the DB are reused instead of triggering a full re-extraction. (#213)
+
+### 🗄️ Storage Architecture
+- **`sqlite_store.py` split** — the 1041-line god-class is now a thin facade over five focused modules: `connection`, `migrations`, `writes`, `reads`, `analytics`. Fully backward-compatible. (#212)
+
+### 🧹 Code Quality
+- `run_digest.py` progress reporting unified into `StepEmitter` — no more duplicated Rich + callback calls at every pipeline step. (#216)
+- `analysis/domain.py` → `layer_classifier.py`, `analysis/biz_domain.py` → `domain_flow_analyzer.py` — names now reflect actual roles. (#214)
+
+### 💡 Developer Experience
+- **Sectioned CLI help** — `reki --help` now groups 51 commands into Core / Analysis / Team sync / Setup for discoverability. (#215)
+- **Go port charter** — `go/README.md` and `docs/adr/0001-go-port-charter.md` document the relationship between Python and Go implementations. (#209)
+- **CONTRIBUTING.md** now documents Docker sandbox image build (`DockerSandboxRunner`) and the experimental `AgentPlanner` env var. (#210, #211)
+
+---
+
+## v0.20.1 — PDF Thumbnails & CI liteparse Auto-Detect (2026-06-02)
 
 ### 📸 PDF Thumbnail Previews in Wiki Pages (#205)
 - `DocumentExtractor.thumbnail()` — new method that generates a first-page PNG thumbnail from PDFs using `liteparse.screenshot()`. Returns raw PNG bytes or `None` if unavailable.
