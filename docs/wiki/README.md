@@ -4,9 +4,9 @@
 
 ## Wiki Pages
 
-- [Core Modules](wiki/core-modules.md)
-- [Project Overview](wiki/index.md)
 - [Architecture](wiki/architecture.md)
+- [Project Overview](wiki/index.md)
+- [Core Modules](wiki/core-modules.md)
 - [CLI & API Reference](wiki/cli-and-api.md)
 - [Installation & Setup](wiki/installation-and-setup.md)
 - [Testing](wiki/testing.md)

@@ -19,5 +19,5 @@ classDiagram
   BaseExtractor <|-- PythonExtractor
   VectorStore <|-- QdrantStore
   BaseModel <|-- RationaleNote
-  BaseModel <|-- Relationship
+  BaseModel <|-- RefactorIssue
 ```
