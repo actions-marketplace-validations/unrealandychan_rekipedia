@@ -31,6 +31,33 @@ from rich.progress import (
 _console = _Console(stderr=False)
 
 from rekipedia.models.contracts import AnalysisResult, LLMConfig
+
+
+class StepEmitter:
+    """Owns both the rich progress bar and the CLI callback channel.
+
+    Calling :py:meth:`step` forwards *msg* to both sinks so callers no
+    longer need to maintain two separate update lines.
+    """
+
+    def __init__(
+        self,
+        rich_progress: "Progress | None",
+        task_id: "int | None",
+        callback: "Callable[[str], None]",
+    ) -> None:
+        self._rich_progress = rich_progress
+        self._task_id = task_id
+        self._callback = callback
+
+    def step(self, msg: str, *, advance: int = 1, description: str | None = None) -> None:
+        """Advance the rich bar and fire the callback with *msg*."""
+        if self._rich_progress is not None and self._task_id is not None:
+            kwargs: dict = {"advance": advance}
+            if description is not None:
+                kwargs["description"] = description
+            self._rich_progress.update(self._task_id, **kwargs)
+        self._callback(msg)
 from rekipedia.orchestrator.sharding import ShardPlanner
 from rekipedia.orchestrator.snapshotter import Snapshotter
 from rekipedia.sandbox.runner import BaseRunner, get_runner
@@ -180,6 +207,7 @@ def run_digest(
                 total=len(shards),
             )
             _shard_done = 0
+            _shard_emitter = StepEmitter(_rich_progress, shard_task, _log)
 
             with ThreadPoolExecutor(max_workers=workers) as executor:
                 future_to_idx = {
@@ -201,12 +229,10 @@ def run_digest(
                         )
                     finally:
                         _shard_done += 1
-                        _rich_progress.update(
-                            shard_task,
-                            advance=1,
+                        _shard_emitter.step(
+                            f"Shard {_shard_done}/{len(shards)}",
                             description=f"[cyan]🔍 Shard {_shard_done}/{len(shards)}",
                         )
-                        _log(f"Shard {_shard_done}/{len(shards)}")
 
         if shard_errors:
             _vlog(f"  ⚠ {len(shard_errors)} shard(s) failed — continuing with partial results")
@@ -338,6 +364,7 @@ def run_digest(
                 total=len(wiki_plan.pages),
             )
             _page_done = 0
+            _page_emitter = StepEmitter(_page_rich, page_task, _log)
 
             with ThreadPoolExecutor(max_workers=_MAX_PAGE_WORKERS) as executor:
                 future_to_spec = {
@@ -362,12 +389,10 @@ def run_digest(
                         pages[slug] = (title, f"# {title}\n\n> *Generation failed: {exc}*\n")
                     finally:
                         _page_done += 1
-                        _page_rich.update(
-                            page_task,
-                            advance=1,
+                        _page_emitter.step(
+                            f"Page {_page_done}/{len(wiki_plan.pages)}",
                             description=f"[green]📝 Page {_page_done}/{len(wiki_plan.pages)}",
                         )
-                        _log(f"Page {_page_done}/{len(wiki_plan.pages)}")
 
         # Store nav order in evidence for web UI
         combined_for_build.evidence["nav_order"] = json.dumps(wiki_plan.nav_order)
