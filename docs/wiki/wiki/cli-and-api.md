@@ -5,7 +5,7 @@ section: None
 tags: [cli, api, reference]
 pin: false
 importance: 50
-created_at: 2026-06-02T13:03:33Z
+created_at: 2026-06-02T13:06:13Z
 rekipedia_version: 0.20.0
 ---
 
