@@ -275,12 +275,33 @@ def test_scan_has_with_refactor_flag() -> None:
 
 def test_scan_with_refactor_generates_file(tmp_path: Path) -> None:
     """scan --with-refactor should produce REFACTOR.md even when scan itself is patched."""
+    from rekipedia.models.contracts import AnalysisResult
+
     _make_repo(tmp_path, {"main.py": "# FIXME: patch me\n"})
+    output_dir = tmp_path / ".rekipedia"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    # Create a dummy store.db so the path-existence check passes
+    (output_dir / "store.db").touch()
+
     runner = CliRunner()
-    with patch("rekipedia.orchestrator.run_digest.run_digest"):
+    with (
+        patch("rekipedia.orchestrator.run_digest.run_digest"),
+        patch("rekipedia.storage.sqlite_store.SqliteStore") as mock_store_cls,
+        patch("rekipedia.analysis.refactor_writer.write_refactor_outputs") as mock_write,
+    ):
+        mock_store = mock_store_cls.return_value
+        mock_store.get_latest_run_id.return_value = "run-123"
+        mock_store.get_all_symbols.return_value = []
+        mock_store.get_all_relationships.return_value = []
+        # write_refactor_outputs should create the REFACTOR.md file
+        def _fake_write(combined, out_dir, *, stdout=False):
+            (out_dir / "REFACTOR.md").write_text("# REFACTOR\n")
+            return (out_dir / "REFACTOR.md", out_dir / "refactor_report.json")
+        mock_write.side_effect = _fake_write
+
         result = runner.invoke(
             main,
-            ["scan", str(tmp_path), "--no-docker", "--with-refactor"],
+            ["scan", str(tmp_path), "--no-docker", "--with-refactor", "--force"],
         )
     assert result.exit_code == 0
     assert (tmp_path / ".rekipedia" / "REFACTOR.md").exists()

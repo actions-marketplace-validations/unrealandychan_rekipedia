@@ -20,15 +20,37 @@ def _load_config(repo: Path) -> dict:
 
 
 def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
-    """Run static analysis and write REFACTOR.md after a scan."""
+    """Write REFACTOR.md using already-stored scan data — no re-extraction."""
     try:
-        from rekipedia.cli.refactor import _build_static_report, _static_walk
-        findings = _static_walk(repo)
-        report = _build_static_report(repo, findings)
-        out_path = output_dir / "REFACTOR.md"
-        output_dir.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(report, encoding="utf-8")
-        console.print(f"  REFACTOR.md : {out_path}")
+        from rekipedia.storage.sqlite_store import SqliteStore
+        from rekipedia.analysis.refactor_writer import write_refactor_outputs
+        from rekipedia.models.contracts import AnalysisResult, Symbol, Relationship
+
+        store_path = output_dir / "store.db"
+        if not store_path.exists():
+            console.print(f"[yellow]  --with-refactor: store.db not found at {store_path}[/yellow]")
+            return
+
+        store = SqliteStore(store_path)
+        run_id = store.get_latest_run_id(str(repo))
+        if not run_id:
+            console.print("[yellow]  --with-refactor: no scan runs found in store.db[/yellow]")
+            store.close()
+            return
+
+        symbols = [Symbol.model_validate(s) for s in store.get_all_symbols(run_id)]
+        rels = [Relationship.model_validate(r) for r in store.get_all_relationships(run_id)]
+        combined = AnalysisResult(
+            shard_id=run_id,
+            files_seen=[],
+            entry_points=[],
+            symbols=symbols,
+            relationships=rels,
+        )
+
+        write_refactor_outputs(combined, output_dir, stdout=verbose)
+        console.print(f"  REFACTOR.md : {output_dir / 'REFACTOR.md'}")
+        store.close()
     except Exception as exc:
         if verbose:
             console.print_exception(show_locals=True)
