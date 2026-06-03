@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.21.1] - 2026-06-03
+### Fixed
+- `reki search` always errored with "No rekipedia DB" — `search.py` was looking for `.rekipedia/rekipedia.db` but `reki scan` writes `.rekipedia/store.db`. Now uses `store.db` first with `rekipedia.db` fallback for backward compat. Closes #217.
+- `reki export --format obsidian` and `reki export --format graphml/cypher` had the same hardcoded `rekipedia.db` bug. Fixed in `export.py` (2 blocks).
+- `reki search --all-repos` never found any registered repos for the same reason. Fixed in `cross_repo_search.py`.
+
 ## [0.21.0] - 2026-06-02
 ### Changed
 - Unified `RefactorIssue` Pydantic model — all refactor analysis modules now use the single canonical model from `contracts.py` instead of ad-hoc dicts. Closes #208.

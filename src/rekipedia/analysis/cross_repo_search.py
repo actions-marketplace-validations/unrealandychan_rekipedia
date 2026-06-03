@@ -110,9 +110,14 @@ def search_all_repos(query: str, repo_dirs: list[str] | None = None, kind: str |
 
     db_paths = []
     for repo in repo_dirs:
-        db = Path(repo) / '.rekipedia' / 'rekipedia.db'
-        if db.exists():
-            db_paths.append(db)
+        db = Path(repo) / '.rekipedia' / 'store.db'
+        if not db.exists():
+            alt = Path(repo) / '.rekipedia' / 'rekipedia.db'
+            if alt.exists():
+                db = alt
+            else:
+                continue
+        db_paths.append(db)
 
     if not db_paths:
         return []

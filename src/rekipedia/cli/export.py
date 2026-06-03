@@ -120,10 +120,14 @@ def export_cmd(
         obs_dir = Path(output) if output else out_dir / "obsidian-vault"
         from rekipedia.analysis.graph_export import export_obsidian
         from rekipedia.storage.sqlite_store import SqliteStore
-        db = out_dir / "rekipedia.db"
+        db = out_dir / "store.db"
         if not db.exists():
-            console.print("[red]No rekipedia DB. Run rekipedia scan first.[/red]")
-            sys.exit(1)
+            alt = out_dir / "rekipedia.db"
+            if alt.exists():
+                db = alt
+            else:
+                console.print("[red]No rekipedia DB. Run rekipedia scan first.[/red]")
+                sys.exit(1)
         with SqliteStore(db) as store:
             run_id = store.latest_run_id()
             symbols = store.get_all_symbols(run_id)
@@ -135,10 +139,14 @@ def export_cmd(
     if fmt in ("graphml", "cypher"):
         from rekipedia.analysis.graph_export import export_cypher, export_graphml
         from rekipedia.storage.sqlite_store import SqliteStore
-        db = out_dir / "rekipedia.db"
+        db = out_dir / "store.db"
         if not db.exists():
-            console.print("[red]No rekipedia DB. Run rekipedia scan first.[/red]")
-            sys.exit(1)
+            alt = out_dir / "rekipedia.db"
+            if alt.exists():
+                db = alt
+            else:
+                console.print("[red]No rekipedia DB. Run rekipedia scan first.[/red]")
+                sys.exit(1)
         with SqliteStore(db) as store:
             run_id = store.latest_run_id()
             symbols = store.get_all_symbols(run_id)

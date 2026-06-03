@@ -1,4 +1,14 @@
-     1|## v0.21.0 — Refactor Intelligence & Developer Experience (2026-06-02)
+     1|## v0.21.1 — Hotfix: DB path for search & export (2026-06-03)
+
+### 🐛 Bug Fixes
+- **`reki search` broken after v0.20** — CLI was looking for `.rekipedia/rekipedia.db` (old name) but `reki scan` always writes `.rekipedia/store.db`. All users would see "No rekipedia DB" even after a successful scan.
+- **`reki export --format obsidian/graphml/cypher`** — same hardcoded old DB path, now fixed.
+- **`reki search --all-repos`** — multi-repo search silently returned no results for same reason.
+
+All three now follow the correct pattern: try `store.db`, fall back to `rekipedia.db` for repos scanned with older versions.
+
+---
+## v0.21.0 — Refactor Intelligence & Developer Experience (2026-06-02)
 
 ### 🏗️ Refactor Analysis Improvements
 - **Unified RefactorIssue model** — all detection, enrichment, and writing modules now share one canonical Pydantic model from `contracts.py`. Eliminates schema drift between detection stages. (#208)
