@@ -5,7 +5,7 @@ section: getting-started
 tags: [getting-started, deployment]
 pin: false
 importance: 50
-created_at: 2026-06-02T13:37:27Z
+created_at: 2026-06-03T01:14:58Z
 rekipedia_version: 0.21.0
 ---
 
