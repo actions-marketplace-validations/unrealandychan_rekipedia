@@ -132,3 +132,5 @@ llm:
 ## Resetting a pinned page
 
 To let rekipedia regenerate a pinned page, remove the `pin: true` line and run `rekipedia scan`.
+
+<!-- v0.21.1: search, export, and cross-repo search now correctly resolve store.db -->
