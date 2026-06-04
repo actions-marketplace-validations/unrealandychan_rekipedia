@@ -1,7 +1,7 @@
 """rekipedia — agentic repo-to-wiki knowledge store."""
-__version__ = "0.17.3"
+__version__ = "0.21.1"
 
-from rekipedia.api import (  # noqa: E402
+from rekipedia.api import (
     AskResult,
     Citation,
     ScanResult,
@@ -12,12 +12,12 @@ from rekipedia.api import (  # noqa: E402
 )
 
 __all__ = [
-    "__version__",
-    "scan",
-    "scan_async",
-    "ask",
-    "ask_async",
-    "ScanResult",
     "AskResult",
     "Citation",
+    "ScanResult",
+    "__version__",
+    "ask",
+    "ask_async",
+    "scan",
+    "scan_async",
 ]

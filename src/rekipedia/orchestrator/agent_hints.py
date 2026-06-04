@@ -1,5 +1,6 @@
 """Generate agent hint files so AI coding assistants know about rekipedia."""
 from __future__ import annotations
+
 import json as _json
 from pathlib import Path
 

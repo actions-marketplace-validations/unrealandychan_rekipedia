@@ -1,5 +1,6 @@
 """Cross-repo search — fan-out across multiple SQLite stores."""
 from __future__ import annotations
+
 import math
 import re
 from collections import Counter
@@ -73,11 +74,11 @@ def _search_single_repo(db_path: Path, query: str, kind: str | None = None) -> l
     """Search symbols in one repo's DB. Returns list of match dicts."""
     try:
         from rekipedia.storage.sqlite_store import SqliteStore
-        store = SqliteStore(db_path)
-        run_id = store.latest_run_id()
-        if not run_id:
-            return []
-        symbols = store.get_all_symbols(run_id)
+        with SqliteStore(db_path) as store:
+            run_id = store.latest_run_id()
+            if not run_id:
+                return []
+            symbols = store.get_all_symbols(run_id)
         query_tokens = _tokenize_symbol(query)
 
         # Compute per-corpus IDF — rare tokens get higher weight
@@ -109,9 +110,14 @@ def search_all_repos(query: str, repo_dirs: list[str] | None = None, kind: str |
 
     db_paths = []
     for repo in repo_dirs:
-        db = Path(repo) / '.rekipedia' / 'rekipedia.db'
-        if db.exists():
-            db_paths.append(db)
+        db = Path(repo) / '.rekipedia' / 'store.db'
+        if not db.exists():
+            alt = Path(repo) / '.rekipedia' / 'rekipedia.db'
+            if alt.exists():
+                db = alt
+            else:
+                continue
+        db_paths.append(db)
 
     if not db_paths:
         return []

@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 
 import click
-import yaml
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
@@ -21,15 +20,37 @@ def _load_config(repo: Path) -> dict:
 
 
 def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
-    """Run static analysis and write REFACTOR.md after a scan."""
+    """Write REFACTOR.md using already-stored scan data — no re-extraction."""
     try:
-        from rekipedia.cli.refactor import _build_static_report, _static_walk
-        findings = _static_walk(repo)
-        report = _build_static_report(repo, findings)
-        out_path = output_dir / "REFACTOR.md"
-        output_dir.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(report, encoding="utf-8")
-        console.print(f"  REFACTOR.md : {out_path}")
+        from rekipedia.storage.sqlite_store import SqliteStore
+        from rekipedia.analysis.refactor_writer import write_refactor_outputs
+        from rekipedia.models.contracts import AnalysisResult, Symbol, Relationship
+
+        store_path = output_dir / "store.db"
+        if not store_path.exists():
+            console.print(f"[yellow]  --with-refactor: store.db not found at {store_path}[/yellow]")
+            return
+
+        store = SqliteStore(store_path)
+        run_id = store.get_latest_run_id(str(repo))
+        if not run_id:
+            console.print("[yellow]  --with-refactor: no scan runs found in store.db[/yellow]")
+            store.close()
+            return
+
+        symbols = [Symbol.model_validate(s) for s in store.get_all_symbols(run_id)]
+        rels = [Relationship.model_validate(r) for r in store.get_all_relationships(run_id)]
+        combined = AnalysisResult(
+            shard_id=run_id,
+            files_seen=[],
+            entry_points=[],
+            symbols=symbols,
+            relationships=rels,
+        )
+
+        write_refactor_outputs(combined, output_dir, stdout=verbose)
+        console.print(f"  REFACTOR.md : {output_dir / 'REFACTOR.md'}")
+        store.close()
     except Exception as exc:
         if verbose:
             console.print_exception(show_locals=True)
@@ -51,7 +72,7 @@ def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
 @click.option("--embed-provider", default=None, envvar="REKIPEDIA_EMBED_PROVIDER", help="Embedding provider prefix (e.g. openai, ollama, azure). Combined with --embed-model as 'provider/model'.")
 @click.option("--languages", "-l", default=None, help="Comma-separated list of languages to include, e.g. python,typescript,go. Default: all.")
 @click.option("--force", "-f", is_flag=True, default=False, help="Force re-scan even if a completed scan already exists in the DB.")
-@click.option("--no-llm", is_flag=True, default=False, help="Skip LLM enrichment for refactoring issues (static analysis only).")
+@click.option("--no-llm", is_flag=True, default=False, help="Skip all LLM calls — run static analysis only (zero API calls, ~5-10s). All commands except `reki ask` work without an API key.")
 @click.option("--stdout", "stdout_refactor", is_flag=True, default=False, help="Print REFACTOR.md to stdout after scan (useful for piping to Claude Code).")
 @click.option("--with-refactor", is_flag=True, default=False, help="Auto-generate REFACTOR.md after scan completes.")
 @click.option(
@@ -83,6 +104,7 @@ def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
 )
 @click.option("--workers", "-w", default=None, type=int, metavar="N",
     help="Number of parallel workers for file extraction (default: min(4, cpu_count))")
+@click.option("--no-thumbnails", "no_thumbnails", is_flag=True, default=False, help="Skip PDF thumbnail generation even if enabled in config.")
 def scan_cmd(
     repo: Path,
     model: str | None,
@@ -99,6 +121,7 @@ def scan_cmd(
     focus: tuple[str, ...],
     doc_type: str,
     workers: int | None,
+    no_thumbnails: bool,
 ) -> None:
     """Scan REPO and (re)build the rekipedia knowledge store.
 
@@ -133,7 +156,7 @@ def scan_cmd(
         db_path = output_dir / "store.db"
         if db_path.exists():
             try:
-                from rekipedia.storage.sqlite_store import SqliteStore  # noqa: PLC0415
+                from rekipedia.storage.sqlite_store import SqliteStore
                 with SqliteStore(db_path) as _store:
                     _existing = _store.get_latest_run_id(str(repo))
                 if _existing:
@@ -148,6 +171,9 @@ def scan_cmd(
 
     cfg = _load_config(repo)
     llm_cfg_raw = cfg.get("llm", {})
+    publish_dir: str | None = cfg.get("team", {}).get("publish_dir") if isinstance(cfg, dict) else None
+    if no_thumbnails and isinstance(cfg.get("documents"), dict):
+        cfg["documents"]["thumbnails"] = False
 
     llm_config = LLMConfig(
         model=model or llm_cfg_raw.get("model", "ollama/llama4"),
@@ -181,10 +207,10 @@ def scan_cmd(
     # Parse languages filter — CLI flag takes priority; fall back to config.yml
     lang_list: list[str] | None = None
     if languages:
-        lang_list = [l.strip().lower() for l in languages.split(",") if l.strip()]
+        lang_list = [lang.strip().lower() for lang in languages.split(",") if lang.strip()]
         console.print(f"  languages: [cyan]{', '.join(lang_list)}[/cyan]")
     elif cfg.get("languages"):
-        lang_list = [l.strip().lower() for l in cfg["languages"] if l.strip()]
+        lang_list = [lang.strip().lower() for lang in cfg["languages"] if lang.strip()]
         console.print(f"  languages: [cyan]{', '.join(lang_list)}[/cyan] [dim](from config.yml)[/dim]")
     else:
         console.print("  languages: [cyan]all[/cyan]")
@@ -194,7 +220,7 @@ def scan_cmd(
 
     console.rule()
 
-    from rekipedia.orchestrator.run_digest import run_digest  # noqa: PLC0415
+    from rekipedia.orchestrator.run_digest import run_digest
 
     # In verbose mode: print each log line directly so tqdm + log interleave cleanly
     # In normal mode: update a Rich spinner so the user sees live phase labels
@@ -216,8 +242,9 @@ def scan_cmd(
                 focus_globs=focus_list,
                 doc_type=doc_type,
                 workers=workers,
+                publish_dir=publish_dir,
             )
-        except Exception as exc:
+        except Exception:
             console.print_exception(show_locals=True)
             sys.exit(1)
     else:
@@ -247,6 +274,7 @@ def scan_cmd(
                     focus_globs=focus_list,
                     doc_type=doc_type,
                     workers=workers,
+                    publish_dir=publish_dir,
                 )
             except Exception as exc:
                 progress.stop()

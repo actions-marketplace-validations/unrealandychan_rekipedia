@@ -22,11 +22,12 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
 __all__ = [
-    "osc8_supported",
-    "hyperlink",
     "file_hyperlink",
+    "hyperlink",
+    "osc8_supported",
     "print_citations",
 ]
 
@@ -88,7 +89,7 @@ def file_hyperlink(
     Returns:
         OSC-8 hyperlink string, or plain ``file:line`` if not supported.
     """
-    root = repo_root or os.getcwd()
+    root = repo_root or str(Path.cwd())
     # Build file:// URI — resolve to absolute path
     abs_path = os.path.join(root, file) if not os.path.isabs(file) else file
     if line is not None:
@@ -119,7 +120,7 @@ def print_citations(
         return
 
     if console is None:
-        from rich.console import Console  # noqa: PLC0415
+        from rich.console import Console
         console = Console()
 
     console.print("\n[dim]─── Sources ───────────────────────────────────[/dim]")

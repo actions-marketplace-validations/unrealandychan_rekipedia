@@ -6,7 +6,7 @@ Usage:
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import click
@@ -64,7 +64,7 @@ def context_cmd(
     # ------------------------------------------------------------------ #
     # Build document sections                                              #
     # ------------------------------------------------------------------ #
-    now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     sections: list[str] = []
 
     # Frontmatter

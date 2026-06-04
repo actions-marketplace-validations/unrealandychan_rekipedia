@@ -1,8 +1,6 @@
 """reki setup — interactive onboarding wizard (issue #144)."""
 from __future__ import annotations
 
-from pathlib import Path
-
 import click
 import yaml
 
@@ -54,7 +52,7 @@ def setup_cmd(force: bool, no_test: bool) -> None:
     click.echo("")
     click.echo("  ╭─ rekipedia setup ──────────────────────────────╮")
     click.echo("  │  Configure your global LLM settings.           │")
-    click.echo(f"  │  Saved to {str(config_path):<37}│")
+    click.echo(f"  │  Saved to {config_path!s:<37}│")
     click.echo("  ╰────────────────────────────────────────────────╯")
     click.echo("")
 
@@ -122,8 +120,8 @@ def setup_cmd(force: bool, no_test: bool) -> None:
     if not run_test:
         return
 
-    from rekipedia.models.contracts import LLMConfig
     from rekipedia.llm.client import LLMClient
+    from rekipedia.models.contracts import LLMConfig
 
     click.echo("  Testing connection…", nl=False)
     try:
@@ -134,5 +132,5 @@ def setup_cmd(force: bool, no_test: bool) -> None:
         )
         result = LLMClient(llm_config).call("Say OK", system="Reply with just OK.")
         click.echo(f"\r✔ Connection OK — response: {result[:80]}")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         click.echo(f"\r✘ Connection failed: {exc}")

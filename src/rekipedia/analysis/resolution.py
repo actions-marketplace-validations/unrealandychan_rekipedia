@@ -1,7 +1,9 @@
 """Symbol resolution pass — links call/import edges to actual definitions."""
 from __future__ import annotations
+
 from collections import defaultdict
-from rekipedia.models.contracts import AnalysisResult, Relationship, Symbol
+
+from rekipedia.models.contracts import AnalysisResult, Relationship
 
 
 def resolve_relationships(combined: AnalysisResult) -> AnalysisResult:
@@ -31,7 +33,7 @@ def resolve_relationships(combined: AnalysisResult) -> AnalysisResult:
                 resolved_file, resolved_line = candidates[0]
             else:
                 # Multiple — prefer same-file as relationship source
-                same_file = [(f, l) for f, l in candidates if f == rel.file]
+                same_file = [(f, ln) for f, ln in candidates if f == rel.file]
                 if same_file:
                     resolved_file, resolved_line = same_file[0]
                 # else: ambiguous, leave unresolved

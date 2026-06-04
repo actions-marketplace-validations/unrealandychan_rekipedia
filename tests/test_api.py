@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -17,7 +17,6 @@ from rekipedia.api import (
     scan,
     scan_async,
 )
-
 
 # ---------------------------------------------------------------------------
 # Citation parsing
@@ -311,6 +310,9 @@ class TestTopLevelImport:
         assert rekipedia.Citation is Citation
 
     def test_version_still_present(self):
+        import re
+
         import rekipedia
 
-        assert rekipedia.__version__ == "0.17.3"
+        assert rekipedia.__version__ is not None
+        assert re.match(r"^\d+\.\d+\.\d+", rekipedia.__version__)

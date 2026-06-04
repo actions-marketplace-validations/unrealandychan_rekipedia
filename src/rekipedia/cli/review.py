@@ -17,8 +17,8 @@ from __future__ import annotations
 
 import os
 import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 import click
 from rich.console import Console
@@ -171,15 +171,14 @@ def _truncate_diff(diff: str, budget: int = _DIFF_CHAR_BUDGET) -> tuple[str, boo
 
 def _build_review_context(output_dir: Path, llm_config: LLMConfig, diff: str) -> str:
     """Assemble wiki context relevant to the changed files."""
-    from rekipedia.orchestrator.run_ask import (  # noqa: PLC0415
-        _load_wiki_pages,
-        _load_symbol_lines,
-        _rank_pages_by_query,
-        _extract_keywords,
-    )
-
     # Extract filenames from diff for keyword matching
     import re
+
+    from rekipedia.orchestrator.run_ask import (
+        _load_symbol_lines,
+        _load_wiki_pages,
+        _rank_pages_by_query,
+    )
     changed_files = re.findall(r"^(?:\+\+\+|---) (?:a/|b/)?(.+)$", diff, re.MULTILINE)
     query_hint = " ".join(set(changed_files))
 
@@ -237,7 +236,7 @@ def run_review(
     Raises:
         RuntimeError: If the diff is empty.
     """
-    from rekipedia.llm.client import LLMClient  # noqa: PLC0415
+    from rekipedia.llm.client import LLMClient
 
     llm_config = llm_config or LLMConfig()
 
@@ -332,13 +331,13 @@ def review_cmd(
         reki review --no-stream              # disable streaming output
         reki review --out review.md          # save review to a file
     """
-    import datetime  # noqa: PLC0415
+    import datetime
 
     repo = repo.resolve()
     output_dir = (output_dir or repo / ".rekipedia").resolve()
 
     llm_cfg_raw: dict = {}
-    from rekipedia.config.loader import load_config  # noqa: PLC0415
+    from rekipedia.config.loader import load_config
     cfg = load_config(repo)
     llm_cfg_raw = cfg.get("llm", {})
 

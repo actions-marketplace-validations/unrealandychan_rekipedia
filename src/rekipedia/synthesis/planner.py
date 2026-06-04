@@ -8,7 +8,7 @@ import re
 from collections.abc import Callable
 from pathlib import Path
 
-from rekipedia.llm.client import LLMClient, LLMCaller
+from rekipedia.llm.client import LLMCaller, LLMClient
 from rekipedia.models.contracts import AnalysisResult, LLMConfig
 
 logger = logging.getLogger("rekipedia.planner")
@@ -187,7 +187,7 @@ class PlannerAgent:
         self,
         combined: AnalysisResult,
         diagrams: dict | None = None,
-        progress_cb: "Callable[[str], None] | None" = None,
+        progress_cb: Callable[[str], None] | None = None,
     ) -> WikiPlan:
         """Analyse *combined* and return a WikiPlan.
 
@@ -195,11 +195,10 @@ class PlannerAgent:
         call so callers can animate a spinner.  Falls back to a sensible
         default plan if the LLM call fails.
         """
-        import threading  # noqa: PLC0415
-
-        import os as _os  # noqa: PLC0415
+        import os as _os
+        import threading
         if _os.environ.get("REKIPEDIA_AGENT_PLANNER", "0") == "1":
-            from rekipedia.synthesis.agent_planner import AgentPlanner  # noqa: PLC0415
+            from rekipedia.synthesis.agent_planner import AgentPlanner
             ap = AgentPlanner(caller=self._client)
             return ap.plan(combined, diagrams=diagrams, progress_cb=progress_cb)
         summary = _build_planning_summary(combined, diagrams)
@@ -339,7 +338,7 @@ def _build_planning_summary(combined: AnalysisResult, diagrams: dict | None) -> 
     has_config = config_file_count > 0 or bool(combined.evidence)
 
     # Top-level directories with language breakdown
-    from rekipedia.orchestrator.snapshotter import _LANGUAGE_MAP  # noqa: PLC0415
+    from rekipedia.orchestrator.snapshotter import _LANGUAGE_MAP
     _EXT_TO_LANG = _LANGUAGE_MAP
     dir_languages: dict[str, dict[str, int]] = {}
     for f in combined.files_seen:

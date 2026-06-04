@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from rekipedia.models.contracts import AnalysisResult, FileManifest
@@ -48,7 +48,7 @@ class JsonExporter:
         nav_order: list[str] = []
         pages_meta: list[dict] = []
         try:
-            import json as _json  # noqa: PLC0415
+            import json as _json
             nav_order = _json.loads(combined.evidence.get("nav_order", "[]"))
             pages_meta = _json.loads(combined.evidence.get("wiki_pages_meta", "[]"))
         except Exception:
@@ -80,7 +80,7 @@ class JsonExporter:
 
         manifest = {
             "run_id": run_id,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "file_count": len(files),
             "symbol_count": len(combined.symbols),
             "relationship_count": len(combined.relationships),

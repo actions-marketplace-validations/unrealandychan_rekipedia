@@ -1,4 +1,100 @@
-     1|## v0.17.2 — 2026-05-20
+     1|## v0.21.1 — Hotfix: DB path for search & export (2026-06-03)
+
+### 🐛 Bug Fixes
+- **`reki search` broken after v0.20** — CLI was looking for `.rekipedia/rekipedia.db` (old name) but `reki scan` always writes `.rekipedia/store.db`. All users would see "No rekipedia DB" even after a successful scan.
+- **`reki export --format obsidian/graphml/cypher`** — same hardcoded old DB path, now fixed.
+- **`reki search --all-repos`** — multi-repo search silently returned no results for same reason.
+
+All three now follow the correct pattern: try `store.db`, fall back to `rekipedia.db` for repos scanned with older versions.
+
+---
+## v0.21.0 — Refactor Intelligence & Developer Experience (2026-06-02)
+
+### 🏗️ Refactor Analysis Improvements
+- **Unified RefactorIssue model** — all detection, enrichment, and writing modules now share one canonical Pydantic model from `contracts.py`. Eliminates schema drift between detection stages. (#208)
+- **Single detection entry point** — three previously independent `detect_issues()` implementations consolidated into `refactor_detector.detect_issues()`. Enricher and writer delegate to it. (#207)
+- **Fixed `--with-refactor` double-scan** — rationale notes already stored in the DB are reused instead of triggering a full re-extraction. (#213)
+
+### 🗄️ Storage Architecture
+- **`sqlite_store.py` split** — the 1041-line god-class is now a thin facade over five focused modules: `connection`, `migrations`, `writes`, `reads`, `analytics`. Fully backward-compatible. (#212)
+
+### 🧹 Code Quality
+- `run_digest.py` progress reporting unified into `StepEmitter` — no more duplicated Rich + callback calls at every pipeline step. (#216)
+- `analysis/domain.py` → `layer_classifier.py`, `analysis/biz_domain.py` → `domain_flow_analyzer.py` — names now reflect actual roles. (#214)
+
+### 💡 Developer Experience
+- **Sectioned CLI help** — `reki --help` now groups 51 commands into Core / Analysis / Team sync / Setup for discoverability. (#215)
+- **Go port charter** — `go/README.md` and `docs/adr/0001-go-port-charter.md` document the relationship between Python and Go implementations. (#209)
+- **CONTRIBUTING.md** now documents Docker sandbox image build (`DockerSandboxRunner`) and the experimental `AgentPlanner` env var. (#210, #211)
+
+---
+
+## v0.20.1 — PDF Thumbnails & CI liteparse Auto-Detect (2026-06-02)
+
+### 📸 PDF Thumbnail Previews in Wiki Pages (#205)
+- `DocumentExtractor.thumbnail()` — new method that generates a first-page PNG thumbnail from PDFs using `liteparse.screenshot()`. Returns raw PNG bytes or `None` if unavailable.
+- Wiki pages for PDF documents now embed the thumbnail at the top when `documents.thumbnails: true` is set in config.
+- Thumbnails are saved to `output_dir/wiki/assets/{slug}-thumb.png`.
+- New `--no-thumbnails` flag on `reki scan` to skip thumbnail generation even when enabled in config.
+- New config defaults: `thumbnails: false`, `thumbnail_dpi: 150`.
+
+### 🔧 CI Scaffold with liteparse Auto-Detect (#206)
+- The GitHub Actions CI template (`reki init --with-ci`) now auto-detects PDF/DOCX/PPTX files in the repo and installs `rekipedia[docs]` (which includes liteparse) automatically.
+
+---
+
+## v0.20.0 — Document Intelligence (2026-06-01)
+
+### 📄 Document Extraction
+Install the optional extra:
+```bash
+pip install 'rekipedia[docs]'
+```
+
+Then opt-in in `.rekipedia/config.yml`:
+```yaml
+documents:
+  enabled: true
+```
+
+`reki scan` will extract text from `.pdf`, `.docx`, `.pptx`, `.xlsx` files, store page-level chunks in SQLite, generate a wiki page per document, and include chunks in `reki embed` for RAG-powered `reki ask` queries.
+
+### 📋 reki onboard now lists documentation files
+`reki onboard` shows a new **📄 Documentation Files** table.
+
+### ⚙️ Config defaults
+`load_config()` now merges built-in defaults first, so all config keys always have a valid fallback — no more `KeyError` on missing sections.
+
+---
+
+## v0.17.17 — 2026-05-23
+
+### New Features
+
+- **LLM-driven Business Domain Analyzer** (`reki domain --biz`) — Inspired by Understand-Anything's `domain-analyzer` agent. Extracts a three-level business hierarchy (Domain → Flow → Step) from your codebase using LLM analysis over symbols, relationships, hub nodes, and entry points. Output displayed as a Rich Tree with `file:line` citations per step, and saved to `.rekipedia/domain-graph.json`.
+  - `reki domain --biz` — Rich tree display
+  - `reki domain --biz --json` — raw JSON output (for MCP / dashboard integration)
+  - Scale: 2–6 domains, 2–5 flows per domain, 3–8 steps per flow
+
+---
+
+## v0.17.3 — 2026-05-23
+
+### Fixes & Code Quality
+
+- **Progress bar flicker fixed** — removed `SpinnerColumn` from the page-build progress bar; spinner was racing with `ThreadPoolExecutor` update calls causing `⠼`/`⠏` alternation. Added `refresh_per_second=4` for smoother rendering.
+- **Ruff lint cleanup** — reduced lint errors from 485 → 217 (55% reduction):
+  - Fixed missing `TYPE_CHECKING` imports (`AnalysisResult`, `Callable`, `WikiPlan`) resolving `F821` undefined-name errors
+  - Replaced 7× `try/except/pass` blocks with `contextlib.suppress()` (SIM105)
+  - Removed dead code: unused `loop`/`executor` in SSE handler, unused `entry_set` in diagram builder, unused `cur` variables in SQLite store
+  - Renamed ambiguous single-letter `l` variables → `line`/`lang`/`ln` (E741)
+  - Added `strict=True` to 3 FAISS `zip()` calls (B905)
+  - Replaced `os.getcwd()` with `Path.cwd()` in MCP server and terminal links (PTH109)
+  - Auto-fixed 263 issues: import sorting, unused `noqa` directives, type annotation modernisation
+
+---
+
+## v0.17.2 — 2026-05-20
 
 ### Features
 

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rekipedia"
-version = "0.17.15"
+version = "0.21.1"
 description = "AI-powered wiki generator for any codebase"
 requires-python = ">=3.11"
 dependencies = [
@@ -35,6 +35,9 @@ rag = [
 ]
 qdrant = ["qdrant-client>=1.9"]
 chroma = ["chromadb>=0.5"]
+docs = [
+  "liteparse>=0.1",
+]
 dev = [
   "pytest>=8",
   "pytest-asyncio>=0.23",

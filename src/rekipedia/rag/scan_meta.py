@@ -6,7 +6,7 @@ Read by `ask` and `embed` to detect stale indexes or model changes.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import rekipedia
@@ -28,7 +28,7 @@ def write_scan_meta(
     """Write scan metadata to *output_dir/scan_meta.json*."""
     meta = {
         "rekipedia_version": rekipedia.__version__,
-        "scanned_at": datetime.now(timezone.utc).isoformat(),
+        "scanned_at": datetime.now(UTC).isoformat(),
         "repo_path": repo_path,
         "run_id": run_id,
         "model": model,

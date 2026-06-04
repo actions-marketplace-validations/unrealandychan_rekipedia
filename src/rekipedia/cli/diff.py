@@ -87,8 +87,11 @@ def diff_cmd(repo: str, staged: bool, base: str | None, fmt: str) -> None:
         console.print("❌ No scan found — run 'reki scan .' first")
         raise SystemExit(1)
 
-    # Get changed files
-    changed_files = _get_changed_files(repo_path, staged, base)
+    # Get changed files (filter out .rekipedia/ generated output)
+    changed_files = [
+        f for f in _get_changed_files(repo_path, staged, base)
+        if not f.startswith(".rekipedia/")
+    ]
     if not changed_files:
         console.print("✅ No changes detected")
         raise SystemExit(0)
@@ -191,7 +194,7 @@ def diff_cmd(repo: str, staged: bool, base: str | None, fmt: str) -> None:
 
     # Text output
     total_sym_count = len(results)
-    console.print(f"\n🔍  Diff Impact Analysis")
+    console.print("\n🔍  Diff Impact Analysis")
     console.print(f"{len(changed_files)} changed files · {total_sym_count} symbols affected\n")
 
     # Group by file

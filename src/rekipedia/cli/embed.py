@@ -10,7 +10,7 @@ text-embedding-3-small).
 """
 from __future__ import annotations
 
-import os
+import contextlib
 import sys
 from pathlib import Path
 
@@ -94,7 +94,7 @@ def embed_cmd(
 ) -> None:
     """Build or refresh the RAG embed index for REPO_PATH."""
     _check_rag_deps()
-    import logging  # noqa: PLC0415
+    import logging
 
     if verbose:
         logging.basicConfig(level=logging.DEBUG)
@@ -112,10 +112,10 @@ def embed_cmd(
         sys.exit(1)
 
     # Load config.yml first, then CLI flags / env vars override
-    from rekipedia.config.loader import load_config as _load_config  # noqa: PLC0415
-    from rekipedia.models.contracts import LLMConfig  # noqa: PLC0415
-    from rekipedia.rag.embedder import EmbedPipeline  # noqa: PLC0415
-    from rekipedia.rag.scan_meta import patch_scan_meta  # noqa: PLC0415
+    from rekipedia.config.loader import load_config as _load_config
+    from rekipedia.models.contracts import LLMConfig
+    from rekipedia.rag.embedder import EmbedPipeline
+    from rekipedia.rag.scan_meta import patch_scan_meta
 
     cfg = _load_config(repo)
     llm_cfg = cfg.get("llm", {})
@@ -125,7 +125,7 @@ def embed_cmd(
     resolved_api_key = api_key or llm_cfg.get("embed_api_key") or llm_cfg.get("api_key", "")
     resolved_base_url = base_url or llm_cfg.get("embed_base_url") or ""
 
-    console.print(f"[bold cyan]rekipedia embed[/bold cyan]")
+    console.print("[bold cyan]rekipedia embed[/bold cyan]")
     console.print(f"  repo       : {repo}")
     console.print(f"  output-dir : {out}")
     if embed_provider:
@@ -153,10 +153,10 @@ def embed_cmd(
     store_db = out / "store.db"
     if store_db.exists():
         try:
-            from rekipedia.storage.sqlite_store import SqliteStore  # noqa: PLC0415
+            from rekipedia.storage.sqlite_store import SqliteStore
             _store = SqliteStore(store_db)
             _store.open()
-            import uuid as _uuid  # noqa: PLC0415
+            import uuid as _uuid
             _run_id = f"embed-{_uuid.uuid4().hex[:8]}"
             pipe = EmbedPipeline(out, llm_config, store=_store, run_id=_run_id)
         except Exception:
@@ -164,7 +164,7 @@ def embed_cmd(
             _run_id = None
             pipe = EmbedPipeline(out, llm_config)
 
-    from tqdm import tqdm  # noqa: PLC0415
+    from tqdm import tqdm
 
     bar = tqdm(bar_format="  {desc}", dynamic_ncols=True, leave=False)
 
@@ -181,7 +181,7 @@ def embed_cmd(
         patch_scan_meta(out, embedded=True, embed_model=embed_model)
         meta = pipe.meta()
 
-        console.print(f"\n[green]✅ FAISS index built successfully[/green]")
+        console.print("\n[green]✅ FAISS index built successfully[/green]")
         if meta:
             console.print(f"   chunks : {meta.get('n_chunks', n)}")
             console.print(f"   dim    : {meta.get('dim', '?')}")
@@ -190,12 +190,10 @@ def embed_cmd(
     except Exception as exc:
         bar.close()
         if _store is not None:
-            try:
+            with contextlib.suppress(Exception):
                 _store.close()
-            except Exception:
-                pass
         console.print(f"\n[red]Embed failed:[/red] {exc}")
         if verbose:
-            import traceback  # noqa: PLC0415
+            import traceback
             traceback.print_exc()
         sys.exit(1)

@@ -28,13 +28,13 @@ from pathlib import Path
 from typing import Any
 
 __all__ = [
-    "scan",
-    "scan_async",
-    "ask",
-    "ask_async",
-    "ScanResult",
     "AskResult",
     "Citation",
+    "ScanResult",
+    "ask",
+    "ask_async",
+    "scan",
+    "scan_async",
 ]
 
 

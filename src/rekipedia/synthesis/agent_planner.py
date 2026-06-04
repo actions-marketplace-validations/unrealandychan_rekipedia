@@ -12,11 +12,10 @@ import json
 import logging
 import os
 from collections.abc import Callable
-from pathlib import Path
 
 import litellm
 
-from rekipedia.llm.client import LLMCaller, LLMClient
+from rekipedia.llm.client import LLMCaller
 from rekipedia.models.contracts import AnalysisResult, LLMConfig
 from rekipedia.synthesis.planner import (
     WikiPlan,

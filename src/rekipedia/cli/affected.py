@@ -42,7 +42,7 @@ def _git_diff_files(base: str, head: str) -> list[str]:
         raise click.ClickException(
             f"git diff failed: {result.stderr.strip()}"
         )
-    return [l.strip() for l in result.stdout.splitlines() if l.strip()]
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
 
 def _read_stdin_files() -> list[str]:
@@ -50,7 +50,7 @@ def _read_stdin_files() -> list[str]:
     try:
         if sys.stdin.isatty():
             return []
-        return [l.strip() for l in sys.stdin.read().splitlines() if l.strip()]
+        return [line.strip() for line in sys.stdin.read().splitlines() if line.strip()]
     except OSError:
         return []
 
@@ -135,8 +135,8 @@ def affected_cmd(
 
     Exits with code 0. Outputs one file path per line (text) or JSON.
     """
-    from rekipedia.storage.sqlite_store import SqliteStore
     from rekipedia.analysis.impact import compute_impact
+    from rekipedia.storage.sqlite_store import SqliteStore
 
     # ── resolve changed files ──────────────────────────────────────────────
     changed = _resolve_files(files, base, head)

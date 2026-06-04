@@ -12,11 +12,13 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 import uuid
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Callable
 
+from rich.console import Console as _Console
 from rich.progress import (
     BarColumn,
     Progress,
@@ -25,11 +27,37 @@ from rich.progress import (
     TextColumn,
     TimeRemainingColumn,
 )
-from rich.console import Console as _Console
 
 _console = _Console(stderr=False)
 
 from rekipedia.models.contracts import AnalysisResult, LLMConfig
+
+
+class StepEmitter:
+    """Owns both the rich progress bar and the CLI callback channel.
+
+    Calling :py:meth:`step` forwards *msg* to both sinks so callers no
+    longer need to maintain two separate update lines.
+    """
+
+    def __init__(
+        self,
+        rich_progress: "Progress | None",
+        task_id: "int | None",
+        callback: "Callable[[str], None]",
+    ) -> None:
+        self._rich_progress = rich_progress
+        self._task_id = task_id
+        self._callback = callback
+
+    def step(self, msg: str, *, advance: int = 1, description: str | None = None) -> None:
+        """Advance the rich bar and fire the callback with *msg*."""
+        if self._rich_progress is not None and self._task_id is not None:
+            kwargs: dict = {"advance": advance}
+            if description is not None:
+                kwargs["description"] = description
+            self._rich_progress.update(self._task_id, **kwargs)
+        self._callback(msg)
 from rekipedia.orchestrator.sharding import ShardPlanner
 from rekipedia.orchestrator.snapshotter import Snapshotter
 from rekipedia.sandbox.runner import BaseRunner, get_runner
@@ -55,6 +83,7 @@ def run_digest(
     focus_globs: list[str] | None = None,
     doc_type: str = "default",
     workers: int = 4,
+    publish_dir: str | None = None,
 ) -> None:
     """Full scan pipeline.
 
@@ -105,7 +134,7 @@ def run_digest(
     store.open()
 
     # Reset token counter for this scan run
-    from rekipedia.llm.client import TOKEN_COUNTER  # noqa: PLC0415
+    from rekipedia.llm.client import TOKEN_COUNTER
     TOKEN_COUNTER.reset()
 
     try:
@@ -123,7 +152,7 @@ def run_digest(
 
         # ── 1.5. Focus filter ─────────────────────────────────────────
         if focus_globs:
-            import fnmatch as _fnmatch  # noqa: PLC0415
+            import fnmatch as _fnmatch
             def _matches_focus(file_rel: str) -> bool:
                 for pattern in focus_globs:
                     # normalise pattern: strip leading ./ or /
@@ -178,6 +207,7 @@ def run_digest(
                 total=len(shards),
             )
             _shard_done = 0
+            _shard_emitter = StepEmitter(_rich_progress, shard_task, _log)
 
             with ThreadPoolExecutor(max_workers=workers) as executor:
                 future_to_idx = {
@@ -199,12 +229,10 @@ def run_digest(
                         )
                     finally:
                         _shard_done += 1
-                        _rich_progress.update(
-                            shard_task,
-                            advance=1,
+                        _shard_emitter.step(
+                            f"Shard {_shard_done}/{len(shards)}",
                             description=f"[cyan]🔍 Shard {_shard_done}/{len(shards)}",
                         )
-                        _log(f"Shard {_shard_done}/{len(shards)}")
 
         if shard_errors:
             _vlog(f"  ⚠ {len(shard_errors)} shard(s) failed — continuing with partial results")
@@ -218,14 +246,14 @@ def run_digest(
         # ── 4. Build diagrams ─────────────────────────────────────────
         _vlog("Building diagrams…")
         _log("Building diagrams…")
-        from rekipedia.synthesis.diagram_builder import DiagramBuilder  # noqa: PLC0415
+        from rekipedia.synthesis.diagram_builder import DiagramBuilder
 
         all_symbols_raw = store.get_all_symbols(run_id)
         all_rels_raw = store.get_all_relationships(run_id)
         _vlog(f"  Total symbols: {len(all_symbols_raw)}, relationships: {len(all_rels_raw)}")
 
         combined = _combine_results([r for r in merged_results if r])
-        from rekipedia.analysis.resolution import resolve_relationships  # noqa: PLC0415
+        from rekipedia.analysis.resolution import resolve_relationships
         combined = resolve_relationships(combined)
         diagram_builder = DiagramBuilder()
         diagrams = diagram_builder.build(all_rels_raw, entry_points=combined.entry_points)
@@ -237,8 +265,8 @@ def run_digest(
         # ── 4.5. Refactor enrichment ──────────────────────────────────
         _vlog("Running refactor issue detection…")
         _log("Detecting refactoring issues…")
-        from rekipedia.analysis.refactor_enricher import RefactorEnricher  # noqa: PLC0415
-        from rekipedia.llm.client import LLMClient  # noqa: PLC0415
+        from rekipedia.analysis.refactor_enricher import RefactorEnricher
+        from rekipedia.llm.client import LLMClient
 
         _enricher_caller = None if no_llm else LLMClient(llm_config)
         enricher = RefactorEnricher(_enricher_caller)
@@ -264,7 +292,7 @@ def run_digest(
 
             _etask_total_set = [False]
 
-            def _enrich_progress_rich(msg: str) -> None:  # noqa: ANN202
+            def _enrich_progress_rich(msg: str) -> None:
                 _log(msg)
                 # Parse "Enriched N/M" to update bar
                 if "/" in msg and not _etask_total_set[0]:
@@ -272,7 +300,7 @@ def run_digest(
                         _, total_str = msg.split("/", 1)
                         total = int(total_str.strip().split()[0])
                         _enrich_rich.update(_etask, total=total,
-                                            description=f"[yellow]🔧 Enriching refactor issues…")
+                                            description="[yellow]🔧 Enriching refactor issues…")
                         _etask_total_set[0] = True
                     except (ValueError, IndexError):
                         pass
@@ -284,18 +312,18 @@ def run_digest(
         if no_llm:
             _vlog("  --no-llm: skipped LLM enrichment for refactoring issues")
         # Persist as JSON in evidence so exporters can surface it
-        import json as _json  # noqa: PLC0415
+        import json as _json
         combined.evidence["refactor_issues"] = _json.dumps(
             [i.to_dict() for i in refactor_issues], ensure_ascii=False
         )
 
         # ── 5. Plan wiki structure then generate pages ────────────────
         _log("Planning wiki structure…")
-        from rekipedia.synthesis.planner import PlannerAgent  # noqa: PLC0415
-        from rekipedia.synthesis.page_builder import PageBuilder  # noqa: PLC0415
+        from rekipedia.synthesis.page_builder import PageBuilder
+        from rekipedia.synthesis.planner import PlannerAgent
 
         combined_for_build = _combine_results([r for r in merged_results if r])
-        from rekipedia.analysis.resolution import resolve_relationships  # noqa: PLC0415
+        from rekipedia.analysis.resolution import resolve_relationships
         combined_for_build = resolve_relationships(combined_for_build)
         combined_for_build.evidence["pre_built_module_graph"] = combined.evidence["pre_built_module_graph"]
         combined_for_build.evidence["pre_built_dependency_graph"] = combined.evidence["pre_built_dependency_graph"]
@@ -314,18 +342,18 @@ def run_digest(
         _vlog(f"  Wiki plan: {wiki_plan}")
 
         _page_rich = Progress(
-            SpinnerColumn(),
             TextColumn("[bold green]{task.description}"),
             BarColumn(),
             TaskProgressColumn(),
             TimeRemainingColumn(),
             transient=False,
+            refresh_per_second=4,
         )
 
         builder = PageBuilder(llm_config, doc_type=doc_type)
 
         # Pre-build full payload once, then slice per page spec
-        from rekipedia.synthesis.page_builder import _build_payload, _slice_payload  # noqa: PLC0415
+        from rekipedia.synthesis.page_builder import _build_payload, _slice_payload
         full_payload = _build_payload(combined_for_build, diagrams=diagrams)
 
         pages: dict[str, tuple[str, str]] = {}
@@ -336,6 +364,7 @@ def run_digest(
                 total=len(wiki_plan.pages),
             )
             _page_done = 0
+            _page_emitter = StepEmitter(_page_rich, page_task, _log)
 
             with ThreadPoolExecutor(max_workers=_MAX_PAGE_WORKERS) as executor:
                 future_to_spec = {
@@ -360,12 +389,10 @@ def run_digest(
                         pages[slug] = (title, f"# {title}\n\n> *Generation failed: {exc}*\n")
                     finally:
                         _page_done += 1
-                        _page_rich.update(
-                            page_task,
-                            advance=1,
+                        _page_emitter.step(
+                            f"Page {_page_done}/{len(wiki_plan.pages)}",
                             description=f"[green]📝 Page {_page_done}/{len(wiki_plan.pages)}",
                         )
-                        _log(f"Page {_page_done}/{len(wiki_plan.pages)}")
 
         # Store nav order in evidence for web UI
         combined_for_build.evidence["nav_order"] = json.dumps(wiki_plan.nav_order)
@@ -384,14 +411,14 @@ def run_digest(
         # ── 6. Export ────────────────────────────────────────────────
         _vlog("Exporting…")
         _log("Exporting…")
-        from rekipedia.exporters.json_export import JsonExporter  # noqa: PLC0415
-        from rekipedia.exporters.markdown_export import MarkdownExporter  # noqa: PLC0415
+        from rekipedia.exporters.json_export import JsonExporter
+        from rekipedia.exporters.markdown_export import MarkdownExporter
 
         MarkdownExporter(output_dir).export(pages, diagrams)
         JsonExporter(output_dir).export(run_id, files, combined, pages, diagrams)
 
         # ── 7. Write scan_meta.json ───────────────────────────────────
-        from rekipedia.rag.scan_meta import write_scan_meta  # noqa: PLC0415
+        from rekipedia.rag.scan_meta import write_scan_meta
 
         write_scan_meta(
             output_dir,
@@ -404,7 +431,11 @@ def run_digest(
         _vlog("scan_meta.json written")
 
         # ── 7b. Agent hint files & .mcp.json ─────────────────────────────
-        from rekipedia.orchestrator.agent_hints import write_agent_hints, write_mcp_json, update_gitignore  # noqa: PLC0415
+        from rekipedia.orchestrator.agent_hints import (
+            update_gitignore,
+            write_agent_hints,
+            write_mcp_json,
+        )
         written_hints = write_agent_hints(repo_root)
         for p in written_hints:
             logger.info("Wrote agent hint: %s", p)
@@ -412,7 +443,7 @@ def run_digest(
         update_gitignore(repo_root)
 
         # ── 7c. Refactor report ───────────────────────────────────────────
-        from rekipedia.analysis.refactor_writer import write_refactor_outputs  # noqa: PLC0415
+        from rekipedia.analysis.refactor_writer import write_refactor_outputs
 
         _vlog("Writing refactor report…")
         _log("Writing refactor report…")
@@ -434,8 +465,8 @@ def run_digest(
         # Only embed when an explicit embed model is set (avoids surprise API calls)
         if embed_model and not skip_embed:
             _log("Building RAG embed index…")
-            from rekipedia.rag.embedder import EmbedPipeline  # noqa: PLC0415
-            from rekipedia.rag.scan_meta import patch_scan_meta  # noqa: PLC0415
+            from rekipedia.rag.embedder import EmbedPipeline
+            from rekipedia.rag.scan_meta import patch_scan_meta
 
             _embed_msgs: list[str] = []
 
@@ -459,18 +490,98 @@ def run_digest(
         _vlog("Done.")
 
         # ── Token usage summary ───────────────────────────────────────
-        from rekipedia.llm.client import TOKEN_COUNTER  # noqa: PLC0415
+        from rekipedia.llm.client import TOKEN_COUNTER
         if TOKEN_COUNTER.calls > 0:
             _console.print(
                 f"\n[bold cyan]📊 {TOKEN_COUNTER.summary()}[/bold cyan]"
             )
             _log(TOKEN_COUNTER.summary())
 
+        if publish_dir:
+            _auto_publish(repo_root, output_dir, publish_dir)
+
+        # ── Document extraction (opt-in) ─────────────────────────────
+        from rekipedia.config.loader import load_config as _load_config
+        _doc_cfg = _load_config(repo_root).get("documents", {})
+        if _doc_cfg.get("enabled", False):
+            _vlog("Extracting document files…")
+            _log("Extracting documents…")
+            from rekipedia.extractors.document_extractor import DocumentExtractor, SUPPORTED_EXTENSIONS
+            _doc_extractor = DocumentExtractor()
+            _max_mb = _doc_cfg.get("max_file_size_mb", 50) * 1024 * 1024
+            _doc_extensions = set(_doc_cfg.get("extensions", list(SUPPORTED_EXTENSIONS)))
+            _doc_files = [
+                repo_root / f.path
+                for f in files
+                if Path(f.path).suffix.lower() in _doc_extensions
+                and (repo_root / f.path).stat().st_size <= _max_mb
+            ]
+            _vlog(f"  Found {len(_doc_files)} document file(s)")
+            _all_doc_chunks = []
+            for _doc_path in _doc_files:
+                _chunks = _doc_extractor.extract(_doc_path)
+                _rel = str(_doc_path.relative_to(repo_root))
+                for _c in _chunks:
+                    _c.doc_path = _rel
+                _all_doc_chunks.extend(_chunks)
+                if _doc_cfg.get("wiki_page_per_doc", True) and _chunks:
+                    _doc_text = "\n\n".join(f"**Page {c.page_number}:** {c.text}" for c in _chunks[:20])
+                    _slug = "doc-" + _rel.replace("/", "-").replace(".", "-")
+                    _title = f"📄 {Path(_rel).name}"
+                    _summary = f"# {_title}\n\n**Source:** `{_rel}`\n\n{_doc_text}"
+                    store.upsert_page(run_id, _slug, _title, _summary)
+                    if _doc_cfg.get("thumbnails", False) and _doc_path.suffix.lower() == ".pdf":
+                        _thumb_bytes = _doc_extractor.thumbnail(_doc_path, dpi=_doc_cfg.get("thumbnail_dpi", 150))
+                        if _thumb_bytes:
+                            _assets_dir = output_dir / "wiki" / "assets"
+                            _assets_dir.mkdir(parents=True, exist_ok=True)
+                            (_assets_dir / f"{_slug}-thumb.png").write_bytes(_thumb_bytes)
+                            _summary = f"![thumbnail](assets/{_slug}-thumb.png)\n\n{_summary}"
+                            store.upsert_page(run_id, _slug, _title, _summary)
+            if _all_doc_chunks:
+                store.upsert_document_chunks(run_id, [
+                    {"doc_path": c.doc_path, "page_number": c.page_number,
+                     "text": c.text, "bounding_box": c.bounding_box}
+                    for c in _all_doc_chunks
+                ])
+                _vlog(f"  Stored {len(_all_doc_chunks)} document chunk(s)")
+
     except Exception:
         store.update_run_status(run_id, "failed")
         raise
     finally:
         store.close()
+
+
+def _auto_publish(repo_root: Path, output_dir: Path, publish_dir: str) -> None:
+    """Copy wiki, diagrams, and manifest to publish_dir."""
+    pub = Path(publish_dir)
+    if not pub.is_absolute():
+        pub = (repo_root / pub).resolve()
+
+    # wiki/*.md
+    wiki_src = output_dir / "wiki"
+    wiki_dst = pub / "wiki"
+    if wiki_src.exists():
+        wiki_dst.mkdir(parents=True, exist_ok=True)
+        for md_file in wiki_src.glob("*.md"):
+            shutil.copy2(md_file, wiki_dst / md_file.name)
+
+    # diagrams/*.md
+    diag_src = output_dir / "diagrams"
+    diag_dst = pub / "diagrams"
+    if diag_src.exists():
+        diag_dst.mkdir(parents=True, exist_ok=True)
+        for md_file in diag_src.glob("*.md"):
+            shutil.copy2(md_file, diag_dst / md_file.name)
+
+    # exports/manifest.json
+    manifest_src = output_dir / "exports" / "manifest.json"
+    if manifest_src.exists():
+        pub.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(manifest_src, pub / "manifest.json")
+
+    _console.print(f"[green]✔[/] Published wiki to {pub}")
 
 
 def _combine_results(results: list[AnalysisResult]) -> AnalysisResult:

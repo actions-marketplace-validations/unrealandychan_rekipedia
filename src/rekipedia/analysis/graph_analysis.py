@@ -1,7 +1,6 @@
 """Graph analysis utilities for rekipedia."""
 from __future__ import annotations
 
-import math
 import os
 from collections import defaultdict
 from typing import TYPE_CHECKING
@@ -11,11 +10,11 @@ from typing import TYPE_CHECKING
 _GAP_MIN_CALLS = int(os.environ.get("REKIPEDIA_GAP_MIN_CALLS", "3"))
 
 if TYPE_CHECKING:
-    from rekipedia.models.contracts import Relationship
+    from rekipedia.models.contracts import AnalysisResult, Relationship
 
 
 def compute_god_nodes(
-    relationships: "list[Relationship]",
+    relationships: list[Relationship],
     top_n: int = 10,
 ) -> list[tuple[str, int]]:
     """Compute in+out degree for each symbol name and return top_n sorted by degree.
@@ -40,7 +39,7 @@ def compute_god_nodes(
     return sorted_nodes[:top_n]
 
 
-def _build_knowledge_gaps(combined: "AnalysisResult") -> list[dict]:
+def _build_knowledge_gaps(combined: AnalysisResult) -> list[dict]:
     """Detect symbols with high call counts but no test coverage.
 
     Args:
@@ -49,8 +48,6 @@ def _build_knowledge_gaps(combined: "AnalysisResult") -> list[dict]:
     Returns:
         List of dicts with knowledge gap info, sorted by call_count desc, capped at 20.
     """
-    from rekipedia.models.contracts import AnalysisResult  # noqa: F401 (type check)
-
     relationships = combined.relationships if hasattr(combined, "relationships") else []
 
     # Step 1: Build call-count dict (in-degree for "calls" relationships)
@@ -110,8 +107,8 @@ def _build_knowledge_gaps(combined: "AnalysisResult") -> list[dict]:
 
 
 def _build_hub_nodes(
-    relationships: "list",
-    symbols: "list" = None,
+    relationships: list,
+    symbols: list = None,
     top_n: int = 20,
 ) -> list[dict]:
     """Find hub nodes using a degree-based approximation of centrality.
@@ -165,3 +162,25 @@ def _build_hub_nodes(
 
     scored.sort(key=lambda x: x["score"], reverse=True)
     return scored[:top_n]
+
+
+def get_hub_nodes(store: SqliteStore, run_id: str, top_n: int = 10) -> list[dict]:
+    """Return top N hub nodes (most connected symbols) from the stored graph."""
+    relationships = store.get_all_relationships(run_id)
+    symbols = store.get_all_symbols(run_id)
+    all_scored = _build_hub_nodes(relationships, symbols, top_n=top_n * 3)
+    for n in all_scored:
+        n.setdefault("total_degree", n.get("score", n["in_degree"] + n["out_degree"]))
+    return all_scored[:top_n]
+
+
+def get_bridge_nodes(store: SqliteStore, run_id: str, top_n: int = 10) -> list[dict]:
+    """Return top N bridge nodes (cross-boundary connectors: high in AND high out degree)."""
+    relationships = store.get_all_relationships(run_id)
+    symbols = store.get_all_symbols(run_id)
+    all_scored = _build_hub_nodes(relationships, symbols, top_n=9999)
+    bridges = [n for n in all_scored if n.get("is_bridge")]
+    bridges.sort(key=lambda x: x["in_degree"] * x["out_degree"], reverse=True)
+    for b in bridges:
+        b["bridge_score"] = b["in_degree"] * b["out_degree"]
+    return bridges[:top_n]

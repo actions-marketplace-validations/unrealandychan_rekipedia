@@ -2,12 +2,10 @@
 from __future__ import annotations
 
 import os
-import threading
 from pathlib import Path
 
 import click
 import pyfiglet
-import yaml
 from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown
@@ -39,7 +37,7 @@ def _print_banner() -> None:
 
 
 def _load_config(repo: Path) -> dict:
-    from rekipedia.config.loader import load_config  # noqa: PLC0415
+    from rekipedia.config.loader import load_config
     return load_config(repo)
 
 
@@ -57,12 +55,12 @@ def _build_llm_config(repo: Path, model: str | None) -> LLMConfig:
 import re as _re
 
 
-def _print_answer_citations(answer: str, repo_root: "Path", console) -> None:  # noqa: F821
+def _print_answer_citations(answer: str, repo_root: Path, console) -> None:
     """Print OSC-8 hyperlinks for any ``file:line`` references found in *answer*.
 
     Does nothing if no references are found or if OSC-8 is not supported.
     """
-    from rekipedia.utils.terminal_links import osc8_supported, file_hyperlink  # noqa: PLC0415
+    from rekipedia.utils.terminal_links import file_hyperlink, osc8_supported
 
     if not osc8_supported():
         return
@@ -97,6 +95,7 @@ def _answer_streaming(
     *,
     stream: bool = True,
     pinned_files: list[str] | None = None,
+    brief: bool = False,
 ) -> str | None:
     """Run one Q&A turn: spinner while waiting, then stream tokens via rich.Live.
 
@@ -112,7 +111,7 @@ def _answer_streaming(
     Returns:
         The full answer string, or None on error.
     """
-    from rekipedia.orchestrator.run_ask import run_ask, stream_ask  # noqa: PLC0415
+    from rekipedia.orchestrator.run_ask import run_ask, stream_ask
 
     # Print question header
     console.print(Rule(style="dim"))
@@ -133,6 +132,7 @@ def _answer_streaming(
                     llm_config=llm_config,
                     history=history,
                     pinned_context=pinned_files,
+                    brief=brief,
                 )
             except (RuntimeError, Exception) as exc:
                 console.print(f"[bold red]Error:[/bold red] {exc}")
@@ -151,6 +151,7 @@ def _answer_streaming(
             llm_config=llm_config,
             history=history,
             pinned_context=pinned_files,
+            brief=brief,
         )
     except (RuntimeError, Exception) as exc:
         console.print(f"[bold red]Error:[/bold red] {exc}")
@@ -216,6 +217,16 @@ def _answer_streaming(
     metavar="FILE[:SYMBOL]",
     help="Pin a file (or file:symbol) into context. Can be repeated.",
 )
+@click.option(
+    "--brief",
+    is_flag=True,
+    default=False,
+    envvar="REKIPEDIA_BRIEF",
+    help=(
+        "Brief mode — compact answer (~150 tokens): 1 paragraph + file:line citations. "
+        "Also controlled by REKIPEDIA_BRIEF=1 env var."
+    ),
+)
 def ask_cmd(
     question_arg: str | None,
     question: str | None,
@@ -227,6 +238,7 @@ def ask_cmd(
     no_rewrite: bool,
     no_stream: bool,
     pinned_files: tuple[str, ...],
+    brief: bool,
 ) -> None:
     """Interactive grounded Q&A about the scanned repository.
 
@@ -245,14 +257,42 @@ def ask_cmd(
         rekipedia ask --repo ./my-project
         rekipedia ask --history-limit 20
     """
-    import datetime, json as _json  # noqa: PLC0415
+    import datetime
+    import json as _json
+    import sys
 
     repo = repo.resolve()
     output_dir = (output_dir or repo / ".rekipedia").resolve()
     llm_config = _build_llm_config(repo, model)
 
+    # ── Early API key validation (issue #156) ────────────────────────────────
+    model_name = os.environ.get("REKIPEDIA_MODEL") or llm_config.model
+    base_url = os.environ.get("REKIPEDIA_BASE_URL") or llm_config.base_url
+
+    _has_api_key = bool(
+        os.environ.get("REKIPEDIA_API_KEY")
+        or os.environ.get("OPENAI_API_KEY")
+        or os.environ.get("ANTHROPIC_API_KEY")
+        or os.environ.get("GEMINI_API_KEY")
+        or os.environ.get("GOOGLE_API_KEY")
+        or llm_config.api_key
+    )
+    _needs_api_key = not model_name.startswith("ollama/") and not bool(base_url)
+
+    if _needs_api_key and not _has_api_key:
+        console.print("[bold red]✗[/bold red]  No LLM API key found.")
+        console.print(
+            "   Set [bold]REKIPEDIA_API_KEY[/bold] (or [bold]OPENAI_API_KEY[/bold]) before running [bold]reki ask[/bold]."
+        )
+        console.print(
+            "   Other providers: [bold]REKIPEDIA_MODEL[/bold]=anthropic/claude-... [bold]REKIPEDIA_API_KEY[/bold]=sk-ant-... reki ask ..."
+        )
+        console.print("   Tip: run [bold]`reki scan . --no-llm`[/bold] for static analysis without an API key.")
+        sys.exit(1)
+    # ─────────────────────────────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
+
     if no_rewrite:
-        import os
         os.environ["REKIPEDIA_QUERY_REWRITE"] = "0"
 
     # Resolve streaming preference: --no-stream flag OR REKIPEDIA_STREAM=0
@@ -288,7 +328,7 @@ def ask_cmd(
     if single_question:
         # Single-shot mode (no session save)
         _print_banner()
-        _answer_streaming(single_question, repo, output_dir, llm_config, history=[], stream=use_stream, pinned_files=list(pinned_files))
+        _answer_streaming(single_question, repo, output_dir, llm_config, history=[], stream=use_stream, pinned_files=list(pinned_files), brief=brief)
         return
 
     # Interactive REPL
@@ -325,6 +365,6 @@ def ask_cmd(
             _save_session()
             break
 
-        answer = _answer_streaming(user_input, repo, output_dir, llm_config, history=list(history), stream=use_stream, pinned_files=list(pinned_files))
+        answer = _answer_streaming(user_input, repo, output_dir, llm_config, history=list(history), stream=use_stream, pinned_files=list(pinned_files), brief=brief)
         if answer:
             _append_history(user_input, answer)

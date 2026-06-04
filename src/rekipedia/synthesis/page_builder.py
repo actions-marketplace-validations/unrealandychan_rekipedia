@@ -1,16 +1,18 @@
 """Build wiki pages from combined AnalysisResult using the LLM."""
 from __future__ import annotations
 
+import contextlib
 import importlib.metadata
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
-from rekipedia.llm.client import LLMClient, LLMCaller
+from rekipedia.llm.client import LLMCaller, LLMClient
 from rekipedia.models.contracts import AnalysisResult, LLMConfig
+from rekipedia.synthesis.doc_types import doc_type_preamble as _doc_type_preamble
+from rekipedia.synthesis.planner import WikiPlan
 from rekipedia.synthesis.slug_utils import sanitize_slug as _sanitize_slug
-from rekipedia.synthesis.doc_types import doc_type_preamble as _doc_type_preamble, DOC_TYPE_CHOICES
 
 _SYSTEM_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "digest_system.md"
 
@@ -236,7 +238,7 @@ class PageBuilder:
 
     def build_from_plan(
         self,
-        plan: "WikiPlan",
+        plan: WikiPlan,
         combined: AnalysisResult,
         diagrams: dict | None = None,
     ) -> dict[str, tuple[str, str]]:
@@ -245,7 +247,7 @@ class PageBuilder:
         Each page only receives the data fields it declared in required_data.
         Pages are built in parallel via ThreadPoolExecutor.
         """
-        from concurrent.futures import ThreadPoolExecutor, as_completed  # noqa: PLC0415
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
         # Pre-build full payload once, then slice per page
         full_payload = _build_payload(combined, diagrams=diagrams)
@@ -268,7 +270,7 @@ class PageBuilder:
                     result = future.result()
                     if result:
                         results[slug] = result
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     title = spec.get("title", slug.replace("-", " ").title())
                     results[slug] = (title, f"# {title}\n\n> *Generation failed: {exc}*\n")
 
@@ -301,7 +303,7 @@ class PageBuilder:
         try:
             raw = self._client.call(user_prompt, system=self._system)
             title, content = _parse_llm_response(raw, slug)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             title = title_hint
             content = f"# {title}\n\n> *LLM synthesis failed: {exc}*\n"
 
@@ -338,7 +340,7 @@ class PageBuilder:
         try:
             raw = self._client.call(user_prompt, system=self._system)
             title, content = _parse_llm_response(raw, slug)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             title = slug.replace("-", " ").title()
             content = f"# {title}\n\n> *LLM synthesis failed: {exc}*\n"
 
@@ -621,14 +623,12 @@ def _ensure_frontmatter(
             if importance == 50:
                 for line in old_fm.splitlines():
                     if line.startswith("importance:"):
-                        try:
+                        with contextlib.suppress(ValueError):
                             importance = int(line.split(":", 1)[1].strip())
-                        except ValueError:
-                            pass
                         break
             body = content[end + 4:].lstrip("\n")
 
-    created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    created_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
         version = importlib.metadata.version("rekipedia")
     except importlib.metadata.PackageNotFoundError:

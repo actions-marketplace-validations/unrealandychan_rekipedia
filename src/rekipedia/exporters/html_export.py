@@ -385,7 +385,7 @@ class HtmlExporter:
         Returns:
             Absolute path to the written HTML file.
         """
-        import datetime  # noqa: PLC0415
+        import datetime
 
         dest = dest or (self.output_dir / "export.html")
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -406,7 +406,7 @@ class HtmlExporter:
 
         _nav = nav_order or list(pages_data.keys())
         _sections = sections or []
-        ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        ts = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M UTC")
 
         html_out = _HTML_TEMPLATE.format(
             title=html.escape(title),

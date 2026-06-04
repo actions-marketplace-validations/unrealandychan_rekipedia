@@ -85,3 +85,38 @@ output_dir: .wiki
 ## Full Documentation
 
 See the [main repository](https://github.com/unrealandychan/rekipedia) for full documentation, Python package, and advanced usage.
+
+---
+
+## Go Port Charter
+
+### What is the Go port?
+
+This directory (`go/`) contains a **parallel implementation** of the full rekipedia pipeline written in Go. It replicates the core functionality — scanning, extracting symbols, synthesising wiki pages, embedding, RAG search, and serving — as a single self-contained binary with no Python runtime dependency.
+
+### Is it a drop-in replacement for the Python implementation?
+
+**No.** The Go port is an **experimental, high-performance alternative**, not a drop-in replacement. The canonical, primary implementation of rekipedia remains the Python package located at `src/rekipedia/`. The Go binary exposes a compatible CLI surface but internal behaviour, configuration keys, and edge-case handling may differ.
+
+### Which implementation is canonical for production use?
+
+**Python** (`src/rekipedia/`) is the canonical production implementation. It is the reference for correctness, receives features first, and is the version covered by the project's stability guarantees.
+
+The Go port is suitable for users who:
+- Cannot install a Python runtime in their environment.
+- Need lower latency or reduced memory footprint for very large repositories.
+- Are evaluating the port for potential wider adoption.
+
+### Is feature parity required?
+
+**Not currently.** The Go port tracks Python features on a **best-effort basis**. New features land in Python first; the Go port may lag behind or omit features that are difficult to express idiomatically in Go. Known gaps are tracked in [docs/plans/golang-rewrite.md](../docs/plans/golang-rewrite.md).
+
+### Long-term direction
+
+The long-term role of the Go port is **an open question**. Possible futures include:
+
+- Promoting Go to co-primary status once feature parity is reached.
+- Keeping Go as a lightweight "read-only" binary (serve + ask only) while Python owns write operations.
+- Deprecating the Go port if maintenance overhead outweighs benefits.
+
+No decision has been made. The current state is honestly: the Go port exists, it works for the majority of use cases, and its future will be decided collaboratively based on community feedback and contributor capacity. See ADR `docs/adr/0001-go-port-charter.md` for the formal record of this decision.

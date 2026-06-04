@@ -5,7 +5,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-
 # ─────────────────────────────────────────────
 # LLM configuration (mirrors config.yml llm: block)
 # ─────────────────────────────────────────────
@@ -93,6 +92,30 @@ class AnalysisResult(BaseModel):
 # ─────────────────────────────────────────────
 # Shard descriptor (orchestrator input)
 # ─────────────────────────────────────────────
+
+# ─────────────────────────────────────────────
+# Refactor issue (unified model for detector + enricher + writer)
+# ─────────────────────────────────────────────
+
+class RefactorIssue(BaseModel):
+    """A single refactoring issue — detected by static analysis, optionally enriched by LLM."""
+
+    kind: str  # "god_class" | "circular_dep" | "dead_code" | "large_file" | "high_coupling" | "high_fan_in" | "high_fan_out" | "deep_inheritance"
+    symbol: str
+    file: str
+    severity: str = "medium"  # "high" | "medium" | "low"
+    metrics: dict = Field(default_factory=dict)
+    callers: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    # LLM-enriched fields (empty when --no-llm)
+    problem: str = ""
+    suggestion: str = ""
+    start_here: str = ""
+    risk: str = ""
+
+    def to_dict(self) -> dict:
+        return self.model_dump()
+
 
 class Shard(BaseModel):
     shard_id: str

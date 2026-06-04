@@ -1,7 +1,9 @@
 """reki impact — blast-radius analysis for a changed file."""
 from __future__ import annotations
-import click
+
 from pathlib import Path
+
+import click
 from rich.console import Console
 from rich.tree import Tree
 
@@ -13,8 +15,8 @@ console = Console()
 @click.option("--output-dir", default=".", show_default=True, help="Directory with .rekipedia/")
 def impact_cmd(target_file, depth, output_dir):
     """Show blast-radius for a changed file."""
-    from rekipedia.storage.sqlite_store import SqliteStore
     from rekipedia.analysis.impact import compute_impact
+    from rekipedia.storage.sqlite_store import SqliteStore
 
     db_path = Path(output_dir) / ".rekipedia" / "store.db"
     if not db_path.exists():

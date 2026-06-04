@@ -6,8 +6,15 @@ Reuses patterns from graph_analysis.py (hub_bridge, knowledge_gap).
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from rekipedia.models.contracts import AnalysisResult
+
+from rekipedia.models.contracts import RefactorIssue
+
+_LARGE_FILE_SYMBOL_THRESHOLD = 30
 
 @dataclass
 class RefactorConfig:
@@ -17,18 +24,6 @@ class RefactorConfig:
     high_fan_in: int = 20               # > N callers
     high_fan_out: int = 15              # > N dependencies
     deep_inheritance_depth: int = 3     # depth > N
-
-
-@dataclass
-class RefactorIssue:
-    """A single detected refactoring issue."""
-
-    kind: str           # "god_class" | "circular_dep" | "dead_code" | "high_fan_in" | "high_fan_out" | "deep_inheritance"
-    symbol: str         # affected symbol name
-    file: str
-    severity: str       # "high" | "medium" | "low"
-    metrics: dict       # raw numbers (degree, depth, etc.)
-    callers: list[str]  # affected callers / dependents
 
 
 # ---------------------------------------------------------------------------
@@ -215,6 +210,9 @@ def detect_dead_code(relationships: list, symbols: list) -> list[RefactorIssue]:
             continue
         if _is_exported(name, file_):
             continue
+        # Skip dunder methods
+        if name.startswith("__") and name.endswith("__"):
+            continue
         issues.append(RefactorIssue(
             kind="dead_code",
             symbol=name,
@@ -356,6 +354,29 @@ def detect_deep_inheritance(
     return issues
 
 
+def detect_large_files(symbols: list) -> list[RefactorIssue]:
+    """Detect files with too many symbols (>= _LARGE_FILE_SYMBOL_THRESHOLD)."""
+    from collections import defaultdict
+    symbols_per_file: dict[str, list[str]] = defaultdict(list)
+    for sym in symbols:
+        name = _sym_name(sym)
+        fpath = _sym_file(sym)
+        if fpath and name:
+            symbols_per_file[fpath].append(name)
+    issues: list[RefactorIssue] = []
+    for fpath, sym_names in symbols_per_file.items():
+        if len(sym_names) >= _LARGE_FILE_SYMBOL_THRESHOLD:
+            issues.append(RefactorIssue(
+                kind="large_file",
+                symbol=", ".join(sym_names[:10]),
+                file=fpath,
+                severity="medium",
+                metrics={"symbol_count": len(sym_names)},
+                callers=[],
+            ))
+    return issues
+
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
@@ -376,4 +397,16 @@ def detect_all(
     issues.extend(detect_high_fan_in(relationships, syms, config))
     issues.extend(detect_high_fan_out(relationships, syms, config))
     issues.extend(detect_deep_inheritance(relationships, syms, config))
+    issues.extend(detect_large_files(syms))
     return issues
+
+
+def detect_issues(combined: "AnalysisResult", config: RefactorConfig | None = None) -> list[RefactorIssue]:
+    """Canonical entry point: detect all refactor issues from an AnalysisResult.
+
+    This is the single source of truth for static analysis detection.
+    ``refactor_enricher`` and ``refactor_writer`` both delegate here.
+    """
+    relationships = combined.relationships if hasattr(combined, "relationships") else []
+    symbols = combined.symbols if hasattr(combined, "symbols") else []
+    return detect_all(relationships, symbols, config)

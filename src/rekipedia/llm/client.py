@@ -5,7 +5,8 @@ import logging
 import os
 import threading
 import time
-from typing import Iterator, Protocol, runtime_checkable
+from collections.abc import Iterator
+from typing import Protocol, runtime_checkable
 
 import certifi
 import litellm

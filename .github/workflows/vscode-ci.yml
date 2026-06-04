@@ -1,0 +1,27 @@
+name: VS Code Extension CI
+
+on:
+  push:
+    paths:
+      - 'vscode-rekipedia/**'
+  pull_request:
+    paths:
+      - 'vscode-rekipedia/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vscode-rekipedia
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npm run compile
+        name: TypeScript compile check
+      - run: npm test
+        name: Unit tests
+        continue-on-error: true

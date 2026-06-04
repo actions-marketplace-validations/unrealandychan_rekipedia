@@ -16,10 +16,13 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from rekipedia.models.contracts import RefactorIssue
+
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from rekipedia.llm.client import LLMCaller
     from rekipedia.models.contracts import AnalysisResult
 
@@ -33,42 +36,6 @@ _LARGE_FILE_BYTES_THRESHOLD = 500_000   # 500 KB — flag files that are simply 
 _HIGH_COUPLING_OUT_THRESHOLD = 10
 _DEAD_CODE_MIN_FILE_SYMBOLS = 3  # ignore tiny files; only flag in larger files
 _MAX_ENRICHER_WORKERS = 4
-
-# ── Data model ───────────────────────────────────────────────────────────────
-
-
-@dataclass
-class RefactorIssue:
-    """A single refactoring issue detected by static analysis."""
-
-    kind: str           # "god_class" | "circular_dep" | "dead_code" | "large_file" | "high_coupling"
-    symbol: str         # primary symbol / file name
-    file: str           # source file path
-    metrics: dict       # raw numeric metrics (degree, symbol_count, …)
-    callers: list[str] = field(default_factory=list)   # top-5 callers
-    notes: list[str] = field(default_factory=list)     # relevant tech-lead notes
-
-    # Populated by LLM enrichment (empty when --no-llm)
-    problem: str = ""
-    suggestion: str = ""
-    start_here: str = ""
-    risk: str = ""
-
-    def to_dict(self) -> dict:
-        """Return a plain dict representation suitable for JSON serialisation."""
-        return {
-            "kind": self.kind,
-            "symbol": self.symbol,
-            "file": self.file,
-            "metrics": self.metrics,
-            "callers": self.callers,
-            "notes": self.notes,
-            "problem": self.problem,
-            "suggestion": self.suggestion,
-            "start_here": self.start_here,
-            "risk": self.risk,
-        }
-
 
 # ── Prompt templates ─────────────────────────────────────────────────────────
 
@@ -141,142 +108,13 @@ Suggest dependency-reduction strategies (facade, adapter, or domain split).""",
 # ── Static analysis detectors ────────────────────────────────────────────────
 
 
-def detect_issues(combined: "AnalysisResult") -> list[RefactorIssue]:
-    """Run static analysis and return a list of RefactorIssues (no LLM calls).
+def detect_issues(combined: AnalysisResult) -> list[RefactorIssue]:
+    """Delegate to the canonical detector in refactor_detector.py.
 
-    Detects:
-    - ``god_class``: symbols with degree >= _GOD_CLASS_DEGREE_THRESHOLD
-    - ``circular_dep``: cycles in the import/call graph
-    - ``dead_code``: exported symbols with zero callers in files with enough symbols
-    - ``large_file``: files defining >= _LARGE_FILE_SYMBOL_THRESHOLD symbols
-    - ``high_coupling``: symbols with >= _HIGH_COUPLING_OUT_THRESHOLD outbound deps
-
-    Args:
-        combined: merged AnalysisResult from all shards.
-
-    Returns:
-        Unsorted list of RefactorIssues; de-duplicated by (kind, symbol).
+    Kept here for backward-compatibility with existing imports.
     """
-    relationships = combined.relationships if hasattr(combined, "relationships") else []
-    symbols = combined.symbols if hasattr(combined, "symbols") else []
-
-    issues: list[RefactorIssue] = []
-    seen: set[tuple[str, str]] = set()
-
-    def _add(issue: RefactorIssue) -> None:
-        key = (issue.kind, issue.symbol)
-        if key not in seen:
-            seen.add(key)
-            issues.append(issue)
-
-    # ── Build degree maps ────────────────────────────────────────────
-    in_deg: dict[str, int] = defaultdict(int)
-    out_deg: dict[str, int] = defaultdict(int)
-    call_in_deg: dict[str, int] = defaultdict(int)
-
-    # adjacency list (from → {to, …}) for cycle detection
-    adj: dict[str, set[str]] = defaultdict(set)
-
-    for rel in relationships:
-        from_name = rel.from_ if hasattr(rel, "from_") else rel.get("from_", "")
-        to_name = rel.to if hasattr(rel, "to") else rel.get("to", "")
-        kind = str(rel.kind if hasattr(rel, "kind") else rel.get("kind", ""))
-        if not from_name or not to_name:
-            continue
-        out_deg[from_name] += 1
-        in_deg[to_name] += 1
-        if kind in ("call", "calls"):
-            call_in_deg[to_name] += 1
-        if kind in ("import", "imports", "call", "calls", "uses"):
-            adj[from_name].add(to_name)
-
-    # ── Symbol maps ──────────────────────────────────────────────────
-    sym_file: dict[str, str] = {}
-    sym_kind_map: dict[str, str] = {}
-    symbols_per_file: dict[str, list[str]] = defaultdict(list)
-
-    for sym in symbols:
-        name = sym.name if hasattr(sym, "name") else sym.get("name", "")
-        kind = str(sym.kind if hasattr(sym, "kind") else sym.get("kind", ""))
-        fpath = sym.file if hasattr(sym, "file") else sym.get("file", "") or ""
-        sym_file[name] = fpath
-        sym_kind_map[name] = kind
-        if fpath:
-            symbols_per_file[fpath].append(name)
-
-    # ── God class ────────────────────────────────────────────────────
-    for name in set(in_deg) | set(out_deg):
-        total = in_deg[name] + out_deg[name]
-        if total >= _GOD_CLASS_DEGREE_THRESHOLD:
-            fpath = sym_file.get(name, "")
-            _add(RefactorIssue(
-                kind="god_class",
-                symbol=name,
-                file=fpath,
-                metrics={
-                    "degree": total,
-                    "in_degree": in_deg[name],
-                    "out_degree": out_deg[name],
-                },
-            ))
-
-    # ── High coupling ────────────────────────────────────────────────
-    for name, od in out_deg.items():
-        if od >= _HIGH_COUPLING_OUT_THRESHOLD:
-            fpath = sym_file.get(name, "")
-            _add(RefactorIssue(
-                kind="high_coupling",
-                symbol=name,
-                file=fpath,
-                metrics={"out_degree": od},
-            ))
-
-    # ── Circular dependencies (DFS-based cycle detection) ────────────
-    for cycle in _find_cycles(adj):
-        members = ", ".join(sorted(cycle))
-        files = ", ".join(sorted({sym_file.get(m, m) for m in cycle}))
-        _add(RefactorIssue(
-            kind="circular_dep",
-            symbol=members,
-            file=files,
-            metrics={"cycle_length": len(cycle), "members": list(cycle)},
-        ))
-
-    # ── Dead code ────────────────────────────────────────────────────
-    all_callee_names = set(call_in_deg)  # symbols that ARE called
-    valid_kinds = {"function", "method", "class"}
-    for sym in symbols:
-        name = sym.name if hasattr(sym, "name") else sym.get("name", "")
-        kind = str(sym.kind if hasattr(sym, "kind") else sym.get("kind", ""))
-        fpath = sym.file if hasattr(sym, "file") else sym.get("file", "") or ""
-        if kind not in valid_kinds:
-            continue
-        if name in all_callee_names:
-            continue
-        if len(symbols_per_file.get(fpath, [])) < _DEAD_CODE_MIN_FILE_SYMBOLS:
-            continue
-        # Skip test symbols — expected to have no callers
-        if name.startswith("test_") or "/test" in fpath or "\\test" in fpath:
-            continue
-        _add(RefactorIssue(
-            kind="dead_code",
-            symbol=name,
-            file=fpath,
-            metrics={"total_symbols": len(symbols_per_file.get(fpath, []))},
-        ))
-
-    # ── Large file ───────────────────────────────────────────────────
-    for fpath, sym_names in symbols_per_file.items():
-        if len(sym_names) >= _LARGE_FILE_SYMBOL_THRESHOLD:
-            top_names = sym_names[:10]
-            _add(RefactorIssue(
-                kind="large_file",
-                symbol=", ".join(top_names),
-                file=fpath,
-                metrics={"symbol_count": len(sym_names)},
-            ))
-
-    return issues
+    from rekipedia.analysis.refactor_detector import detect_issues as _detect
+    return _detect(combined)
 
 
 # ── Helpers: cycle detection ─────────────────────────────────────────────────
@@ -301,10 +139,10 @@ def _find_cycles(adj: dict[str, set[str]]) -> list[frozenset[str]]:
                 if neighbour == path[0]:
                     # Back-edge to start: cycle found
                     key = frozenset(path)
-                    if key not in seen_sets and len(key) >= 2:  # noqa: PLR2004
+                    if key not in seen_sets and len(key) >= 2:
                         seen_sets.add(key)
                         found.append(key)
-                elif neighbour not in path and len(path) < 8:  # noqa: PLR2004
+                elif neighbour not in path and len(path) < 8:
                     stack.append((neighbour, path + [neighbour]))
 
     for node in list(adj):
@@ -320,7 +158,7 @@ def _find_cycles(adj: dict[str, set[str]]) -> list[frozenset[str]]:
 
 def _attach_callers(
     issues: list[RefactorIssue],
-    combined: "AnalysisResult",
+    combined: AnalysisResult,
     top_n: int = 5,
 ) -> None:
     """Populate issue.callers with the top-N callers for each issue symbol."""
@@ -383,17 +221,17 @@ class RefactorEnricher:
         enriched = enricher.enrich_all(combined, notes=tech_lead_notes)
     """
 
-    def __init__(self, caller: "LLMCaller | None" = None) -> None:
+    def __init__(self, caller: LLMCaller | None = None) -> None:
         self._caller = caller
 
     # ── Public API ───────────────────────────────────────────────────
 
     def enrich_all(
         self,
-        combined: "AnalysisResult",
+        combined: AnalysisResult,
         *,
         notes: list[dict] | None = None,
-        progress_cb: "Callable[[str], None] | None" = None,
+        progress_cb: Callable[[str], None] | None = None,
     ) -> list[RefactorIssue]:
         """Detect issues from *combined* and enrich them with LLM explanations.
 
@@ -413,7 +251,7 @@ class RefactorEnricher:
             _attach_notes(issues, notes)
         return self.enrich(issues, progress_cb=progress_cb)
 
-    def enrich(self, issues: list[RefactorIssue], *, progress_cb: "Callable[[str], None] | None" = None) -> list[RefactorIssue]:
+    def enrich(self, issues: list[RefactorIssue], *, progress_cb: Callable[[str], None] | None = None) -> list[RefactorIssue]:
         """Enrich *issues* with LLM explanations (batch, concurrent).
 
         If no LLM caller was provided the issues are returned unchanged —
@@ -440,7 +278,7 @@ class RefactorEnricher:
                 issue = futures[future]
                 try:
                     future.result()
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     logger.warning("Enrichment failed for %s/%s: %s", issue.kind, issue.symbol, exc)
                 finally:
                     _done += 1
@@ -451,7 +289,7 @@ class RefactorEnricher:
 
     def _enrich_one(self, issue: RefactorIssue) -> None:
         """Call the LLM for a single issue and mutate it in-place."""
-        assert self._caller is not None  # noqa: S101 (guarded by caller in enrich())
+        assert self._caller is not None
         prompt = _build_prompt(issue)
         try:
             raw = self._caller.call(prompt, system=_SYSTEM_PROMPT)

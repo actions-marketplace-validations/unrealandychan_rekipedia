@@ -20,7 +20,7 @@ from rich.console import Console
 
 console = Console()
 
-_FORMAT_CHOICES = click.Choice(["md", "zip", "json", "html", "graphml", "cypher", "obsidian"], case_sensitive=False)
+_FORMAT_CHOICES = click.Choice(["md", "zip", "json", "html", "graphml", "cypher", "obsidian", "bundle"], case_sensitive=False)
 
 
 @click.command("export")
@@ -103,33 +103,54 @@ def export_cmd(
     doc_title = title or repo.name
     fmt = fmt.lower()
 
+    if fmt == "bundle":
+        from rekipedia.exporters.bundle_export import BundleExporter
+
+        bundle_dir = Path(output) if output else out_dir / "bundle"
+        bundle_dir.mkdir(parents=True, exist_ok=True)
+        exporter = BundleExporter(wiki_dir, diagrams_dir, repo)
+        manifest = exporter.export(bundle_dir)
+        console.print(
+            f"[green]Bundle exported:[/] {bundle_dir}  "
+            f"(bundle_id={manifest['bundle_id']}, {len(manifest['pages'])} pages)"
+        )
+        return
+
     if fmt == "obsidian":
         obs_dir = Path(output) if output else out_dir / "obsidian-vault"
-        from rekipedia.analysis.graph_export import export_obsidian  # noqa: PLC0415
-        from rekipedia.storage.sqlite_store import SqliteStore  # noqa: PLC0415
-        db = out_dir / "rekipedia.db"
+        from rekipedia.analysis.graph_export import export_obsidian
+        from rekipedia.storage.sqlite_store import SqliteStore
+        db = out_dir / "store.db"
         if not db.exists():
-            console.print("[red]No rekipedia DB. Run rekipedia scan first.[/red]")
-            sys.exit(1)
-        store = SqliteStore(db)
-        run_id = store.latest_run_id()
-        symbols = store.get_all_symbols(run_id)
-        rels = store.get_all_relationships(run_id)
+            alt = out_dir / "rekipedia.db"
+            if alt.exists():
+                db = alt
+            else:
+                console.print("[red]No rekipedia DB. Run rekipedia scan first.[/red]")
+                sys.exit(1)
+        with SqliteStore(db) as store:
+            run_id = store.latest_run_id()
+            symbols = store.get_all_symbols(run_id)
+            rels = store.get_all_relationships(run_id)
         written = export_obsidian(symbols, rels, obs_dir)
         console.print(f"[green]✅ Obsidian vault: {len(written)} notes written to {obs_dir}[/green]")
         return
 
     if fmt in ("graphml", "cypher"):
-        from rekipedia.analysis.graph_export import export_graphml, export_cypher  # noqa: PLC0415
-        from rekipedia.storage.sqlite_store import SqliteStore  # noqa: PLC0415
-        db = out_dir / "rekipedia.db"
+        from rekipedia.analysis.graph_export import export_cypher, export_graphml
+        from rekipedia.storage.sqlite_store import SqliteStore
+        db = out_dir / "store.db"
         if not db.exists():
-            console.print("[red]No rekipedia DB. Run rekipedia scan first.[/red]")
-            sys.exit(1)
-        store = SqliteStore(db)
-        run_id = store.latest_run_id()
-        symbols = store.get_all_symbols(run_id)
-        rels = store.get_all_relationships(run_id)
+            alt = out_dir / "rekipedia.db"
+            if alt.exists():
+                db = alt
+            else:
+                console.print("[red]No rekipedia DB. Run rekipedia scan first.[/red]")
+                sys.exit(1)
+        with SqliteStore(db) as store:
+            run_id = store.latest_run_id()
+            symbols = store.get_all_symbols(run_id)
+            rels = store.get_all_relationships(run_id)
         ext_map = {"graphml": "graphml", "cypher": "cypher"}
         dest = Path(output) if output else out_dir / f"graph.{ext_map[fmt]}"
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -160,7 +181,7 @@ def export_cmd(
         if not manifest_path.exists():
             console.print("[red]No manifest.json found. Run rekipedia scan first.[/red]")
             sys.exit(1)
-        import shutil  # noqa: PLC0415
+        import shutil
         shutil.copy2(manifest_path, dest)
 
     size_kb = dest.stat().st_size / 1024
@@ -214,7 +235,7 @@ def _export_md(
             badges.append(f"importance: **{meta['importance']}**")
         if "section" in meta:
             badges.append(f"section: `{meta['section']}`")
-        if "tags" in meta and meta["tags"]:
+        if meta.get("tags"):
             badges.append("tags: " + ", ".join(f"`{t}`" for t in meta["tags"]))
         if badges:
             lines.append("> " + " · ".join(badges) + "\n\n")
@@ -248,12 +269,12 @@ def _export_zip(
 def _export_html(
     pages: list,
     pages_meta: dict,
-    out_dir: "Path",
-    dest: "Path | None",
+    out_dir: Path,
+    dest: Path | None,
     title: str,
-) -> "Path":
+) -> Path:
     """Write an interactive self-contained HTML wiki file."""
-    from rekipedia.exporters.html_export import HtmlExporter  # noqa: PLC0415
+    from rekipedia.exporters.html_export import HtmlExporter
 
     exporter = HtmlExporter(out_dir)
 
