@@ -83,6 +83,90 @@ def _load_symbol_lines(output_dir: Path) -> list[str]:
     return lines
 
 
+# Maximum lines to extract per symbol body (avoid flooding context with huge classes)
+_SYMBOL_BODY_MAX_LINES = 60
+
+
+def _extract_symbol_bodies(
+    question: str,
+    output_dir: Path,
+    repo_root: Path,
+    top_n: int = 6,
+) -> str:
+    """Extract actual source code bodies for the top-N symbols most relevant to *question*.
+
+    Returns a formatted Markdown section, or empty string if nothing can be read.
+    Only used when RAG index is NOT available (RAG already provides raw source chunks).
+    """
+    symbols_path = output_dir / "exports" / "symbols.json"
+    if not symbols_path.exists():
+        return ""
+
+    try:
+        symbols = json.loads(symbols_path.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+
+    # Only extract bodies for functions/methods/classes — skip variables/constants
+    code_syms = [
+        s for s in symbols
+        if s.get("kind") in ("function", "method", "class")
+        and s.get("file")
+        and s.get("line_start")
+    ]
+    if not code_syms:
+        return ""
+
+    # Rank symbols by keyword overlap with question
+    keywords = set(_extract_keywords(question))
+    def _sym_score(s: dict) -> float:
+        name_words = set(_re.findall(r'[a-z][a-z0-9_]*', s.get("name", "").lower()))
+        sig_words = set(_re.findall(r'[a-z][a-z0-9_]*', (s.get("signature") or "").lower()))
+        return len(keywords & (name_words | sig_words))
+
+    ranked = sorted(code_syms, key=_sym_score, reverse=True)
+    top_syms = [s for s in ranked if _sym_score(s) > 0][:top_n]
+    if not top_syms:
+        # Fallback: just take the first N symbols if no keyword match
+        top_syms = code_syms[:top_n]
+
+    sections: list[str] = []
+    for sym in top_syms:
+        file_path = Path(sym["file"])
+        if not file_path.is_absolute():
+            file_path = repo_root / sym["file"]
+        if not file_path.exists():
+            continue
+
+        try:
+            all_lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except Exception:
+            continue
+
+        line_start = max(0, int(sym["line_start"]) - 1)
+        line_end_hint = sym.get("line_end")
+        if line_end_hint:
+            line_end = min(int(line_end_hint), line_start + _SYMBOL_BODY_MAX_LINES)
+        else:
+            line_end = min(len(all_lines), line_start + _SYMBOL_BODY_MAX_LINES)
+
+        body_lines = all_lines[line_start:line_end]
+        if not body_lines:
+            continue
+
+        body = "\n".join(body_lines)
+        ext = sym["file"].rsplit(".", 1)[-1] if "." in sym["file"] else ""
+        ref = f"{sym['file']}:{sym['line_start']}"
+        sections.append(
+            f"### `{sym['name']}` ({sym['kind']}) — `{ref}`\n\n"
+            f"```{ext}\n{body}\n```\n"
+        )
+
+    if not sections:
+        return ""
+    return "## Symbol Source Code\n\n" + "\n".join(sections)
+
+
 def _rag_chunks(
     question: str,
     output_dir: Path,
@@ -266,6 +350,7 @@ def _build_full_system(
     question: str,
     output_dir: Path,
     llm_config: LLMConfig,
+    repo_root: Path | None = None,
     pinned_context: str = "",
 ) -> str:
     """Assemble the system prompt + all context sources."""
@@ -279,10 +364,11 @@ def _build_full_system(
     rag_results = _rag_chunks(retrieval_query, output_dir, llm_config)
 
     # Context assembly priority (most important first so it appears earliest in prompt):
-    #   1. RAG chunks        — most semantically relevant retrieved source code
-    #   2. Tech lead notes   — curated team context (if available)
-    #   3. Ranked wiki pages — broad curated prose, ranked by query relevance
-    #   4. Symbol index      — fallback structural reference (often large)
+    #   1. RAG chunks          — most semantically relevant retrieved source code
+    #   2. Symbol source code  — actual code bodies for top-N relevant symbols (no RAG fallback)
+    #   3. Tech lead notes     — curated team context (if available)
+    #   4. Ranked wiki pages   — broad curated prose, ranked by query relevance
+    #   5. Symbol index        — fallback structural reference (often large)
     # This order mirrors the Go runtime (go/internal/orchestrator/run_ask.go).
     context_parts: list[str] = ["# Knowledge Context\n"]
     used_chars = sum(len(p) for p in context_parts)
@@ -312,6 +398,13 @@ def _build_full_system(
                     break
                 context_parts.append(snippet)
                 used_chars += len(snippet)
+
+    # ── 1b. Symbol source bodies (when no RAG index — keyword-ranked) ──
+    if not rag_results and repo_root is not None:
+        sym_bodies = _extract_symbol_bodies(retrieval_query, output_dir, repo_root)
+        if sym_bodies and used_chars + len(sym_bodies) < _CONTEXT_CHAR_BUDGET:
+            context_parts.append(sym_bodies)
+            used_chars += len(sym_bodies)
 
     # ── 2. Tech Lead Notes (if available) ─────────────────────────────
     try:
@@ -386,7 +479,7 @@ def _prepare_ask(
     """
     llm_config = llm_config or LLMConfig()
     _verify_scan(output_dir, repo_root)
-    full_system = _build_full_system(question, output_dir, llm_config, pinned_context=pinned_context)
+    full_system = _build_full_system(question, output_dir, llm_config, repo_root=repo_root, pinned_context=pinned_context)
     client = LLMClient(llm_config)
     return client, full_system
 
