@@ -48,7 +48,7 @@ reki scan . --no-llm   # zero config, no API key required
 
 ### 💬 `reki ask` — Q&A grounded in your code
 
-Answers questions with file:line citations. No hallucinations — every answer is backed by indexed source.
+Answers questions with file:line citations **and real code examples**. No hallucinations — every answer is backed by indexed source, with actual function bodies quoted inline.
 
 ```bash
 reki ask "what is the entry point?"
@@ -57,8 +57,18 @@ reki ask "which modules handle payments?" --brief
 
 ```
 Answer: The entry point is src/main.py:12 — `App.run()` bootstraps the server.
+
+```python
+# src/main.py:12
+def run(self):
+    server = HTTPServer(self.config)
+    server.start()
+```
+
 Sources: src/main.py:12, src/server.py:34
 ```
+
+**How it works:** rekipedia extracts the actual source bodies of the most relevant functions/classes and passes them directly to the LLM — so answers include real, runnable code, not just paraphrases. When a FAISS index exists (`reki embed .`), RAG chunks are used instead for even higher precision.
 
 ### 🤖 `reki mcp` — MCP server for AI agents
 

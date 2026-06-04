@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.21.2] - 2026-06-04
+### Added
+- `reki ask` now injects **real source code bodies** into the LLM context — when no RAG index is available, the top-N most relevant functions/classes are extracted directly from source files (ranked by keyword overlap with the question) and passed as fenced code blocks. RAG remains the primary path and takes precedence when `reki embed .` has been run. Closes #217.
+### Changed
+- `ask_system.md` system prompt updated: LLM is now explicitly required to include fenced code block examples from context in every answer, with `file:line` citations.
+
 ## [0.21.1] - 2026-06-03
 ### Fixed
 - `reki search` always errored with "No rekipedia DB" — `search.py` was looking for `.rekipedia/rekipedia.db` but `reki scan` writes `.rekipedia/store.db`. Now uses `store.db` first with `rekipedia.db` fallback for backward compat. Closes #217.
