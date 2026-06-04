@@ -123,12 +123,9 @@ def test_extract_symbol_bodies_fallback_no_keywords(tmp_path):
     from rekipedia.orchestrator.run_ask import _extract_symbol_bodies
 
     output_dir, repo_root = _make_fixture(tmp_path)
-    # Question with no matching keywords
-    result = _extract_symbol_bodies("zzzzzz xxxxx", output_dir, repo_root)
-
     # Fallback: returns first N symbols
-    assert result != "" or True  # May be empty if fallback logic filters — just ensure no crash
-
+    assert "## Symbol Source Code" in result
+    assert "validate_token" in result
 
 def test_build_full_system_includes_symbol_bodies_when_no_rag(tmp_path):
     """_build_full_system should inject symbol source code when RAG is not available."""
