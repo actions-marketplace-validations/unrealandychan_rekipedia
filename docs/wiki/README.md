@@ -6,9 +6,9 @@
 
 - [Architecture](wiki/architecture.md)
 - [Core Modules](wiki/core-modules.md)
-- [CLI & API Reference](wiki/cli-and-api.md)
 - [Project Overview](wiki/index.md)
+- [CLI & API Reference](wiki/cli-and-api.md)
+- [Testing](wiki/testing.md)
 - [Installation & Setup](wiki/installation-and-setup.md)
 - [Technical Debt](wiki/technical-debt.md)
-- [Testing](wiki/testing.md)
 
