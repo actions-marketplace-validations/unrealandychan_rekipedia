@@ -132,7 +132,7 @@ def test_extract_symbol_bodies_fallback_no_keywords(tmp_path):
 
 def test_build_full_system_includes_symbol_bodies_when_no_rag(tmp_path):
     """_build_full_system should inject symbol source code when RAG is not available."""
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import patch
     from rekipedia.orchestrator.run_ask import _build_full_system
     from rekipedia.models.contracts import LLMConfig
 
