@@ -104,13 +104,17 @@ def _extract_symbol_bodies(
 
     try:
         symbols = json.loads(symbols_path.read_text(encoding="utf-8"))
-    except Exception:
+    except (json.JSONDecodeError, OSError):
+        return ""
+
+    if not isinstance(symbols, list):
         return ""
 
     # Only extract bodies for functions/methods/classes — skip variables/constants
     code_syms = [
         s for s in symbols
-        if s.get("kind") in ("function", "method", "class")
+        if isinstance(s, dict)
+        and s.get("kind") in ("function", "method", "class")
         and s.get("file")
         and s.get("line_start")
     ]
