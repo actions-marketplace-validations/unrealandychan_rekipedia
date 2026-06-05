@@ -4,11 +4,11 @@
 
 ## Wiki Pages
 
+- [CLI & API Reference](wiki/cli-and-api.md)
 - [Project Overview](wiki/index.md)
 - [Core Modules](wiki/core-modules.md)
-- [CLI & API Reference](wiki/cli-and-api.md)
 - [Architecture](wiki/architecture.md)
-- [Testing](wiki/testing.md)
 - [Installation & Setup](wiki/installation-and-setup.md)
+- [Testing](wiki/testing.md)
 - [Technical Debt](wiki/technical-debt.md)
 
