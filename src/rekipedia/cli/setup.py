@@ -19,6 +19,12 @@ PROVIDERS: dict[str, dict] = {
         "needs_key": True,
         "model_prefix": "anthropic/",
     },
+    "Gemini (Google)": {
+        "models": ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"],
+        "base_url": "",
+        "needs_key": True,
+        "model_prefix": "gemini/",
+    },
     "Ollama (local)": {
         "models": ["llama4", "llama3.2", "mistral", "qwen2.5-coder"],
         "base_url": "http://localhost:11434",

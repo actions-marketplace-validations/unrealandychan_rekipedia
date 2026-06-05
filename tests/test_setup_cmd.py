@@ -68,6 +68,27 @@ def test_setup_ollama_no_api_key(tmp_path):
     assert "api_key" not in data["llm"]
 
 
+def test_setup_gemini_provider(tmp_path):
+    """Gemini provider writes gemini-prefixed model with API key."""
+    runner = CliRunner()
+    config_path = tmp_path / "rekipedia" / "config.yml"
+
+    input_lines = ["Gemini (Google)", "gk-test", "gemini-2.5-pro"]
+
+    with patch("rekipedia.cli.setup.get_global_config_path", return_value=config_path):
+        result = runner.invoke(
+            setup_cmd,
+            ["--no-test"],
+            input="\n".join(input_lines) + "\n",
+            catch_exceptions=False,
+        )
+
+    assert result.exit_code == 0, result.output
+    data = yaml.safe_load(config_path.read_text())
+    assert data["llm"]["model"] == "gemini/gemini-2.5-pro"
+    assert data["llm"]["api_key"] == "gk-test"
+
+
 def test_setup_custom_provider(tmp_path):
     """Custom provider: prompts for model string and base_url."""
     runner = CliRunner()
