@@ -28,7 +28,8 @@ pip install rekipedia
 ### With LLM (richer wiki + Q&A)
 
 ```bash
-export REKIPEDIA_API_KEY=sk-...
+export REKIPEDIA_MODEL=gemini/gemini-2.5-flash
+export GOOGLE_API_KEY=...
 reki scan .
 reki ask "how does authentication work?"
 ```
@@ -165,8 +166,15 @@ Once configured, each tool automatically gets access to these rekipedia MCP tool
 rekipedia works without an LLM (`--no-llm`). To enable richer summaries and Q&A:
 
 ```bash
-export REKIPEDIA_API_KEY=sk-...          # OpenAI, Anthropic, or compatible
-export REKIPEDIA_MODEL=gpt-4o           # default: gpt-4o
+export REKIPEDIA_MODEL=gemini/gemini-2.5-pro
+export GOOGLE_API_KEY=...
+```
+
+Or use a provider-agnostic key:
+
+```bash
+export REKIPEDIA_MODEL=openai/gpt-4o
+export REKIPEDIA_API_KEY=sk-...
 ```
 
 Any OpenAI-compatible endpoint works:

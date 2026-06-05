@@ -282,10 +282,12 @@ def ask_cmd(
     if _needs_api_key and not _has_api_key:
         console.print("[bold red]✗[/bold red]  No LLM API key found.")
         console.print(
-            "   Set [bold]REKIPEDIA_API_KEY[/bold] (or [bold]OPENAI_API_KEY[/bold]) before running [bold]reki ask[/bold]."
+            "   Set [bold]REKIPEDIA_API_KEY[/bold] (or provider key like [bold]OPENAI_API_KEY[/bold], "
+            "[bold]ANTHROPIC_API_KEY[/bold], [bold]GOOGLE_API_KEY[/bold]) before running [bold]reki ask[/bold]."
         )
         console.print(
-            "   Other providers: [bold]REKIPEDIA_MODEL[/bold]=anthropic/claude-... [bold]REKIPEDIA_API_KEY[/bold]=sk-ant-... reki ask ..."
+            "   Example (Gemini): [bold]REKIPEDIA_MODEL[/bold]=gemini/gemini-2.5-flash "
+            "[bold]GOOGLE_API_KEY[/bold]=... reki ask ..."
         )
         console.print("   Tip: run [bold]`reki scan . --no-llm`[/bold] for static analysis without an API key.")
         sys.exit(1)
