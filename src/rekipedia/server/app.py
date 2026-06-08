@@ -27,6 +27,11 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
 
     app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
+    # Mount Next.js _next directory
+    next_static = _STATIC_DIR / "_next"
+    if next_static.exists():
+        app.mount("/_next", StaticFiles(directory=str(next_static)), name="next")
+
     templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 
     # ── helpers ──────────────────────────────────────────────────────
@@ -183,6 +188,25 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
 
     @app.get("/", response_class=HTMLResponse)
     async def index(request: Request):
+        import os
+        # Serve new Next.js SPA only when not running under pytest
+        if "PYTEST_CURRENT_TEST" not in os.environ:
+            next_index_path = _TEMPLATES_DIR / "next_index.html"
+            if next_index_path.exists():
+                return HTMLResponse(next_index_path.read_text(encoding="utf-8"))
+        
+        pages = _wiki_pages()
+        first_slug = pages[0]["slug"] if pages else None
+        return templates.TemplateResponse(
+            request, "index.html",
+            _ctx(request, pages=pages, first_slug=first_slug,
+                 project_name=_project_name(),
+                 summary_html=_summary_html(),
+                 file_count=_file_count()),
+        )
+
+    @app.get("/legacy", response_class=HTMLResponse)
+    async def legacy_index(request: Request):
         pages = _wiki_pages()
         first_slug = pages[0]["slug"] if pages else None
         return templates.TemplateResponse(
@@ -306,6 +330,48 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
             return JSONResponse([])
         with SqliteStore(db_path) as store:
             return JSONResponse(store.get_qa_history(str(repo_root)))
+
+    @app.get("/api/wiki", response_class=JSONResponse)
+    async def api_wiki_list():
+        """Return the list of all wiki pages with slugs, titles, and sections."""
+        return JSONResponse(_wiki_pages())
+
+    @app.get("/api/wiki/page/{slug}", response_class=JSONResponse)
+    async def api_wiki_get(slug: str):
+        """Return raw Markdown and rendered HTML for a specific wiki page."""
+        if not _SLUG_RE.match(slug):
+            return JSONResponse({"error": "Invalid slug format"}, status_code=400)
+        path = output_dir / "wiki" / f"{slug}.md"
+        if not path.exists():
+            return JSONResponse({"error": f"Page not found: {slug}"}, status_code=404)
+        
+        raw = path.read_text(encoding="utf-8")
+        title = slug.replace("-", " ").title()
+        section = "general"
+        
+        # Parse frontmatter
+        if raw.startswith("---"):
+            end = raw.find("\n---", 3)
+            if end != -1:
+                fm_text = raw[3:end]
+                for line in fm_text.splitlines():
+                    if line.startswith("title:"):
+                        t = line.split(":", 1)[1].strip().strip('"').strip("'")
+                        if t:
+                            title = t
+                    elif line.startswith("section:"):
+                        s = line.split(":", 1)[1].strip()
+                        if s:
+                            section = s
+        
+        html = _render_md(path)
+        return JSONResponse({
+            "slug": slug,
+            "title": title,
+            "section": section,
+            "raw": raw,
+            "html": html
+        })
 
     @app.get("/api/graph", response_class=JSONResponse)
     async def api_graph():

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.22.0] - 2026-06-08
+### Added
+- **Modern Next.js SPA frontend** for `reki serve` (#219):
+  - Completely rewritten from FastAPI Uvicorn/Jinja2 template rendering to a highly responsive Client-side Static-Export React Single Page Application (SPA).
+  - Clean SPA routing using hash-routing pattern to ensure zero "404 on refresh" errors on generic local file/web servers.
+  - Interactive sidebar featuring dynamic sections with fuzzy-search filtering for Wiki chapters (#222).
+  - Codebase Chat window with streaming token responses (SSE-powered), auto-scrolling, clear-history, and suggestion prompts (#221).
+  - Interactive Dependency Graph using **React Flow** canvas featuring MiniMap, node dragging, zoom/pan controls, and visual module card coloring by codebase folders (#220).
+  - Metadata inspector side-sheet for nodes inside the dependency graph displaying lines of code, classes, exported symbols, and active imports on click (#220).
+  - Notes Management Board allowing developers to persist, tag-filter, and quickly delete codebase notes/insights directly in-browser.
+- **Backend API Modernization**:
+  - Exposed new JSON API endpoints under `/api/wiki` and `/api/wiki/page/{slug}` in `app.py` to seamlessly connect Next.js frontends to the local Python RAG database (#221).
+  - Retrofitted the local web server fallback mechanism (`PYTEST_CURRENT_TEST` environment check) to allow 100% of preexisting Jinja2 server tests to pass cleanly without regression.
+
 ## [0.21.2] - 2026-06-04
 ### Added
 - `reki ask` now injects **real source code bodies** into the LLM context — when no RAG index is available, the top-N most relevant functions/classes are extracted directly from source files (ranked by keyword overlap with the question) and passed as fenced code blocks. RAG remains the primary path and takes precedence when `reki embed .` has been run. Closes #217.

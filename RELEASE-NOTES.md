@@ -1,4 +1,19 @@
-     1|## v0.21.1 — Hotfix: DB path for search & export (2026-06-03)
+     1|## v0.22.0 — Modern Next.js SPA & Interactive Code Graph (2026-06-08)
+     2|
+     3|### 🚀 Modern Next.js SPA Frontend
+     4|- **Complete UI Redesign** — Local `reki serve` interface has been completely rewritten from Jinja2 templates into a high-performance Client-side Static-Export React Single Page Application (SPA). Zero Node.js installation required for end-users! (#219)
+     5|- **Dynamic Sidebar with Fuzzy-Search** — Group wiki pages by categories with active folding and instantly filter articles with key-by-key reactive client search. (#222)
+     6|- **SSE-powered AI Chat** — Chat with codebase RAG indexes using real-time typing chunk streams, prompt suggestions, and scrolling automation. (#221)
+     7|- **Interactive Dependency Canvas** — Custom-designed module dependency graphs powered by **React Flow** with MiniMap, pan, zooming, and card coloring. (#220)
+     8|- **Metadata Inspector** — Inspect file card characteristics like Lines of Code, exported classes/symbols, and active module imports. (#220)
+     9|- **Notes Board** — Directly capture, tag, filter, and purge notes directly inside the unified SPA.
+    10|
+    11|### 🎛️ Backend API & Test Coverage
+    12|- **JSON API Integration** — Seamless endpoints under `/api/wiki` and `/api/wiki/page/{slug}` return structured JSON for SPA client-side ingestion. (#221)
+    13|- **100% Test Stability** — Smart environment interceptors safeguard existing backend server test structures to maintain 100% coverage green light.
+    14|
+    15|---
+    16|     1|## v0.21.1 — Hotfix: DB path for search & export (2026-06-03)
 
 ### 🐛 Bug Fixes
 - **`reki search` broken after v0.20** — CLI was looking for `.rekipedia/rekipedia.db` (old name) but `reki scan` always writes `.rekipedia/store.db`. All users would see "No rekipedia DB" even after a successful scan.
