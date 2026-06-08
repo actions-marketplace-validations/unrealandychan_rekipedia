@@ -1,46 +1,46 @@
 {
-  "run_id": "2aedbb74-4c84-406e-8545-07c37bbf9935",
-  "generated_at": "2026-06-05T06:16:37.685631+00:00",
-  "file_count": 429,
-  "symbol_count": 2886,
-  "relationship_count": 13139,
+  "run_id": "0ef39199-c408-4391-87d1-36c39a32c1c9",
+  "generated_at": "2026-06-08T01:29:55.355814+00:00",
+  "file_count": 459,
+  "symbol_count": 3029,
+  "relationship_count": 13185,
   "nav_order": [
-    "cli-and-api",
     "index",
-    "core-modules",
     "architecture",
+    "core-modules",
+    "cli-and-api",
     "installation-and-setup",
-    "testing",
-    "technical-debt"
+    "technical-debt",
+    "testing"
   ],
   "pages": [
     {
-      "slug": "cli-and-api",
-      "title": "CLI & API Reference"
-    },
-    {
       "slug": "index",
       "title": "Project Overview"
-    },
-    {
-      "slug": "core-modules",
-      "title": "Core Modules"
     },
     {
       "slug": "architecture",
       "title": "Architecture"
     },
     {
+      "slug": "core-modules",
+      "title": "Core Modules"
+    },
+    {
+      "slug": "cli-and-api",
+      "title": "CLI & API Reference"
+    },
+    {
       "slug": "installation-and-setup",
       "title": "Installation & Setup"
     },
     {
-      "slug": "testing",
-      "title": "Testing"
-    },
-    {
       "slug": "technical-debt",
       "title": "Technical Debt"
+    },
+    {
+      "slug": "testing",
+      "title": "Testing"
     }
   ],
   "diagrams": [
@@ -55,7 +55,9 @@
     "hatch build",
     "npm run compile",
     "docker build .",
-    "npm run build  # tsc"
+    "npm run build  # tsc",
+    "npm run build  # next build",
+    "npm start  # next start"
   ],
   "test_commands": [
     "pytest",
