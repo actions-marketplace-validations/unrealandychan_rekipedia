@@ -5,8 +5,8 @@
 ## Wiki Pages
 
 - [Core Modules](wiki/core-modules.md)
-- [Project Overview](wiki/index.md)
 - [CLI & API Reference](wiki/cli-and-api.md)
+- [Project Overview](wiki/index.md)
 - [Architecture](wiki/architecture.md)
 - [Installation & Setup](wiki/installation-and-setup.md)
 - [Technical Debt](wiki/technical-debt.md)

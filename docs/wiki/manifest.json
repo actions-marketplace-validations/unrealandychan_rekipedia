@@ -1,13 +1,13 @@
 {
-  "run_id": "c0c4d6cf-b547-41dc-9897-1a4ea272eaac",
-  "generated_at": "2026-06-09T00:17:07.075619+00:00",
+  "run_id": "47ad8dd7-83ad-4d43-b5b7-767831f8758a",
+  "generated_at": "2026-06-09T00:23:30.477162+00:00",
   "file_count": 373,
   "symbol_count": 2358,
   "relationship_count": 12784,
   "nav_order": [
     "core-modules",
-    "index",
     "cli-and-api",
+    "index",
     "architecture",
     "installation-and-setup",
     "technical-debt",
@@ -19,12 +19,12 @@
       "title": "Core Modules"
     },
     {
-      "slug": "index",
-      "title": "Project Overview"
-    },
-    {
       "slug": "cli-and-api",
       "title": "CLI & API Reference"
+    },
+    {
+      "slug": "index",
+      "title": "Project Overview"
     },
     {
       "slug": "architecture",

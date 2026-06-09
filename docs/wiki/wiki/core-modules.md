@@ -5,7 +5,7 @@ section: core-components
 tags: [modules, reference, api]
 pin: false
 importance: 50
-created_at: 2026-06-09T00:17:06Z
+created_at: 2026-06-09T00:23:30Z
 rekipedia_version: 0.22.0
 ---
 
