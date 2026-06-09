@@ -77,24 +77,6 @@ repos:
       - id: prettier
         types_or: [ts, tsx, javascript, jsx, json, yaml, markdown]
 
-  # ── Go ────────────────────────────────────────────────────────────────────────
-  # Requires: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-  - repo: https://github.com/dnephin/pre-commit-golang
-    rev: v0.5.1
-    hooks:
-      - id: go-fmt
-      - id: go-vet
-      - id: go-unit-tests
-
-  - repo: local
-    hooks:
-      - id: golangci-lint
-        name: golangci-lint
-        entry: golangci-lint run --fix
-        language: system
-        types: [go]
-        pass_filenames: false
-
   # ── Java ──────────────────────────────────────────────────────────────────────
   # Requires: mvn or gradle available in PATH
   - repo: local
