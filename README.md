@@ -1,8 +1,25 @@
+<div align="center">
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=170&section=header&text=rekipedia&fontSize=52&fontColor=ffffff&fontAlignY=38&desc=Turn+any+repo+into+an+AI-ready+knowledge+base&descAlignY=58&descSize=14" alt="Header"/>
+
+[![PyPI](https://img.shields.io/badge/PyPI-rekipedia-3776AB?style=for-the-badge&logo=pypi&logoColor=white&labelColor=0d1117)](https://pypi.org/project/rekipedia/)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=0d1117)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-amber?style=for-the-badge&logo=open-source-initiative&logoColor=white&labelColor=0d1117)](LICENSE)
+[![MCP](https://img.shields.io/badge/MCP-Compatible-8b5cf6?style=for-the-badge&logo=protocols.io&logoColor=white&labelColor=0d1117)](https://modelcontextprotocol.io)
+
+</div>
+
+---
+
 # rekipedia
 
-**Turn any repo into an AI-ready knowledge base — wiki, RAG, and MCP server included.**
+> **One scan. A living wiki. AI agents that actually know your code.**
+>
+> Parse any codebase into a structured SQLite knowledge store, auto-generate wiki pages, and expose everything via CLI and an MCP stdio server — with file:line citations and zero hallucinations.
 
-[![PyPI version](https://img.shields.io/pypi/v/rekipedia.svg)](https://pypi.org/project/rekipedia/) [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/) [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![MCP](https://img.shields.io/badge/MCP-compatible-purple.svg)](https://modelcontextprotocol.io)
+[![PyPI version](https://img.shields.io/pypi/v/rekipedia.svg)](https://pypi.org/project/rekipedia/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
 
@@ -13,19 +30,21 @@
 | "Where does the auth logic live?" | `reki ask "how does auth work?"` → `src/auth.py:42` |
 | Onboarding new devs takes days | `reki onboard .` generates a guided walkthrough in seconds |
 | AI agents hallucinate about your codebase | `reki mcp` gives agents a grounded knowledge base with citations |
-| Refactor anxiety | `reki hotspots` surfaces hub nodes and bridge nodes before you touch anything |
+| Refactor anxiety — will this break everything? | `reki hotspots` surfaces hub and bridge nodes before you touch anything |
 | Wiki goes stale immediately | `reki watch .` auto-reindexes on every file save |
 
 ---
 
 ## ⚡ Quickstart
 
+### Install
+
 ```bash
 pip install rekipedia
 # or: npx rekipedia
 ```
 
-### With LLM (richer wiki + Q&A)
+### Scan & Ask (with LLM)
 
 ```bash
 export REKIPEDIA_MODEL=gemini/gemini-2.5-flash
@@ -34,9 +53,48 @@ reki scan .
 reki ask "how does authentication work?"
 ```
 
+### Scan without LLM (zero config, no API key)
+
+```bash
+reki scan . --no-llm
+reki ask "what is the entry point?" --no-llm
+```
+
 ---
 
-## Key Features
+## 🏗️ Architecture & Data Storage
+
+```
+.rekipedia/
+│
+├── store.db              # 🗃️ Structured SQLite graph
+│   └── symbols, relationships, file manifests, scan history
+│
+├── rag/
+│   └── faiss.index       # 🔍 Dense embedding vectors (FAISS / Qdrant / Chroma)
+│
+├── wiki/
+│   └── *.md              # 📄 Auto-generated wiki pages per module
+│
+├── diagrams/
+│   └── *.md              # 🏛️ Architecture diagrams & hotspot reports
+│
+└── config.yml            # ⚙️ Backend, LLM, and team-sync settings
+```
+
+### Storage at a Glance
+
+| Layer | Format | Purpose | Size (typical 50k–200k LOC repo) |
+|---|---|---|---|
+| **SQLite** | `store.db` | Structured graph — symbols, callers, exact lookup | ~10–80 MB |
+| **Vector** | `.rekipedia/rag/` | Dense embeddings for semantic / fuzzy search | ~50–500 MB |
+| **Wiki** | `wiki/*.md` | Human-readable pages, git-publishable | ~1–5 MB |
+
+> **Gitignore note:** `store.db` and `rag/` are gitignored — they contain machine-specific absolute paths. Each developer runs `reki scan .` locally. Share human-readable output via `reki publish .`.
+
+---
+
+## 🚀 Core Features
 
 ### 🗂 `reki scan` — Instant knowledge store
 
@@ -49,15 +107,16 @@ reki scan . --no-llm   # zero config, no API key required
 
 ### 💬 `reki ask` — Q&A grounded in your code
 
-Answers questions with file:line citations **and real code examples**. No hallucinations — every answer is backed by indexed source, with actual function bodies quoted inline.
+Answers with **file:line citations and real code examples**. No hallucinations — every answer is backed by indexed source, with actual function bodies quoted inline.
 
 ```bash
 reki ask "what is the entry point?"
 reki ask "which modules handle payments?" --brief
 ```
 
+**Example output:**
 ```
-Answer: The entry point is src/main.py:12 — `App.run()` bootstraps the server.
+Answer: The entry point is src/main.py:12 — App.run() bootstraps the server.
 
 ```python
 # src/main.py:12
@@ -69,28 +128,39 @@ def run(self):
 Sources: src/main.py:12, src/server.py:34
 ```
 
-**How it works:** rekipedia extracts the actual source bodies of the most relevant functions/classes and passes them directly to the LLM — so answers include real, runnable code, not just paraphrases. When a FAISS index exists (`reki embed .`), RAG chunks are used instead for even higher precision.
+**How it works:** rekipedia extracts actual source bodies of the most relevant functions/classes and passes them directly to the LLM — so answers include real, runnable code, not just paraphrases. When a FAISS index exists (`reki embed .`), RAG chunks are used for even higher precision.
 
 ### 🤖 `reki mcp` — MCP server for AI agents
 
-Plug rekipedia directly into Claude Code, Cursor, or any MCP-aware agent.
+Plug rekipedia directly into Claude Code, Cursor, GitHub Copilot, or any MCP-aware agent.
 
 ```bash
 reki mcp
 ```
 
-Available tools: `ask`, `search_nodes`, `get_context`, `get_relationships`, `get_hub_nodes`, `get_impact`
+**Available MCP tools:**
+
+| Tool | Purpose |
+|---|---|
+| `ask` | Natural-language Q&A grounded in the scanned wiki |
+| `search_nodes` | Fast symbol/file lookup by name |
+| `get_context` | Symbols and relationships for a file |
+| `get_relationships` | Callers and callees for a symbol |
+| `get_hub_nodes` | Architectural chokepoints |
+| `get_impact` | Blast-radius for a changed file |
+| `get_knowledge_gaps` | Untested high-call-count symbols |
+| `list_wiki_pages` / `get_wiki_page` | Wiki browsing |
 
 ### 🔥 `reki hotspots` — Architectural hotspot detection
 
-Finds hub and bridge nodes — the files your whole codebase depends on.
+Finds hub nodes (files many depend on) and bridge nodes (files connecting clusters).
 
 ```bash
 reki hotspots
 ```
 
 ```
-Hub nodes:   src/core/engine.py (42 dependents)
+Hub nodes:    src/core/engine.py (42 dependents)
 Bridge nodes: src/adapters/db.py (connects 3 clusters)
 ```
 
@@ -102,91 +172,25 @@ Only regenerates wiki pages affected by your changes.
 reki update . --impact-only
 ```
 
----
+### 🌐 `reki serve` — Local web UI
 
-## MCP Integration
-
-rekipedia ships a full MCP stdio server. Connect it to any MCP-aware agent in seconds.
-
-Add to your `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "rekipedia": {
-      "command": "reki",
-      "args": ["mcp"],
-      "cwd": "."
-    }
-  }
-}
-```
-
-Claude Code and Cursor will automatically discover this config. The agent can then call:
-
-- `ask` — Q&A over the codebase
-- `search_nodes` — symbol/file search
-- `get_context` — file-level context
-- `get_relationships` — dependency graph queries
-- `get_hub_nodes` — architectural hotspots
-- `get_impact` — change impact analysis
-- `list_wiki_pages` — enumerate all wiki pages
-- `get_wiki_page` — read a specific wiki page by name
----
-## AI CLI tool integration
-
-rekipedia integrates natively with the major AI coding assistants via MCP (Model Context Protocol). After scanning your codebase, run:
+Launch a browsable wiki at `http://127.0.0.1:7070`.
 
 ```bash
-reki init --with-all-ai    # configure Copilot + Codex + Cursor in one step
-# or pick individually:
-reki init --with-copilot   # GitHub Copilot (VS Code) — writes .vscode/mcp.json
-reki init --with-codex     # Codex CLI — writes .codex/instructions.md + setup hint
-reki init --with-cursor    # Cursor — writes .cursor/mcp.json + rules
+reki serve .
 ```
 
-Once configured, each tool automatically gets access to these rekipedia MCP tools:
+### 📤 `reki publish` — Team sharing
 
-| MCP Tool | What it does |
-|---|---|
-| `ask` | Natural-language Q&A grounded in the scanned wiki |
-| `search_nodes` | Fast symbol lookup by name |
-| `get_context` | Symbols and relationships for a file |
-| `get_relationships` | Callers and callees for a symbol |
-| `get_hub_nodes` | Architectural chokepoints |
-| `get_impact` | Blast-radius for a changed file |
-| `get_knowledge_gaps` | Untested high-call-count symbols |
-| `list_wiki_pages` | List all wiki pages |
-| `get_wiki_page` | Read a specific wiki page by name |
-
----
-
-## LLM Setup
-
-rekipedia works without an LLM (`--no-llm`). To enable richer summaries and Q&A:
+Copy generated wiki into a git-tracked directory for team browsing.
 
 ```bash
-export REKIPEDIA_MODEL=gemini/gemini-2.5-pro
-export GOOGLE_API_KEY=...
-```
-
-Or use a provider-agnostic key:
-
-```bash
-export REKIPEDIA_MODEL=openai/gpt-4o
-export REKIPEDIA_API_KEY=sk-...
-```
-
-Any OpenAI-compatible endpoint works:
-
-```bash
-export REKIPEDIA_API_KEY=ollama
-export REKIPEDIA_MODEL=ollama/llama3
+reki publish . [--output-dir PATH]
 ```
 
 ---
 
-## Commands
+## 🛠️ Commands Cheat Sheet
 
 | Command | Description |
 |---|---|
@@ -197,11 +201,11 @@ export REKIPEDIA_MODEL=ollama/llama3
 | `reki update . --impact-only` | Incremental update, affected pages only |
 | `reki serve .` | Local web UI at `http://127.0.0.1:7070` |
 | `reki embed .` | Build FAISS semantic index |
-| `reki publish . [--output-dir PATH]` | Publish wiki to a git-tracked directory for team sharing |
-| `reki export . --format bundle` | Export a content-addressed wiki bundle for team sync |
-| `reki merge <bundle-A> <bundle-B> [--base BASE]` | Three-way wiki merge — conflict-free team sync |
-| `reki pull [URL]` | Fetch and merge a remote wiki bundle (HTTPS/S3/GCS) |
-| `reki watch . --publish` | Auto-index + auto-publish wiki on every file save |
+| `reki publish . [--output-dir PATH]` | Publish wiki to a git-tracked directory |
+| `reki export . --format bundle` | Export a content-addressed wiki bundle |
+| `reki merge <bundle-A> <bundle-B> [--base BASE]` | Three-way conflict-free wiki merge |
+| `reki pull [URL]` | Fetch and merge a remote wiki bundle |
+| `reki watch . --publish` | Auto-index + auto-publish on every file save |
 | `reki export . --format md\|zip\|json\|html\|bundle` | Export the wiki |
 | `reki diff` | Show impact of uncommitted changes |
 | `reki hotspots` | Hub & bridge node detection |
@@ -209,96 +213,151 @@ export REKIPEDIA_MODEL=ollama/llama3
 | `reki refactor . --apply` | Apply refactor suggestions |
 | `reki mcp` | Start MCP stdio server |
 | `reki review` | LLM-powered PR review |
-| `reki watch .` | Auto-index on file change |
 | `reki hook install` | Install git post-commit hook |
-| `reki init --with-all-ai` | Configure MCP for GitHub Copilot, Codex CLI, and Cursor in one step |
+| `reki init --with-all-ai` | Configure MCP for Copilot + Codex + Cursor |
+| `reki init --with-ci` | Scaffold GitHub Actions workflow for auto-wiki |
 
 ---
 
-## FAQ
+## 🤖 AI CLI Tool Integration
 
-### Q: Why is `store.db` gitignored? How do teammates use rekipedia?
+```bash
+reki init --with-all-ai    # configure Copilot + Codex + Cursor in one step
 
-`store.db` is a binary SQLite file containing machine-specific absolute paths — committing it would cause path mismatches on other machines and create noisy binary diffs. Each developer runs `reki scan .` locally to build their own store. To share the human-readable output with your team, use `reki publish .`, which copies the generated wiki pages to `docs/wiki/` so they can be committed and browsed in your repo or docs site.
+# or pick individually:
+reki init --with-copilot   # VS Code — writes .vscode/mcp.json
+reki init --with-codex     # Codex CLI — writes .codex/instructions.md
+reki init --with-cursor    # Cursor — writes .cursor/mcp.json + rules
+```
 
----
-
-### Q: What is `store.db` for vs the FAISS index? Why do I need both?
-
-They serve distinct purposes and are not interchangeable. `store.db` is a structured SQLite graph: it stores symbols, relationships, file manifests, and scan run history — the kind of data you query with precise filters ("find all callers of function X"). The FAISS index (built by `reki embed .`) stores dense embedding vectors for every chunk of your codebase, enabling fuzzy semantic search ("find code that handles authentication"). `reki ask` uses both together: BM25 keyword search over SQLite and vector similarity search over FAISS, then merges the results.
-
----
-
-### Q: Can I use Postgres, MySQL, or another database instead of SQLite?
-
-Not currently. SQLite is the only supported backend for the structured symbol/relationship store, and it is intentional — SQLite is zero-config, portable, and requires no running server, which keeps `reki scan` self-contained. The `reki export .` command produces JSON exports (`symbols.json`, `relationships.json`) you can load into any database. Postgres/MySQL support is not on the roadmap, but the JSON exports make integration with your own tooling straightforward.
+Once configured, each tool automatically gets access to the [MCP tools listed above](#-reki-mcp--mcp-server-for-ai-agents).
 
 ---
 
-### Q: Does rekipedia support Qdrant or Chroma instead of FAISS?
+## ⚙️ LLM Setup
 
-Yes. FAISS is the default vector backend, but Qdrant and Chroma are both supported as optional backends. Qdrant and Chroma are useful when you want a persistent, server-hosted vector store shared across machines — unlike the local FAISS index, a running Qdrant or Chroma instance can be queried by your whole team without each person running `reki embed`. Install the relevant extras (`pip install rekipedia[qdrant]` or `rekipedia[chroma]`) and configure the backend in `.rekipedia/config.yml`.
+rekipedia works **entirely without an LLM** (`--no-llm`). To enable richer summaries and Q&A:
 
----
+```bash
+export REKIPEDIA_MODEL=gemini/gemini-2.5-pro
+export GOOGLE_API_KEY=...
+```
 
-### Q: Do I need an OpenAI API key?
+Or use any OpenAI-compatible endpoint:
 
-No. rekipedia can run entirely without an LLM using the `--no-llm` flag — `reki scan . --no-llm` performs static analysis only, producing the symbol graph and wiki structure without AI-generated summaries. When you do want richer summaries and Q&A, rekipedia supports OpenAI, Anthropic, Ollama (local), Azure OpenAI, and any OpenAI-compatible endpoint. For fully offline usage, point it at a local [Ollama](https://ollama.com) instance — no internet required.
+```bash
+export REKIPEDIA_MODEL=openai/gpt-4o
+export REKIPEDIA_API_KEY=sk-...
 
----
-
-### Q: How do I share the wiki with my team without everyone running `reki scan`?
-
-Use `reki publish .`. This command copies the generated `wiki/*.md` and `diagrams/*.md` files into `docs/wiki/` (not gitignored), which can be committed and browsed directly in GitHub, your docs site, or any Markdown viewer — no local scan required. The best setup is to automate publishing in CI so the wiki stays current whenever the main branch changes (see the GitHub Actions question below).
-
----
-
-### Q: How do I keep the wiki up to date automatically?
-
-Run `reki init --with-ci` to scaffold a GitHub Actions workflow (`.github/workflows/rekipedia-wiki.yml`) that runs `reki scan`, then `reki publish` on every push to `main`. The workflow commits any changes to `docs/wiki/` back to the repo automatically. Set `REKIPEDIA_API_KEY` as a repository secret for LLM-enriched pages; omit it and the workflow falls back to `--no-llm` mode at zero cost.
+# Local / offline
+export REKIPEDIA_API_KEY=ollama
+export REKIPEDIA_MODEL=ollama/llama3
+```
 
 ---
 
-### Q: How does team sync work for distributed teams?
+## ❓ FAQ
 
-rekipedia's team sync is a multi-layer system for conflict-free wiki collaboration:
+**Q: Why is `store.db` gitignored? How do teammates use rekipedia?**
 
-1. **Bundle** — `reki export --format bundle` creates a deterministic, content-addressed snapshot with a stable `bundle_id` and per-page hash trailers.
-2. **Merge** — `reki merge bundle-A bundle-B --base bundle-base` performs a three-way merge: pages changed by only one developer are accepted automatically; only genuinely divergent pages produce conflict markers.
-3. **Git merge driver** — `reki init --with-merge-driver` registers a git merge driver so `git merge` and `git pull` automatically use rekipedia's merge logic — no `<<<<<<` conflicts in generated wiki files.
-4. **Live sync** — `reki watch . --publish` publishes the wiki after every incremental update, keeping `docs/wiki/` in sync as you code. Set `team.sync_dir` in `.rekipedia/config.yml` for the default target.
-5. **Remote pull** — `reki pull <url>` fetches a bundle from HTTPS, S3, or GCS and merges it locally. Combine with `reki init --with-ci --with-upload s3` to have CI upload a fresh bundle after every main-branch push.
+`store.db` contains machine-specific absolute paths — committing it would cause path mismatches and noisy binary diffs. Each developer runs `reki scan .` locally. To share human-readable output, use `reki publish .`, which copies generated wiki pages to `docs/wiki/` so they can be committed and browsed on GitHub or your docs site.
 
 ---
 
-### Q: How does `reki ask` actually work under the hood?
+**Q: What is `store.db` for vs the FAISS index? Why do I need both?**
 
-`reki ask "question"` runs a hybrid retrieval pipeline. First, it executes a BM25 keyword search against the SQLite store to find exact and near-exact symbol/token matches. In parallel, it encodes your question into an embedding vector and queries the FAISS (or Qdrant/Chroma) index for semantically similar chunks. The two result sets are merged and re-ranked by relevance score, then the top chunks are passed as context to your configured LLM, which synthesises a final answer with file:line citations. With `--no-llm`, retrieval results are returned directly without synthesis.
+| | `store.db` | FAISS / Qdrant / Chroma |
+|---|---|---|
+| **Format** | Structured SQLite graph | Dense embedding vectors |
+| **Purpose** | Precise filters — "find all callers of function X" | Fuzzy semantic search — "find code that handles authentication" |
+| **Used by** | `search_nodes`, `get_relationships`, `hotspots` | `reki ask` RAG pipeline |
 
----
-
-### Q: How large does `store.db` / the FAISS index get on a large repo?
-
-For a typical mid-size repo (50k–200k lines of code), `store.db` is usually 10–80 MB. The FAISS index in `.rekipedia/rag/` scales with the number of embedded chunks — expect 50–500 MB for the same size range, which is why `rag/` is gitignored by default. On very large monorepos (1M+ LOC), the FAISS index can exceed 1 GB; in that case, switching to a server-backed Qdrant instance is recommended so the index lives outside your working directory.
-
----
-
-### Q: Can rekipedia scan private or fully offline repos?
-
-Yes, fully. `reki scan` is pure static analysis — it never sends your source code anywhere. With `--no-llm`, the entire pipeline is offline and air-gap safe. When LLM features are enabled, only retrieved *chunks* (not your full source) are sent to the LLM provider as context; if you use Ollama, even that stays local. There are no telemetry calls, no license checks against a remote server, and no requirement for internet access beyond reaching your chosen LLM API endpoint.
+`reki ask` uses both: BM25 keyword search over SQLite **plus** vector similarity search, then merges and re-ranks results.
 
 ---
 
-## Coming Soon
+**Q: Can I use Postgres or MySQL instead of SQLite?**
+
+Not currently. SQLite is intentional — zero-config, portable, no running server. `reki export .` produces `symbols.json` and `relationships.json` for loading into any database. Postgres/MySQL support is not on the roadmap, but the JSON exports make integration straightforward.
+
+---
+
+**Q: Does rekipedia support Qdrant or Chroma instead of FAISS?**
+
+Yes. FAISS is the default, but Qdrant and Chroma are supported as optional backends — useful for shared, persistent vector stores across a team. Install extras:
+
+```bash
+pip install rekipedia[qdrant]    # or rekipedia[chroma]
+```
+
+Then configure the backend in `.rekipedia/config.yml`.
+
+---
+
+**Q: Do I need an OpenAI API key?**
+
+No. `reki scan . --no-llm` performs static analysis only — fully offline and air-gap safe. When LLM features are enabled, only retrieved chunks (not your full source) are sent as context. Use [Ollama](https://ollama.com) for fully local inference — no internet required.
+
+---
+
+**Q: How do I keep the wiki up to date automatically?**
+
+Run `reki init --with-ci` to scaffold a GitHub Actions workflow that runs `reki scan` + `reki publish` on every push to `main`. The workflow commits changes to `docs/wiki/` back to the repo automatically. Set `REKIPEDIA_API_KEY` as a repository secret for LLM-enriched pages; omit it and the workflow falls back to `--no-llm` at zero cost.
+
+---
+
+**Q: How does team sync work for distributed teams?**
+
+rekipedia uses a multi-layer, conflict-free collaboration system:
+
+1. **Bundle** — `reki export --format bundle` creates a deterministic, content-addressed snapshot.
+2. **Merge** — `reki merge bundle-A bundle-B --base bundle-base` performs a three-way merge with automatic resolution for non-conflicting changes.
+3. **Git merge driver** — `reki init --with-merge-driver` registers a custom driver so `git merge` and `git pull` use rekipedia's logic — no `<<<<<<` conflicts in generated wiki files.
+4. **Live sync** — `reki watch . --publish` publishes the wiki after every incremental update.
+5. **Remote pull** — `reki pull <url>` fetches a bundle from HTTPS, S3, or GCS and merges it locally.
+
+---
+
+**Q: How does `reki ask` work under the hood?**
+
+A hybrid retrieval pipeline:
+
+1. **BM25 keyword search** against the SQLite store for exact and near-exact matches.
+2. **Vector similarity search** against FAISS/Qdrant/Chroma for semantic matches.
+3. **Merge & re-rank** the two result sets by relevance score.
+4. **LLM synthesis** — top chunks passed to your configured LLM with file:line citations.
+
+With `--no-llm`, retrieval results are returned directly without synthesis.
+
+---
+
+**Q: How large does `store.db` / the FAISS index get on a large repo?**
+
+For a typical mid-size repo (50k–200k LOC):
+
+| Storage | Typical Size |
+|---|---|
+| `store.db` | 10–80 MB |
+| FAISS index | 50–500 MB |
+
+On very large monorepos (1M+ LOC), the FAISS index can exceed 1 GB; switching to a server-backed Qdrant instance is recommended.
+
+---
+
+**Q: Can rekipedia scan private or fully offline repos?**
+
+Yes, fully. `reki scan` is pure static analysis — it never sends your source code anywhere. With `--no-llm`, the entire pipeline is offline and air-gap safe. There are no telemetry calls, no license checks against a remote server, and no internet requirement beyond your chosen LLM endpoint.
+
+---
+
+## 🔮 Coming Soon
 
 - **Hosted wiki** — share your knowledge base with a link, no self-hosting required
 - **VS Code extension** — inline `reki ask` from your editor
 
 ---
 
-## Contributing
-
-rekipedia is going MIT open source. Contributions welcome.
+## 🤝 Contributing
 
 ```bash
 git clone https://github.com/unrealandychan/rekipedia.git
