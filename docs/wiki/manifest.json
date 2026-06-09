@@ -1,34 +1,34 @@
 {
-  "run_id": "0ef39199-c408-4391-87d1-36c39a32c1c9",
-  "generated_at": "2026-06-08T01:29:55.355814+00:00",
-  "file_count": 459,
-  "symbol_count": 3029,
-  "relationship_count": 13185,
+  "run_id": "c0c4d6cf-b547-41dc-9897-1a4ea272eaac",
+  "generated_at": "2026-06-09T00:17:07.075619+00:00",
+  "file_count": 373,
+  "symbol_count": 2358,
+  "relationship_count": 12784,
   "nav_order": [
-    "index",
-    "architecture",
     "core-modules",
+    "index",
     "cli-and-api",
+    "architecture",
     "installation-and-setup",
     "technical-debt",
     "testing"
   ],
   "pages": [
     {
-      "slug": "index",
-      "title": "Project Overview"
-    },
-    {
-      "slug": "architecture",
-      "title": "Architecture"
-    },
-    {
       "slug": "core-modules",
       "title": "Core Modules"
     },
     {
+      "slug": "index",
+      "title": "Project Overview"
+    },
+    {
       "slug": "cli-and-api",
       "title": "CLI & API Reference"
+    },
+    {
+      "slug": "architecture",
+      "title": "Architecture"
     },
     {
       "slug": "installation-and-setup",
@@ -50,18 +50,15 @@
   "risks": [],
   "build_commands": [
     "uv build",
-    "CGO_ENABLED=0 go build -ldflags \"-s -w\" -o /tmp/reki ./cmd/rekipedia",
     "hatch build",
     "hatch build",
     "npm run compile",
-    "docker build .",
     "npm run build  # tsc",
     "npm run build  # next build",
     "npm start  # next start"
   ],
   "test_commands": [
     "pytest",
-    "go test ./... -v -count=1 -timeout 120s",
     "pytest tests/ -v --timeout=60 \\",
     "npm test",
     "pip install pytest",
