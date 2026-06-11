@@ -1,7 +1,19 @@
-     1|## v0.22.0 — Modern Next.js SPA & Interactive Code Graph (2026-06-08)
+     1|## v0.22.1 — Interactive REPL History (2026-06-10)
      2|
-     3|### 🚀 Modern Next.js SPA Frontend
-     4|- **Complete UI Redesign** — Local `reki serve` interface has been completely rewritten from Jinja2 templates into a high-performance Client-side Static-Export React Single Page Application (SPA). Zero Node.js installation required for end-users! (#219)
+     3|### 🎯 New Features
+     4|- **Arrow-key history in `reki ask`** — closes #224
+     5|  - Press **↑** (Up arrow) in the `reki ask` REPL to recall previous questions, **↓** (Down arrow) to cycle forward.
+     6|  - Behaviour mirrors shell command history: deduplicates consecutive repeats, ignores empty lines, and skips `exit`/`quit`/`q` commands.
+     7|  - History is persisted to `~/.rekipedia/ask_history` across sessions (max 1,000 entries).
+     8|  - Uses the standard-library `readline` module on Unix/macOS (automatic); Windows users can install `pyreadline3` for the same experience.
+     9|  - New flag: `--no-history` — disables arrow-key recall for the current session without deleting the history file.
+    10|
+    11|---
+    12|
+    13|     1|## v0.22.0 — Modern Next.js SPA & Interactive Code Graph (2026-06-08)
+    14|     2|
+    15|     3|### 🚀 Modern Next.js SPA Frontend
+    16|     4|- **Complete UI Redesign** — Local `reki serve` interface has been completely rewritten from Jinja2 templates into a high-performance Client-side Static-Export React Single Page Application (SPA). Zero Node.js installation required for end-users! (#219)
      5|- **Dynamic Sidebar with Fuzzy-Search** — Group wiki pages by categories with active folding and instantly filter articles with key-by-key reactive client search. (#222)
      6|- **SSE-powered AI Chat** — Chat with codebase RAG indexes using real-time typing chunk streams, prompt suggestions, and scrolling automation. (#221)
      7|- **Interactive Dependency Canvas** — Custom-designed module dependency graphs powered by **React Flow** with MiniMap, pan, zooming, and card coloring. (#220)

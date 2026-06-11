@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.22.1] - 2026-06-10
+### Added
+- `reki ask` arrow-key history — press ↑ / ↓ in interactive REPL to recall previous questions, just like a shell. History is persisted to `~/.rekipedia/ask_history` across sessions. Use `--no-history` to disable. Closes #224.
+
 ## [0.22.0] - 2026-06-08
 ### Added
 - **Modern Next.js SPA frontend** for `reki serve` (#219):

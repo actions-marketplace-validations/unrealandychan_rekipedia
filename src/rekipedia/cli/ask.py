@@ -18,6 +18,15 @@ from rekipedia.models.contracts import LLMConfig
 
 console = Console()
 
+# ── Readline history (Unix/macOS; Windows requires pyreadline3) ──────────────
+try:
+    import readline
+except ImportError:
+    readline = None
+
+_HISTORY_FILE = Path.home() / ".rekipedia" / "ask_history"
+_HISTORY_MAX_LEN = 1000
+
 # ── Streaming config ─────────────────────────────────────────────────────────
 # Streaming is ON by default. Disable via REKIPEDIA_STREAM=0 or --no-stream flag.
 _STREAM_DEFAULT = os.environ.get("REKIPEDIA_STREAM", "1") != "0"
@@ -39,6 +48,37 @@ def _print_banner() -> None:
 def _load_config(repo: Path) -> dict:
     from rekipedia.config.loader import load_config
     return load_config(repo)
+
+
+def _load_ask_history() -> None:
+    """Load prior ask questions from disk into readline history."""
+    if readline is None:
+        return
+    try:
+        readline.read_history_file(str(_HISTORY_FILE))
+        readline.set_history_length(_HISTORY_MAX_LEN)
+    except FileNotFoundError:
+        pass
+
+
+def _save_ask_history() -> None:
+    """Persist current readline history to disk."""
+    if readline is None:
+        return
+    _HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    readline.write_history_file(str(_HISTORY_FILE))
+
+
+def _add_input_history(line: str) -> None:
+    """Add *line* to readline history, skipping duplicates of the last entry."""
+    if readline is None or not line:
+        return
+    length = readline.get_current_history_length()
+    if length > 0:
+        last = readline.get_history_item(length)
+        if last == line:
+            return
+    readline.add_history(line)
 
 
 def _build_llm_config(repo: Path, model: str | None) -> LLMConfig:
@@ -199,6 +239,7 @@ def _answer_streaming(
 @click.option("--output-dir", default=None, type=click.Path(path_type=Path), help="Output directory.")
 @click.option("--history-limit", default=10, show_default=True, help="Max conversation turns to keep in context.")
 @click.option("--no-save-session", is_flag=True, default=False, help="Do not save session history to disk.")
+@click.option("--no-history", is_flag=True, default=False, help="Disable readline history (arrow keys) for this session.")
 @click.option("--no-rewrite", is_flag=True, default=False, help="Disable silent query rewriting.")
 @click.option(
     "--no-stream",
@@ -235,6 +276,7 @@ def ask_cmd(
     output_dir: Path | None,
     history_limit: int,
     no_save_session: bool,
+    no_history: bool,
     no_rewrite: bool,
     no_stream: bool,
     pinned_files: tuple[str, ...],
@@ -350,12 +392,18 @@ def ask_cmd(
     console.print()
 
     turn = 0
+    if not no_history:
+        _load_ask_history()
+
     while True:
         turn += 1
         try:
-            user_input = console.input(f"\n[bold bright_yellow][{turn}] ❯ [/bold bright_yellow]").strip()
+            console.print(f"\n[bold bright_yellow][{turn}] ❯ [/bold bright_yellow]", end="")
+            user_input = input().strip()
         except (KeyboardInterrupt, EOFError):
             console.print("\n[dim]── session ended ──[/dim]")
+            if not no_history:
+                _save_ask_history()
             _save_session()
             break
 
@@ -364,8 +412,13 @@ def ask_cmd(
             continue
         if user_input.lower() in ("exit", "quit", "q"):
             console.print("\n[dim]── session ended ──[/dim]")
+            if not no_history:
+                _save_ask_history()
             _save_session()
             break
+
+        if not no_history:
+            _add_input_history(user_input)
 
         answer = _answer_streaming(user_input, repo, output_dir, llm_config, history=list(history), stream=use_stream, pinned_files=list(pinned_files), brief=brief)
         if answer:
