@@ -5,6 +5,7 @@ classDiagram
   ABC <|-- BaseRunner
   BaseModel <|-- BizDomainGraph
   VectorStore <|-- ChromaStore
+  ShardPlanner <|-- CommunityShardPlanner
   BaseExtractor <|-- ConfigExtractor
   BaseRunner <|-- DockerSandboxRunner
   BaseModel <|-- DomainNode
@@ -19,5 +20,4 @@ classDiagram
   BaseExtractor <|-- PythonExtractor
   VectorStore <|-- QdrantStore
   BaseModel <|-- RationaleNote
-  BaseModel <|-- RefactorIssue
 ```
