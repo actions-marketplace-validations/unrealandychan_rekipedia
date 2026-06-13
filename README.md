@@ -103,6 +103,7 @@ Parses your repo into a SQLite knowledge store with symbols, relationships, and 
 ```bash
 reki scan .            # full scan with LLM summaries
 reki scan . --no-llm   # zero config, no API key required
+reki scan . --community-sharding   # group related files by import-graph community before summarising
 ```
 
 ### 💬 `reki ask` — Q&A grounded in your code
@@ -147,6 +148,9 @@ reki mcp
 | `get_context` | Symbols and relationships for a file |
 | `get_relationships` | Callers and callees for a symbol |
 | `get_hub_nodes` | Architectural chokepoints |
+| `get_god_nodes` | Top N symbols by combined in+out degree — find architectural bottlenecks instantly |
+| `shortest_path` | BFS shortest directed call-path between any two symbols (e.g. "how does A reach B?") |
+| `get_community` | Which import-graph community a symbol belongs to, plus all community members |
 | `get_impact` | Blast-radius for a changed file |
 | `get_knowledge_gaps` | Untested high-call-count symbols |
 | `list_wiki_pages` / `get_wiki_page` | Wiki browsing |
@@ -368,4 +372,4 @@ Open an issue or PR — the bar is low and the maintainer is responsive.
 
 ---
 
-**Current version:** `0.17.25` · [PyPI](https://pypi.org/project/rekipedia/) · [MIT License](LICENSE)
+**Current version:** `0.23.0` · [PyPI](https://pypi.org/project/rekipedia/) · [MIT License](LICENSE)

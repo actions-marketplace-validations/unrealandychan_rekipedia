@@ -1,4 +1,64 @@
-     1|## v0.22.1 — Interactive REPL History (2026-06-10)
+     1|## v0.23.0 — Community Sharding & Graph Intelligence MCP Tools (2026-06-13)
+
+### 🧩 Community-Aware Sharding (`--community-sharding`) — closes #229
+
+A new optional scan mode that groups semantically related files together *before* LLM summarisation, producing richer, more coherent wiki pages for large or modular codebases.
+
+- **`reki scan . --community-sharding`** — enables label-propagation community detection on the import/call graph; files that call each other end up in the same wiki shard, so the LLM sees tightly cohesive context instead of arbitrary alphabetical batches.
+- **`graph_communities.py`** — new module implementing weighted label-propagation (`detect_communities(edges)`). Handles isolated nodes and convergence automatically.
+- **`CommunityShardPlanner`** — drop-in replacement for `ShardPlanner`; respects the same token-budget contract so existing pipeline code needs zero changes.
+- `run_digest.py` accepts `community_sharding: bool = False`; `reki scan` wires the flag end-to-end.
+- 8 new tests covering community detection, planner grouping, token-budget splitting, empty graphs, and CLI flag acceptance.
+
+### 🔬 Three New MCP Graph-Intelligence Tools — closes #230
+
+AI agents using rekipedia via MCP now have direct access to graph-level analysis without leaving the agent loop.
+
+#### `get_god_nodes`
+Returns the top-N "god nodes" — symbols with the highest combined in+out degree in the call graph. Use this to instantly identify architectural bottlenecks that every module depends on.
+
+```json
+// request
+{"name": "get_god_nodes", "arguments": {"top_n": 5}}
+
+// response
+{"god_nodes": [
+  {"name": "run_digest", "in_degree": 12, "out_degree": 8, "score": 20},
+  ...
+]}
+```
+
+#### `shortest_path`
+BFS shortest directed call-path between any two symbols. Answers "how does module A reach module B?" in one tool call.
+
+```json
+// request
+{"name": "shortest_path", "arguments": {"from": "ScanCmd", "to": "SqliteStore"}}
+
+// response
+{"path": ["ScanCmd", "run_digest", "SqliteStore"], "length": 2}
+```
+
+Returns `{"path": null, "length": null}` when no path exists. Self-paths return `{"path": ["X"], "length": 0}`.
+
+#### `get_community`
+Finds which import-graph community a symbol belongs to, and lists all other members of that community. Ideal for understanding module clusters and blast-radius of a change.
+
+```json
+// request
+{"name": "get_community", "arguments": {"symbol": "run_digest"}}
+
+// response
+{"community_id": 3, "members": ["CommunityShardPlanner", "ShardPlanner", "run_digest", ...]}
+```
+
+### 🛠 Internal
+- `compute_shortest_path(from, to, rels)` added to `graph_analysis.py` — pure BFS, no external deps.
+- 13 new MCP tests covering all three tools, edge cases (no path, self-path, empty graph, unknown symbol).
+
+---
+
+## v0.22.1 — Interactive REPL History (2026-06-10)
      2|
      3|### 🎯 New Features
      4|- **Arrow-key history in `reki ask`** — closes #224
