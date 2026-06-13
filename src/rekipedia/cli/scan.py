@@ -105,6 +105,11 @@ def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
 @click.option("--workers", "-w", default=None, type=int, metavar="N",
     help="Number of parallel workers for file extraction (default: min(4, cpu_count))")
 @click.option("--no-thumbnails", "no_thumbnails", is_flag=True, default=False, help="Skip PDF thumbnail generation even if enabled in config.")
+@click.option(
+    "--community-sharding", "community_sharding",
+    is_flag=True, default=False,
+    help="Group related files by import-graph community before sharding (experimental)."
+)
 def scan_cmd(
     repo: Path,
     model: str | None,
@@ -122,6 +127,7 @@ def scan_cmd(
     doc_type: str,
     workers: int | None,
     no_thumbnails: bool,
+    community_sharding: bool,
 ) -> None:
     """Scan REPO and (re)build the rekipedia knowledge store.
 
@@ -243,6 +249,7 @@ def scan_cmd(
                 doc_type=doc_type,
                 workers=workers,
                 publish_dir=publish_dir,
+                community_sharding=community_sharding,
             )
         except Exception:
             console.print_exception(show_locals=True)
@@ -275,6 +282,7 @@ def scan_cmd(
                     doc_type=doc_type,
                     workers=workers,
                     publish_dir=publish_dir,
+                    community_sharding=community_sharding,
                 )
             except Exception as exc:
                 progress.stop()

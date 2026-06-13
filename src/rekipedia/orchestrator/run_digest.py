@@ -84,6 +84,7 @@ def run_digest(
     doc_type: str = "default",
     workers: int = 4,
     publish_dir: str | None = None,
+    community_sharding: bool = False,
 ) -> None:
     """Full scan pipeline.
 
@@ -105,6 +106,10 @@ def run_digest(
                 ["src/auth/**", "src/payment/**"]
                 ["*.rs", "Cargo.toml"]
                 ["src/api/"]
+        community_sharding: When True, group related files by import-graph
+            community before token-budget splitting.  Uses label-propagation
+            on a path-proximity heuristic (same top-level directory = connected).
+            Experimental — improves wiki quality for tightly coupled subsystems.
     """
     if verbose:
         logging.basicConfig(
@@ -180,9 +185,26 @@ def run_digest(
 
         # ── 2. Shard ─────────────────────────────────────────────────
         _vlog("Planning shards…")
-        planner = ShardPlanner()
-        shards = planner.plan(extraction_files, llm_config)
-        _vlog(f"  {len(shards)} shards planned")
+        if community_sharding:
+            from rekipedia.analysis.graph_communities import detect_communities
+            from rekipedia.orchestrator.sharding import CommunityShardPlanner
+            # Build path-proximity edges: files in the same top-level dir are connected
+            dir_groups: dict[str, list[str]] = {}
+            for ef in extraction_files:
+                top = ef.path.split("/")[0] if "/" in ef.path else "."
+                dir_groups.setdefault(top, []).append(ef.path)
+            dir_edges: list[tuple[str, str]] = []
+            for members in dir_groups.values():
+                for i in range(len(members) - 1):
+                    dir_edges.append((members[i], members[i + 1]))
+            community_map = detect_communities(dir_edges)
+            planner: ShardPlanner = CommunityShardPlanner()
+            shards = planner.plan_with_communities(extraction_files, community_map, llm_config)
+            _vlog(f"  {len(shards)} community-aware shards planned")
+        else:
+            planner = ShardPlanner()
+            shards = planner.plan(extraction_files, llm_config)
+            _vlog(f"  {len(shards)} shards planned")
 
         # ── 3. Extract shards in parallel ────────────────────────────
         runner: BaseRunner = get_runner(force_local=force_local)
