@@ -43,6 +43,24 @@ TOOLS = [
          "page": {"type": "string", "description": "Wiki page name or filename (partial match supported)"},
          "repo": {"type": "string", "description": "Absolute path to repo root (default: cwd)"}
      }, "required": ["page"]}},
+    {"name": "get_god_nodes",
+     "description": "List the top N 'god nodes' — symbols with the highest combined in+out degree in the call graph. These are architectural chokepoints that every other module depends on. Returns [{name, in_degree, out_degree, score}].",
+     "inputSchema": {"type": "object", "properties": {
+         "top_n": {"type": "integer", "default": 10, "description": "How many top nodes to return (default: 10)"}
+     }}},
+    {"name": "shortest_path",
+     "description": "Find the shortest directed call-path between two symbols in the dependency graph. Useful for understanding 'how does A reach B?'. Returns {path: [A, ..., B], length: N} or {path: null, length: null} if unreachable.",
+     "inputSchema": {"type": "object",
+       "properties": {
+           "from": {"type": "string", "description": "Source symbol name"},
+           "to":   {"type": "string", "description": "Target symbol name"},
+       },
+       "required": ["from", "to"]}},
+    {"name": "get_community",
+     "description": "Find which import-graph community a symbol belongs to and list all community members. Uses label-propagation on the relationship graph. Returns {community_id, members: [symbol_names]}.",
+     "inputSchema": {"type": "object",
+       "properties": {"symbol": {"type": "string", "description": "Symbol name to look up"}},
+       "required": ["symbol"]}},
 ]
 
 
@@ -290,6 +308,52 @@ def _handle_tool(name: str, args: dict, cache: _StoreCache) -> str:
                     available.extend(p.stem for p in wiki_dir.glob("*.md"))
             available.sort()
             return json.dumps({"error": "Page not found", "available": available})
+
+        elif name == "get_god_nodes":
+            from rekipedia.analysis.graph_analysis import compute_god_nodes
+            from collections import defaultdict
+            top_n = args.get("top_n", 10)
+            pairs = compute_god_nodes(cache.rels, top_n=top_n)
+            in_deg: dict[str, int] = defaultdict(int)
+            out_deg: dict[str, int] = defaultdict(int)
+            for r in cache.rels:
+                frm = r.get("from_", "") if isinstance(r, dict) else (r.from_ or "")
+                to  = r.get("to", "")   if isinstance(r, dict) else (r.to or "")
+                if frm:
+                    out_deg[frm] += 1
+                if to:
+                    in_deg[to] += 1
+            god_nodes = [
+                {"name": sym_name, "in_degree": in_deg[sym_name],
+                 "out_degree": out_deg[sym_name], "score": score}
+                for sym_name, score in pairs
+            ]
+            return json.dumps({"god_nodes": god_nodes})
+
+        elif name == "shortest_path":
+            from rekipedia.analysis.graph_analysis import compute_shortest_path
+            result = compute_shortest_path(
+                args.get("from", ""),
+                args.get("to", ""),
+                cache.rels,
+            )
+            return json.dumps(result)
+
+        elif name == "get_community":
+            from rekipedia.analysis.graph_communities import detect_communities
+            symbol = args.get("symbol", "")
+            edges = []
+            for r in cache.rels:
+                frm = r.get("from_", "") if isinstance(r, dict) else (r.from_ or "")
+                to  = r.get("to", "")   if isinstance(r, dict) else (r.to or "")
+                if frm and to:
+                    edges.append((frm, to))
+            community_map = detect_communities(edges)
+            if symbol not in community_map:
+                return json.dumps({"error": f"Symbol '{symbol}' not found in graph", "members": []})
+            cid = community_map[symbol]
+            members = sorted(k for k, v in community_map.items() if v == cid)
+            return json.dumps({"community_id": cid, "members": members})
 
         return json.dumps({"error": f"Unknown tool: {name}"})
 

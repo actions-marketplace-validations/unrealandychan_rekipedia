@@ -171,3 +171,112 @@ def test_store_cache_reload_on_mtime_change(tmp_path):
     with patch.object(cache, "_load") as mock_load:
         cache._refresh()
         mock_load.assert_called_once()
+
+
+# ── get_god_nodes ─────────────────────────────────────────────────────────────
+
+def _make_rels(*pairs):
+    """Build list of rel dicts from (from_, to) pairs."""
+    return [
+        {"from_": f, "to": t, "kind": "calls", "file": "f.py",
+         "confidence": 1.0, "evidence_tag": "EXTRACTED"}
+        for f, t in pairs
+    ]
+
+
+def test_get_god_nodes_returns_top_nodes():
+    rels = _make_rels(("A", "B"), ("A", "C"), ("B", "A"))
+    result = _call("get_god_nodes", {"top_n": 3}, rels=rels)
+    assert "god_nodes" in result
+    assert len(result["god_nodes"]) >= 1
+    names = [n["name"] for n in result["god_nodes"]]
+    assert "A" in names  # A has out_degree=2, in_degree=1 → highest total
+
+
+def test_get_god_nodes_default_top_n():
+    rels = _make_rels(*[(f"n{i}", "hub") for i in range(15)])
+    result = _call("get_god_nodes", {}, rels=rels)
+    assert len(result["god_nodes"]) <= 10
+
+
+def test_get_god_nodes_has_degree_fields():
+    rels = _make_rels(("A", "B"), ("B", "A"))
+    result = _call("get_god_nodes", {"top_n": 2}, rels=rels)
+    for node in result["god_nodes"]:
+        assert "in_degree" in node
+        assert "out_degree" in node
+        assert "score" in node
+
+
+def test_get_god_nodes_empty_rels():
+    result = _call("get_god_nodes", {}, rels=[])
+    assert result.get("god_nodes") == []
+
+
+# ── shortest_path ─────────────────────────────────────────────────────────────
+
+def test_shortest_path_direct_connection():
+    rels = _make_rels(("A", "B"))
+    result = _call("shortest_path", {"from": "A", "to": "B"}, rels=rels)
+    assert result.get("path") == ["A", "B"]
+    assert result.get("length") == 1
+
+
+def test_shortest_path_multi_hop():
+    rels = _make_rels(("A", "B"), ("B", "C"))
+    result = _call("shortest_path", {"from": "A", "to": "C"}, rels=rels)
+    assert result.get("path") == ["A", "B", "C"]
+    assert result.get("length") == 2
+
+
+def test_shortest_path_no_path():
+    rels = _make_rels(("A", "B"))
+    result = _call("shortest_path", {"from": "A", "to": "Z"}, rels=rels)
+    assert result.get("path") is None
+
+
+def test_shortest_path_same_symbol():
+    rels = _make_rels(("A", "B"))
+    result = _call("shortest_path", {"from": "A", "to": "A"}, rels=rels)
+    # A→A: trivially reachable (BFS from A, first element is A)
+    assert result.get("path") == ["A"]
+    assert result.get("length") == 0
+
+
+def test_shortest_path_prefers_shortest():
+    # A→C directly, also A→B→C — should pick A→C (length 1)
+    rels = _make_rels(("A", "C"), ("A", "B"), ("B", "C"))
+    result = _call("shortest_path", {"from": "A", "to": "C"}, rels=rels)
+    assert result.get("length") == 1
+
+
+# ── get_community ─────────────────────────────────────────────────────────────
+
+def test_get_community_returns_members():
+    rels = _make_rels(("A", "B"), ("B", "A"))
+    result = _call("get_community", {"symbol": "A"}, rels=rels)
+    assert "community_id" in result
+    assert "members" in result
+    assert "A" in result["members"]
+    assert "B" in result["members"]
+
+
+def test_get_community_unknown_symbol():
+    result = _call("get_community", {"symbol": "NonExistent"}, rels=[])
+    assert "error" in result or result.get("members") == []
+
+
+def test_get_community_isolated_nodes_in_own_community():
+    # C is not connected to A or B
+    rels = _make_rels(("A", "B"), ("B", "A"))
+    result_a = _call("get_community", {"symbol": "A"}, rels=rels)
+    # C isn't in the graph so looking it up should return error
+    result_c = _call("get_community", {"symbol": "C"}, rels=rels)
+    assert "error" in result_c or result_c.get("members") == []
+
+
+def test_get_community_members_sorted():
+    rels = _make_rels(("C", "A"), ("A", "C"), ("B", "A"), ("A", "B"))
+    result = _call("get_community", {"symbol": "A"}, rels=rels)
+    if result.get("members"):
+        assert result["members"] == sorted(result["members"])

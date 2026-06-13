@@ -184,3 +184,60 @@ def get_bridge_nodes(store: SqliteStore, run_id: str, top_n: int = 10) -> list[d
     for b in bridges:
         b["bridge_score"] = b["in_degree"] * b["out_degree"]
     return bridges[:top_n]
+
+
+def compute_shortest_path(
+    from_symbol: str,
+    to_symbol: str,
+    relationships: list,
+) -> dict:
+    """BFS shortest path between two symbols in the directed relationship graph.
+
+    Args:
+        from_symbol: Source symbol name.
+        to_symbol: Target symbol name.
+        relationships: List of relationship dicts or Relationship objects.
+
+    Returns:
+        Dict with keys:
+        - ``path``: list[str] from source to target (inclusive), or None if
+          unreachable.  A trivial self-path ``[X]`` is returned when
+          ``from_symbol == to_symbol``.
+        - ``length``: int hop count (0 for self-path), or None if unreachable.
+    """
+    from collections import deque
+
+    # Trivial self-path: symbol reaches itself with 0 hops
+    if from_symbol == to_symbol:
+        return {"path": [from_symbol], "length": 0}
+
+    # Build directed adjacency list
+    graph: dict[str, list[str]] = {}
+    for rel in relationships:
+        if isinstance(rel, dict):
+            frm = rel.get("from_", "") or rel.get("from", "")
+            to  = rel.get("to", "")
+        else:
+            frm = rel.from_ or ""
+            to  = rel.to or ""
+        if frm and to:
+            graph.setdefault(frm, []).append(to)
+
+    if from_symbol not in graph:
+        return {"path": None, "length": None}
+
+    # BFS — store full paths to reconstruct shortest
+    queue: deque[list[str]] = deque([[from_symbol]])
+    visited: set[str] = {from_symbol}
+    while queue:
+        path = queue.popleft()
+        current = path[-1]
+        for neighbour in graph.get(current, []):
+            if neighbour == to_symbol:
+                full_path = path + [neighbour]
+                return {"path": full_path, "length": len(full_path) - 1}
+            if neighbour not in visited:
+                visited.add(neighbour)
+                queue.append(path + [neighbour])
+
+    return {"path": None, "length": None}
