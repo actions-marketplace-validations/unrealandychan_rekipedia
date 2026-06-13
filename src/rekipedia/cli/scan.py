@@ -108,7 +108,7 @@ def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
 @click.option(
     "--community-sharding", "community_sharding",
     is_flag=True, default=False,
-    help="Group related files by import-graph community before sharding (experimental)."
+    help="Group related files by real import/call edges (from previous scan) before sharding. Improves wiki quality for tightly coupled subsystems. Falls back to default sharding on the first scan."
 )
 def scan_cmd(
     repo: Path,

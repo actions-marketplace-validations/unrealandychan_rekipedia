@@ -106,10 +106,12 @@ def run_digest(
                 ["src/auth/**", "src/payment/**"]
                 ["*.rs", "Cargo.toml"]
                 ["src/api/"]
-        community_sharding: When True, group related files by import-graph
-            community before token-budget splitting.  Uses label-propagation
-            on a path-proximity heuristic (same top-level directory = connected).
-            Experimental — improves wiki quality for tightly coupled subsystems.
+        community_sharding: When True, group related files by real import/call
+            edges from the previous scan before token-budget splitting.  Uses
+            label-propagation on the actual dependency graph so semantically
+            coupled files land in the same LLM context window.
+            Requires at least one prior successful scan of the same repo;
+            falls back to default directory-based sharding on the first run.
     """
     if verbose:
         logging.basicConfig(
@@ -188,19 +190,38 @@ def run_digest(
         if community_sharding:
             from rekipedia.analysis.graph_communities import detect_communities
             from rekipedia.orchestrator.sharding import CommunityShardPlanner
-            # Build path-proximity edges: files in the same top-level dir are connected
-            dir_groups: dict[str, list[str]] = {}
-            for ef in extraction_files:
-                top = ef.path.split("/")[0] if "/" in ef.path else "."
-                dir_groups.setdefault(top, []).append(ef.path)
-            dir_edges: list[tuple[str, str]] = []
-            for members in dir_groups.values():
-                for i in range(len(members) - 1):
-                    dir_edges.append((members[i], members[i + 1]))
-            community_map = detect_communities(dir_edges)
-            planner: ShardPlanner = CommunityShardPlanner()
-            shards = planner.plan_with_communities(extraction_files, community_map, llm_config)
-            _vlog(f"  {len(shards)} community-aware shards planned")
+
+            # Use real import/call edges from the *previous* successful scan
+            # of this repo (stored in SQLite).  On a first-time scan there is
+            # no prior run, so we fall back to the default directory-based
+            # ShardPlanner and warn the user.
+            prev_run_id = store.get_latest_run_id(str(repo_root))
+            real_edges: list[tuple[str, str]] = []
+            if prev_run_id:
+                prev_rels = store.get_all_relationships(prev_run_id)
+                real_edges = [
+                    (r["from_"], r["to"])
+                    for r in prev_rels
+                    if r.get("kind") in ("import", "imports", "call", "calls")
+                    and r.get("from_") and r.get("to")
+                ]
+                _vlog(f"  community-sharding: loaded {len(real_edges)} import/call edges from previous scan")
+
+            if real_edges:
+                community_map = detect_communities(real_edges)
+                n_communities = len(set(community_map.values()))
+                planner: ShardPlanner = CommunityShardPlanner()
+                shards = planner.plan_with_communities(extraction_files, community_map, llm_config)
+                _vlog(f"  {len(shards)} community-aware shards planned ({n_communities} communities)")
+            else:
+                _vlog(
+                    "  community-sharding: no prior import graph found "
+                    "(first scan or empty repo) — falling back to default sharding"
+                )
+                _log("  ⚠ --community-sharding: no prior scan found; run a second scan to enable community-aware sharding.")
+                planner = ShardPlanner()
+                shards = planner.plan(extraction_files, llm_config)
+                _vlog(f"  {len(shards)} shards planned (fallback)")
         else:
             planner = ShardPlanner()
             shards = planner.plan(extraction_files, llm_config)

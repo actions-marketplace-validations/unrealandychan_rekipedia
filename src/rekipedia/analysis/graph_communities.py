@@ -50,16 +50,14 @@ def detect_communities(edges: list[tuple[str, str]]) -> dict[str, int]:
             nbrs = neighbours[node]
             if not nbrs:
                 continue
-            # Pick the most frequent label among neighbours;
-            # break ties lexicographically (smallest label wins)
+            # Count neighbour labels
             freq: dict[str, int] = defaultdict(int)
             for nb in nbrs:
                 freq[labels[nb]] += 1
-            best = max(freq, key=lambda k: (freq[k], -ord(k[0]) if k else 0))
-            # Stable tiebreak: among equally-frequent labels pick lexicographically smallest
-            best_count = freq[best]
+            # Pick most-frequent label; break ties by lexicographic minimum
+            best_count = max(freq.values())
             candidates = [lbl for lbl, cnt in freq.items() if cnt == best_count]
-            best = min(candidates)  # lexicographic minimum for determinism
+            best = min(candidates)
             if labels[node] != best:
                 labels[node] = best
                 changed = True
