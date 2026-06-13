@@ -5,7 +5,7 @@ section: getting-started
 tags: [overview, getting-started]
 pin: false
 importance: 50
-created_at: 2026-06-13T16:36:30Z
+created_at: 2026-06-13T16:51:28Z
 rekipedia_version: 0.23.0
 ---
 
