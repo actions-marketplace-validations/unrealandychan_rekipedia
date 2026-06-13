@@ -76,3 +76,61 @@ def _make_shard(
 ) -> Shard:
     shard_id = group_dir if idx == 0 else f"{group_dir}#{idx}"
     return Shard(shard_id=shard_id, root=group_dir, files=files, llm=llm)
+
+
+class CommunityShardPlanner(ShardPlanner):
+    """Shard planner that respects import-graph community structure.
+
+    Files assigned to the same community ID are co-located in the same
+    shard *before* the token-budget split kicks in.  This keeps
+    semantically related modules together so the LLM sees complete
+    context for each tightly coupled cluster.
+
+    Use :py:meth:`plan_with_communities` instead of the inherited
+    :py:meth:`plan` when a community map is available.
+    """
+
+    def plan_with_communities(
+        self,
+        files: list[FileManifest],
+        community_map: dict[str, int],
+        llm: LLMConfig | None = None,
+    ) -> list[Shard]:
+        """Plan shards respecting community membership.
+
+        Args:
+            files: All file manifests to shard.
+            community_map: Mapping of file path → community id.
+                           Files absent from the map are each placed in
+                           their own singleton community.
+            llm: Optional LLM config forwarded to each Shard.
+
+        Returns:
+            List of Shard objects with community-aware grouping.
+            Shard IDs are prefixed with ``community_<id>`` for traceability.
+        """
+        if not files:
+            return []
+
+        llm = llm or LLMConfig()
+
+        # Assign each file to a community; absent files → unique sentinel
+        community_groups: dict[int, list[FileManifest]] = {}
+        next_singleton = max(community_map.values(), default=-1) + 1
+        for f in files:
+            if f.path in community_map:
+                cid = community_map[f.path]
+            else:
+                # Treat as own isolated community so it isn't merged with others
+                cid = next_singleton
+                next_singleton += 1
+            community_groups.setdefault(cid, []).append(f)
+
+        # Split each community group by token budget
+        shards: list[Shard] = []
+        for cid in sorted(community_groups.keys()):
+            group = community_groups[cid]
+            group_dir = f"community_{cid}"
+            shards.extend(self._split_group(group_dir, group, llm))
+
+        return shards
