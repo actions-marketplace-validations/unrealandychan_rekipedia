@@ -102,3 +102,40 @@ def test_scan_mini_ts_repo(mock_llm, tmp_path):
     )
     manifest = output_dir / "exports" / "manifest.json"
     assert manifest.exists()
+
+
+def test_scan_and_update_quiet(mock_llm, tmp_path):
+    from click.testing import CliRunner
+    from rekipedia.cli.scan import scan_cmd
+    from rekipedia.cli.update import update_cmd
+
+    output_dir = tmp_path / ".rekipedia"
+    runner = CliRunner()
+
+    # 1. Scan with --quiet
+    result = runner.invoke(
+        scan_cmd,
+        [str(MINI_PY), "--output-dir", str(output_dir), "--no-docker", "--quiet"],
+    )
+    assert result.exit_code == 0
+    clean_output = "\n".join(
+        line for line in result.output.splitlines()
+        if "litellm" not in line.lower() and "feedback" not in line.lower() and "provider" not in line.lower()
+    ).strip()
+    assert clean_output == ""
+
+    # Ensure output exists
+    assert (output_dir / "wiki").exists()
+
+    # 2. Update with --quiet
+    result = runner.invoke(
+        update_cmd,
+        [str(MINI_PY), "--output-dir", str(output_dir), "--no-docker", "--quiet"],
+    )
+    assert result.exit_code == 0
+    clean_output_update = "\n".join(
+        line for line in result.output.splitlines()
+        if "litellm" not in line.lower() and "feedback" not in line.lower() and "provider" not in line.lower()
+    ).strip()
+    assert clean_output_update == ""
+

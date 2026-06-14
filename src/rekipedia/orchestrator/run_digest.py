@@ -29,6 +29,8 @@ from rich.progress import (
 )
 
 _console = _Console(stderr=False)
+if __import__("os").environ.get("REKIPEDIA_QUIET") == "1":
+    _console.quiet = True
 
 from rekipedia.models.contracts import AnalysisResult, LLMConfig
 
@@ -113,6 +115,12 @@ def run_digest(
             Requires at least one prior successful scan of the same repo;
             falls back to default directory-based sharding on the first run.
     """
+    import os
+    if os.environ.get("REKIPEDIA_QUIET") == "1":
+        _console.quiet = True
+    else:
+        _console.quiet = False
+
     if verbose:
         logging.basicConfig(
             level=logging.DEBUG,
@@ -241,7 +249,9 @@ def run_digest(
             BarColumn(),
             TaskProgressColumn(),
             TimeRemainingColumn(),
+            console=_console,
             transient=False,
+            disable=_console.quiet,
         )
 
         with _rich_progress:
@@ -326,7 +336,9 @@ def run_digest(
             TextColumn("[bold yellow]{task.description}"),
             BarColumn(),
             TaskProgressColumn(),
+            console=_console,
             transient=True,
+            disable=_console.quiet,
         )
         with _enrich_rich:
             # We don't know total until detect_issues runs inside enrich_all,
@@ -389,8 +401,10 @@ def run_digest(
             BarColumn(),
             TaskProgressColumn(),
             TimeRemainingColumn(),
+            console=_console,
             transient=False,
             refresh_per_second=4,
+            disable=_console.quiet,
         )
 
         builder = PageBuilder(llm_config, doc_type=doc_type)

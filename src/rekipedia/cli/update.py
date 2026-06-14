@@ -30,7 +30,8 @@ def _load_config(repo: Path) -> dict:
 @click.option("--output-dir", default=None, type=click.Path(path_type=Path), help="Output directory (default: REPO/.rekipedia).")
 @click.option("--languages", "-l", default=None, help="Comma-separated list of languages to include, e.g. python,typescript,go. Default: all.")
 @click.option("--impact-only", is_flag=True, default=False, help="BFS-selective regeneration: only re-generate wiki pages for transitively affected modules.")
-def update_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path | None, languages: str | None, impact_only: bool) -> None:
+@click.option("--quiet", "-q", is_flag=True, default=False, help="Suppress all output messages and progress bars.")
+def update_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path | None, languages: str | None, impact_only: bool, quiet: bool) -> None:
     """Incrementally refresh the wiki for files changed since the last scan.
 
     Re-extracts only changed files and re-synthesises all wiki pages.
@@ -43,6 +44,10 @@ def update_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path 
         rekipedia update . --impact-only
         REKIPEDIA_MODEL=gpt-4o rekipedia update .
     """
+    if quiet:
+        console.quiet = True
+        os.environ["REKIPEDIA_QUIET"] = "1"
+
     repo = repo.resolve()
     output_dir = (output_dir or repo / ".rekipedia").resolve()
 
@@ -82,6 +87,7 @@ def update_cmd(repo: Path, model: str | None, no_docker: bool, output_dir: Path 
         TextColumn("[progress.description]{task.description}"),
         console=console,
         transient=True,
+        disable=console.quiet,
     ) as progress:
         task = progress.add_task("Starting…", total=None)
 

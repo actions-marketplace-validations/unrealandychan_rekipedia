@@ -110,6 +110,7 @@ def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
     is_flag=True, default=False,
     help="Group related files by real import/call edges (from previous scan) before sharding. Improves wiki quality for tightly coupled subsystems. Falls back to default sharding on the first scan."
 )
+@click.option("--quiet", "-q", is_flag=True, default=False, help="Suppress all output messages and progress bars.")
 def scan_cmd(
     repo: Path,
     model: str | None,
@@ -128,6 +129,7 @@ def scan_cmd(
     workers: int | None,
     no_thumbnails: bool,
     community_sharding: bool,
+    quiet: bool,
 ) -> None:
     """Scan REPO and (re)build the rekipedia knowledge store.
 
@@ -149,7 +151,12 @@ def scan_cmd(
         rekipedia scan . --with-refactor  # also generate REFACTOR.md
         REKIPEDIA_MODEL=gpt-4o rekipedia scan .
     """
+    if quiet:
+        console.quiet = True
+        os.environ["REKIPEDIA_QUIET"] = "1"
+
     repo = repo.resolve()
+
     output_dir = (output_dir or repo / ".rekipedia").resolve()
 
     # ── Workers resolution ─────────────────────────────────────────────────────
@@ -261,6 +268,7 @@ def scan_cmd(
             TimeElapsedColumn(),
             console=console,
             transient=False,
+            disable=console.quiet,
         ) as progress:
             task = progress.add_task("Scanning…", total=None)
 
