@@ -35,3 +35,18 @@ def test_qa_history_only_returns_own_repo():
             store.save_qa("/repo-b", "Q2", "A2", "")
             assert len(store.get_qa_history("/repo-a")) == 1
             assert len(store.get_qa_history("/repo-b")) == 1
+
+
+def test_save_and_retrieve_symbol_mentions():
+    with tempfile.TemporaryDirectory() as tmp:
+        db = Path(tmp) / "store.db"
+        with SqliteStore(db) as store:
+            qa_id = store.save_qa("/my/repo", "How does auth work?", "It uses AuthService and TokenStore.", "gpt-4o")
+            assert qa_id == 1
+            
+            store.save_qa_symbol_mentions(qa_id, ["AuthService", "TokenStore"])
+            
+            frequent = store.get_frequent_symbols("/my/repo")
+            assert len(frequent) == 2
+            assert "AuthService" in frequent
+            assert "TokenStore" in frequent

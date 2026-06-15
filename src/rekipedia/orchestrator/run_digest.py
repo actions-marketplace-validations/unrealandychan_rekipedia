@@ -87,6 +87,8 @@ def run_digest(
     workers: int = 4,
     publish_dir: str | None = None,
     community_sharding: bool = False,
+    force: bool = False,
+    persona: str = "senior-dev",
 ) -> None:
     """Full scan pipeline.
 
@@ -165,6 +167,65 @@ def run_digest(
         store.upsert_snapshot(run_id, [f.model_dump() for f in files])
         store.upsert_files_batch(run_id, files)
 
+        # ── Incremental scan optimization ──────────────────────────────
+        extraction_files = files
+        is_incremental = False
+        changed_paths = set()
+        last_run_id = None
+        
+        if not force:
+            last_run_id = store.get_latest_run_id(str(repo_root))
+            if last_run_id:
+                _vlog(f"Found previous successful run {last_run_id[:8]} — checking for changes")
+                prev_files = store.get_files_for_run(last_run_id)
+                prev_map = {f["path"]: f["sha256"] for f in prev_files}
+                
+                current_map = {f.path: f for f in files}
+                changed_files = [
+                    f for f in files
+                    if f.path not in prev_map or prev_map[f.path] != f.sha256
+                ]
+                deleted_paths = set(prev_map.keys()) - set(current_map.keys())
+                changed_paths = {f.path for f in changed_files} | deleted_paths
+                
+                if not changed_files and not deleted_paths:
+                    _vlog("No changes detected — repository is already up to date.")
+                    _log("No changes detected — repository is already up to date.")
+                    
+                    # Carry forward ALL symbols and relationships to the new run
+                    carried_syms = store.copy_unchanged_symbols(last_run_id, run_id, set())
+                    carried_rels = store.copy_unchanged_relationships(last_run_id, run_id, set())
+                    
+                    # Also carry forward pages and page sources
+                    all_page_slugs = store.get_all_page_slugs(last_run_id)
+                    store.copy_pages(last_run_id, run_id, all_page_slugs)
+                    store.carry_forward_page_sources(last_run_id, run_id, all_page_slugs)
+                    
+                    # Copy diagrams
+                    from rekipedia.storage._helpers import _now
+                    if "scan_diagrams" in store._table_names():
+                        store._c.execute(
+                            "INSERT OR REPLACE INTO scan_diagrams (run_id, name, type, content, updated_at) "
+                            "SELECT ?, name, type, content, ? FROM scan_diagrams WHERE run_id = ?",
+                            [run_id, _now(), last_run_id]
+                        )
+                        store._c.commit()
+                    
+                    # Update status to success and exit early
+                    store.update_run_status(run_id, "success")
+                    store.close()
+                    return
+
+                _vlog(f"  Incremental re-scan: {len(changed_files)} changed/new file(s), {len(deleted_paths)} deleted")
+                _log(f"  Incremental re-scan: {len(changed_files)} changed/new file(s), {len(deleted_paths)} deleted")
+                
+                carried_syms = store.copy_unchanged_symbols(last_run_id, run_id, changed_paths)
+                carried_rels = store.copy_unchanged_relationships(last_run_id, run_id, changed_paths)
+                _vlog(f"  Carried forward {carried_syms} symbols, {carried_rels} relationships")
+                
+                extraction_files = changed_files
+                is_incremental = True
+
         # ── 1.5. Focus filter ─────────────────────────────────────────
         if focus_globs:
             import fnmatch as _fnmatch
@@ -182,16 +243,14 @@ def run_digest(
                         return True
                 return False
 
-            focus_files = [f for f in files if _matches_focus(f.path)]
-            skipped = len(files) - len(focus_files)
+            focus_files = [f for f in extraction_files if _matches_focus(f.path)]
+            skipped = len(extraction_files) - len(focus_files)
             _vlog(f"  --focus: {len(focus_files)} files matched ({skipped} skipped)")
-            _log(f"  --focus: {len(focus_files)}/{len(files)} files in focus")
+            _log(f"  --focus: {len(focus_files)}/{len(extraction_files)} files in focus")
             if not focus_files:
                 _vlog("  WARNING: no files matched focus patterns — falling back to all files")
-                focus_files = files
+                focus_files = extraction_files
             extraction_files = focus_files
-        else:
-            extraction_files = files
 
         # ── 2. Shard ─────────────────────────────────────────────────
         _vlog("Planning shards…")
@@ -305,7 +364,38 @@ def run_digest(
         all_rels_raw = store.get_all_relationships(run_id)
         _vlog(f"  Total symbols: {len(all_symbols_raw)}, relationships: {len(all_rels_raw)}")
 
-        combined = _combine_results([r for r in merged_results if r])
+        if is_incremental:
+            from rekipedia.models.contracts import Symbol, Relationship
+            symbols_obj = []
+            for s in all_symbols_raw:
+                try:
+                    symbols_obj.append(Symbol.model_validate(s))
+                except Exception:
+                    pass
+
+            rels_obj = []
+            for r in all_rels_raw:
+                # Sanitize evidence_tag if it's not a valid literal value
+                if r.get("evidence_tag") not in ("EXTRACTED", "INFERRED", "AMBIGUOUS"):
+                    r["evidence_tag"] = "EXTRACTED"
+                try:
+                    rels_obj.append(Relationship.model_validate(r))
+                except Exception:
+                    pass
+            files_seen = [f.path for f in files]
+            
+            combined = AnalysisResult(
+                shard_id=run_id,
+                files_seen=files_seen,
+                entry_points=_combine_results([r for r in merged_results if r]).entry_points,
+                symbols=symbols_obj,
+                relationships=rels_obj,
+                build_commands=_combine_results([r for r in merged_results if r]).build_commands,
+                test_commands=_combine_results([r for r in merged_results if r]).test_commands,
+                risks=_combine_results([r for r in merged_results if r]).risks,
+            )
+        else:
+            combined = _combine_results([r for r in merged_results if r])
         from rekipedia.analysis.resolution import resolve_relationships
         combined = resolve_relationships(combined)
         diagram_builder = DiagramBuilder()
@@ -377,7 +467,10 @@ def run_digest(
         from rekipedia.synthesis.page_builder import PageBuilder
         from rekipedia.synthesis.planner import PlannerAgent
 
-        combined_for_build = _combine_results([r for r in merged_results if r])
+        if is_incremental:
+            combined_for_build = combined
+        else:
+            combined_for_build = _combine_results([r for r in merged_results if r])
         from rekipedia.analysis.resolution import resolve_relationships
         combined_for_build = resolve_relationships(combined_for_build)
         combined_for_build.evidence["pre_built_module_graph"] = combined.evidence["pre_built_module_graph"]
@@ -532,9 +625,20 @@ def run_digest(
                 _log(msg)
 
             try:
-                pipe = EmbedPipeline(output_dir, llm_config)
-                n_chunks = pipe.build(repo_root, progress_cb=_embed_progress)
-                _log(f"✅ Embedded {n_chunks} chunks")
+                pipe = EmbedPipeline(output_dir, llm_config, store=store, run_id=run_id)
+                if is_incremental and pipe.is_built():
+                    _log("Updating RAG index (incremental)…")
+                    n_chunks = pipe.update(
+                        repo_root=repo_root,
+                        changed_files=list(changed_paths),
+                        last_run_id=last_run_id,
+                        new_run_id=run_id,
+                        progress_cb=_embed_progress,
+                    )
+                    _log(f"✅ RAG index updated — {n_chunks} chunks re-embedded")
+                else:
+                    n_chunks = pipe.build(repo_root, progress_cb=_embed_progress)
+                    _log(f"✅ Embedded {n_chunks} chunks")
                 patch_scan_meta(output_dir, embedded=True, embed_model=embed_model)
             except Exception as embed_exc:
                 logger.warning("RAG embed failed (non-fatal): %s", embed_exc)

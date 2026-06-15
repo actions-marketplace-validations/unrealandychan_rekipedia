@@ -500,6 +500,27 @@ def _prepare_ask(
     return client, full_system
 
 
+def _save_qa_and_mentions(question: str, answer: str, repo_root: Path, output_dir: Path, model_name: str) -> None:
+    try:
+        db_path = output_dir / "store.db"
+        if db_path.exists():
+            with SqliteStore(db_path) as store:
+                qa_id = store.save_qa(str(repo_root), question, answer, model_name)
+                
+                # Retrieve all symbols in the repository
+                symbols_path = output_dir / "exports" / "symbols.json"
+                if symbols_path.exists():
+                    symbols_data = json.loads(symbols_path.read_text(encoding="utf-8"))
+                    symbol_names = {s.get("name") for s in symbols_data if s.get("name")}
+                    
+                    text = (question + " " + answer).lower()
+                    mentioned = [name for name in symbol_names if name.lower() in text]
+                    if mentioned:
+                        store.save_qa_symbol_mentions(qa_id, mentioned)
+    except Exception:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -538,7 +559,9 @@ def run_ask(
         return agent_run_ask(question, repo_root, output_dir, llm_config, history)
     pinned_str = _load_pinned_context(pinned_context or [], repo_root)
     client, full_system = _prepare_ask(question, repo_root, output_dir, llm_config, history, pinned_context=pinned_str, brief=brief)
-    return client.call(question, system=full_system, history=history)
+    answer = client.call(question, system=full_system, history=history)
+    _save_qa_and_mentions(question, answer, repo_root, output_dir, llm_config.model if llm_config else "")
+    return answer
 
 
 def stream_ask(
@@ -559,4 +582,14 @@ def stream_ask(
     brief = brief or _os.environ.get("REKIPEDIA_BRIEF", "0") == "1"
     pinned_str = _load_pinned_context(pinned_context or [], repo_root)
     client, full_system = _prepare_ask(question, repo_root, output_dir, llm_config, history, pinned_context=pinned_str, brief=brief)
-    return client.stream(question, system=full_system, history=history)
+    
+    def _generator() -> Iterator[str]:
+        full_answer_list = []
+        for chunk in client.stream(question, system=full_system, history=history):
+            full_answer_list.append(chunk)
+            yield chunk
+            
+        full_answer = "".join(full_answer_list)
+        _save_qa_and_mentions(question, full_answer, repo_root, output_dir, llm_config.model if llm_config else "")
+        
+    return _generator()

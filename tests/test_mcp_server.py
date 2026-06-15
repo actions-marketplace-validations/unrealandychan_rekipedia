@@ -106,6 +106,28 @@ def test_get_context_partial_path():
     assert "MyClass" in data["symbols"]
 
 
+def test_get_context_includes_confidence_and_evidence_tag():
+    sym = MagicMock()
+    sym.name = "MyClass"
+    sym.file = "/project/src/module/myfile.py"
+    sym.kind = "class"
+
+    rel = MagicMock()
+    rel.from_ = "MyClass"
+    rel.to = "OtherClass"
+    rel.kind = "calls"
+    rel.confidence = 0.85
+    rel.evidence_tag = "INFERRED"
+
+    data = _call("get_context", {"file": "module/myfile.py"}, symbols=[sym], rels=[rel])
+    assert "MyClass" in data["symbols"]
+    assert len(data["relationships"]) == 1
+    assert data["relationships"][0]["from"] == "MyClass"
+    assert data["relationships"][0]["to"] == "OtherClass"
+    assert data["relationships"][0]["confidence"] == 0.85
+    assert data["relationships"][0]["evidence_tag"] == "INFERRED"
+
+
 # ── get_relationships ─────────────────────────────────────────────────────────
 
 def test_get_relationships_callers_callees():

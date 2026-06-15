@@ -490,6 +490,224 @@
     .hero h1 { font-size: 30px; }
     .llm-grid { grid-template-columns: 1fr; }
   }
+
+  /* PERSONA SWITCHER */
+  .persona-selectors {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .p-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .p-btn:hover {
+    color: var(--text-secondary);
+    background: rgba(255,255,255,0.02);
+    border-color: rgba(255,255,255,0.15);
+  }
+  .p-btn.active {
+    color: var(--accent-bright);
+    background: rgba(94,106,210,0.1);
+    border-color: var(--accent-bright);
+  }
+
+  /* PLAYGROUND */
+  .playground-section {
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .playground-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 48px;
+    align-items: stretch;
+  }
+  .pg-editor {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  }
+  .pg-editor-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-subtle);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .pg-textarea {
+    background: var(--bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 16px;
+    resize: none;
+    min-height: 240px;
+    flex: 1;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .pg-textarea:focus {
+    border-color: var(--accent-bright);
+  }
+  .pg-viewer {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  }
+  .pg-viewer-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent-bright);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .pg-stats {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .pg-nodes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .pg-node-tag {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pg-node-tag.class {
+    color: #ff5f57;
+    background: rgba(255,95,87,0.05);
+    border-color: rgba(255,95,87,0.2);
+  }
+  .pg-node-tag.function {
+    color: #febc2e;
+    background: rgba(254,188,46,0.05);
+    border-color: rgba(254,188,46,0.2);
+  }
+  .pg-edges-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+  }
+  .pg-edge-arrow {
+    color: var(--accent-bright);
+    margin: 0 6px;
+  }
+  .pg-hint {
+    font-size: 12px;
+    color: var(--text-subtle);
+    margin-top: auto;
+    padding-top: 16px;
+    font-style: italic;
+  }
+
+  /* PATH TRACER */
+  .path-tracer {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 48px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  }
+  .pt-nodes-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .pt-node {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    text-align: center;
+    flex: 1;
+    min-width: 100px;
+  }
+  .pt-node:hover {
+    border-color: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.01);
+  }
+  .pt-node.selected {
+    border-color: var(--accent-bright);
+    box-shadow: 0 0 12px rgba(113,112,255,0.25);
+    background: rgba(113,112,255,0.05);
+  }
+  .pt-arrow {
+    font-size: 18px;
+    color: var(--text-subtle);
+    transition: color 0.3s;
+  }
+  .pt-arrow.active {
+    color: var(--accent-bright);
+    animation: pt-glow 1.5s infinite;
+  }
+  @keyframes pt-glow {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  .pt-path-result {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 24px;
+    text-align: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-subtle);
+    min-height: 36px;
+  }
+  .pt-path-result strong {
+    color: var(--accent-bright);
+  }
 </style>
 </head>
 <body>
@@ -504,7 +722,7 @@
       </svg>
       rekipedia
     </a>
-    <span class="nav-badge">v0.21.0</span>
+    <span class="nav-badge">v0.23.1</span>
   </div>
   <div class="nav-right">
     <a href="#features" class="nav-link">Features</a>
@@ -522,10 +740,17 @@
 <div class="hero">
   <div class="hero-pill">
     <span class="hero-pill-dot"></span>
-    v0.21.0 is out — modular storage, sectioned CLI &amp; more
+    v0.23.1 is out — SHA-256 incremental re-scan, surprises detection &amp; more
   </div>
-  <h1>Your codebase,<br><span>finally understood</span></h1>
-  <p>rekipedia turns any repository into a searchable wiki with grounded Q&A, exact file:line citations, and an MCP server so your AI agent actually knows your code.</p>
+  
+  <div class="persona-selectors">
+    <button id="p-software" class="p-btn active" onclick="switchPersona('software')">[ i_build_software ]</button>
+    <button id="p-architecture" class="p-btn" onclick="switchPersona('architecture')">[ i_design_architecture ]</button>
+    <button id="p-business" class="p-btn" onclick="switchPersona('business')">[ i_run_a_business ]</button>
+  </div>
+
+  <h1 id="hero-title">Your codebase,<br><span>finally understood</span></h1>
+  <p id="hero-desc">rekipedia turns any repository into a searchable wiki with grounded Q&A, exact file:line citations, and an MCP server so your AI agent actually knows your code.</p>
   <div class="hero-cta">
     <a href="#install" class="btn-primary">pip install rekipedia →</a>
     <a href="https://github.com/unrealandychan/rekipedia" class="btn-ghost" target="_blank">View on GitHub</a>
@@ -557,14 +782,81 @@
 <section id="whats-new" style="padding:48px 24px 0;">
   <div class="section-inner">
     <div class="section-label">What's New</div>
-    <div class="section-title" style="font-size:24px;margin-bottom:20px;">v0.21.0 highlights</div>
+    <div class="section-title" style="font-size:24px;margin-bottom:20px;">v0.23.1 highlights</div>
     <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;max-width:640px;">
-      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">Modular storage layer</strong> — <code style="font-family:var(--mono);font-size:12px;color:var(--accent-bright)">sqlite_store.py</code> split into focused storage modules for cleaner architecture and easier extension.</span></li>
-      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">Unified RefactorIssue model</strong> — consistent issue tracking shared across all refactor analysis modules.</span></li>
-      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">Sectioned CLI help</strong> — <code style="font-family:var(--mono);font-size:12px;color:var(--accent-bright)">reki --help</code> now organized into Core / Analysis / Team sync / Setup sections.</span></li>
-      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">Go port charter ADR</strong> — architecture decision record added for the upcoming Go port.</span></li>
-      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">CONTRIBUTING.md improvements</strong> &amp; various refactor quality enhancements.</span></li>
+      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">SHA256 Incremental Re-scan</strong> — <code style="font-family:var(--mono);font-size:12px;color:var(--accent-bright)">reki scan</code> now automatically skips unchanged files, making re-scans take seconds instead of minutes.</span></li>
+      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">Architectural Surprises detector</strong> — Identify DDD layer violations and rare module couplings with the new <code style="font-family:var(--mono);font-size:12px;color:var(--accent-bright)">reki surprises</code> command.</span></li>
+      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">Query Memory feedback loop</strong> — Grounded questions are saved to SQLite to automatically prioritize frequently asked about symbols in the next scan.</span></li>
+      <li style="font-size:14px;color:var(--text-muted);display:flex;gap:10px;"><span style="color:var(--green);">✦</span><span><strong style="color:var(--text-primary);">Persona-Adaptive wiki</strong> — Generate different summaries depending on your target audience using the new <code style="font-family:var(--mono);font-size:12px;color:var(--accent-bright)">--persona</code> option.</span></li>
     </ul>
+  </div>
+</section>
+
+<hr class="divider" style="margin-top:48px;">
+
+<!-- PLAYGROUND SECTION -->
+<section id="playground" class="playground-section">
+  <div class="section-inner">
+    <div class="section-label">Interactive Demo</div>
+    <div class="section-title">Paste code. Watch the graph mutate.</div>
+    <p class="section-sub">rekipedia performs deterministic static analysis on your code. Edit the code below to see how relationships and hotspots are parsed instantly.</p>
+    
+    <div class="playground-grid">
+      <!-- Editor -->
+      <div class="pg-editor">
+        <div class="pg-editor-title">Python Code Editor</div>
+        <textarea id="pg-code" class="pg-textarea" oninput="parseCode()" spellcheck="false">class AuthService:
+    def authenticate(user, token):
+        if validate_token(token):
+            return create_session(user)
+
+def validate_token(token):
+    return db.verify(token)
+</textarea>
+      </div>
+      
+      <!-- Live Viewer -->
+      <div class="pg-viewer">
+        <div class="pg-viewer-title">Live Abstract Syntax Tree (AST)</div>
+        <div id="pg-stats" class="pg-stats">4 nodes · 3 edges · Hub: authenticate()</div>
+        
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-family:var(--mono);">Symbols Found (Nodes)</div>
+        <div id="pg-nodes" class="pg-nodes">
+          <div class="pg-node-tag class">AuthService</div>
+          <div class="pg-node-tag function">authenticate</div>
+          <div class="pg-node-tag function">validate_token</div>
+          <div class="pg-node-tag function">create_session</div>
+        </div>
+        
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-family:var(--mono);margin-top:12px;">Call Relationships (Edges)</div>
+        <div id="pg-edges" class="pg-edges-list">
+          <div>AuthService <span class="pg-edge-arrow">➔</span> authenticate <span style="color:var(--text-subtle)">(contains)</span></div>
+          <div>authenticate <span class="pg-edge-arrow">➔</span> validate_token <span style="color:var(--text-subtle)">(calls)</span></div>
+          <div>authenticate <span class="pg-edge-arrow">➔</span> create_session <span style="color:var(--text-subtle)">(calls)</span></div>
+        </div>
+        
+        <div class="pg-hint">Pure client-side static parser running locally on your screen. No code ever leaves your browser.</div>
+      </div>
+    </div>
+    
+    <!-- Path Tracer -->
+    <div class="path-tracer">
+      <div class="section-label" style="font-size:10px;">Path tracer tool</div>
+      <div class="feature-title" style="font-size:16px;margin-bottom:6px;">Deterministic Path Finder</div>
+      <p style="font-size:13px;color:var(--text-muted);">Select two components to trace the shortest call-path in the graph. Demonstrates the <code style="font-family:var(--mono);font-size:11px;color:var(--accent-bright)">shortest_path</code> MCP tool.</p>
+      
+      <div class="pt-nodes-row">
+        <div id="pt-client" class="pt-node selected" onclick="tracePath('Client')">Client</div>
+        <div id="ar-1" class="pt-arrow active">➔</div>
+        <div id="pt-auth" class="pt-node selected" onclick="tracePath('AuthService')">AuthService</div>
+        <div id="ar-2" class="pt-arrow active">➔</div>
+        <div id="pt-token" class="pt-node selected" onclick="tracePath('TokenStore')">TokenStore</div>
+        <div id="ar-3" class="pt-arrow active">➔</div>
+        <div id="pt-db" class="pt-node selected" onclick="tracePath('Database')">Database</div>
+      </div>
+      
+      <div id="pt-result" class="pt-path-result">Active Path: <strong>Client</strong> ➔ <strong>AuthService</strong> ➔ <strong>TokenStore</strong> ➔ <strong>Database</strong> <span style="color:var(--text-subtle);font-size:12px;">(Length: 3 hops)</span></div>
+    </div>
   </div>
 </section>
 
@@ -767,6 +1059,160 @@ function copyInstall(btn, text) {
     btn.textContent = 'Copied!';
     setTimeout(() => btn.textContent = 'Copy', 1800);
   });
+}
+
+// Persona switcher
+const personas = {
+  software: {
+    title: "Your codebase,<br><span>finally understood</span>",
+    desc: "rekipedia turns any repository into a searchable wiki with grounded Q&A, exact file:line citations, and an MCP server so your AI agent actually knows your code."
+  },
+  architecture: {
+    title: "Your architecture,<br><span>deterministically mapped</span>",
+    desc: "Understand complex cross-layer couplings, track circular dependencies, and find architectural bridge nodes with pure-Python graph-analysis."
+  },
+  business: {
+    title: "Your tech debt,<br><span>quantified in domain logic</span>",
+    desc: "Track where code matches business flows, identify hidden technical risks, and align engineering context directly with your product roadmap."
+  }
+};
+
+function switchPersona(p) {
+  document.querySelectorAll('.p-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('p-' + p).classList.add('active');
+  
+  document.getElementById('hero-title').innerHTML = personas[p].title;
+  document.getElementById('hero-desc').innerText = personas[p].desc;
+}
+
+// AST Live Sandbox Parser
+function parseCode() {
+  const code = document.getElementById('pg-code').value;
+  
+  // Simplistic JavaScript-based Python "parser"
+  const lines = code.split('\n');
+  const nodes = [];
+  const edges = [];
+  
+  let currentClass = null;
+  let currentFunc = null;
+  
+  lines.forEach(line => {
+    // Find class definitions
+    const classMatch = line.match(/^\s*class\s+([A-Za-z0-9_]+)/);
+    if (classMatch) {
+      const name = classMatch[1];
+      nodes.push({ name, kind: "class" });
+      currentClass = name;
+      currentFunc = null;
+    }
+    
+    // Find function definitions
+    const defMatch = line.match(/^\s*def\s+([A-Za-z0-9_]+)/);
+    if (defMatch) {
+      const name = defMatch[1];
+      nodes.push({ name, kind: "function" });
+      currentFunc = name;
+      
+      if (currentClass) {
+        edges.push({ from: currentClass, to: name, kind: "contains" });
+      }
+    }
+    
+    // Find calls/usage in lines (very simplistic)
+    if (currentFunc) {
+      const callMatches = line.match(/([A-Za-z0-9_]+)\s*\(/g);
+      if (callMatches) {
+        callMatches.forEach(callStr => {
+          const name = callStr.replace('(', '').trim();
+          // Ignore some common keywords/builtins
+          if (!["def", "class", "if", "return", "while", "for", "print", currentFunc].includes(name)) {
+            if (!nodes.some(n => n.name === name)) {
+              nodes.push({ name, kind: "function" });
+            }
+            edges.push({ from: currentFunc, to: name, kind: "calls" });
+          }
+        });
+      }
+    }
+  });
+  
+  // Deduplicate nodes & edges
+  const uniqueNodes = Array.from(new Map(nodes.map(item => [item.name, item])).values());
+  const uniqueEdges = Array.from(new Map(edges.map(item => [item.from + "->" + item.to, item])).values());
+  
+  // Render Nodes
+  const nodesContainer = document.getElementById('pg-nodes');
+  nodesContainer.innerHTML = '';
+  uniqueNodes.forEach(node => {
+    const div = document.createElement('div');
+    div.className = `pg-node-tag ${node.kind}`;
+    div.innerText = node.name;
+    nodesContainer.appendChild(div);
+  });
+  
+  // Render Edges
+  const edgesContainer = document.getElementById('pg-edges');
+  edgesContainer.innerHTML = '';
+  uniqueEdges.forEach(edge => {
+    const div = document.createElement('div');
+    div.innerHTML = `${edge.from} <span class="pg-edge-arrow">➔</span> ${edge.to} <span style="color:var(--text-subtle);font-size:12px;">(${edge.kind})</span>`;
+    edgesContainer.appendChild(div);
+  });
+  
+  // Hub calculation
+  const degrees = {};
+  uniqueEdges.forEach(edge => {
+    degrees[edge.from] = (degrees[edge.from] || 0) + 1;
+    degrees[edge.to] = (degrees[edge.to] || 0) + 1;
+  });
+  let hub = "None";
+  let maxD = -1;
+  for (const name in degrees) {
+    if (degrees[name] > maxD) {
+      maxD = degrees[name];
+      hub = name + "()";
+    }
+  }
+  
+  // Render stats
+  document.getElementById('pg-stats').innerText = `${uniqueNodes.length} nodes · ${uniqueEdges.length} edges · Hub: ${hub}`;
+}
+
+// Path tracer
+function tracePath(nodeName) {
+  const nodes = ['Client', 'AuthService', 'TokenStore', 'Database'];
+  
+  // Reset all
+  nodes.forEach(n => {
+    document.getElementById('pt-' + n.toLowerCase()).classList.remove('selected');
+  });
+  
+  if (nodeName === 'Client') {
+    document.getElementById('pt-client').classList.add('selected');
+    document.getElementById('pt-auth').classList.add('selected');
+    document.getElementById('ar-1').classList.add('active');
+    document.getElementById('ar-2').classList.remove('active');
+    document.getElementById('ar-3').classList.remove('active');
+    document.getElementById('pt-result').innerHTML = `Active Path: <strong>Client</strong> ➔ <strong>AuthService</strong> <span style="color:var(--text-subtle);font-size:12px;">(Length: 1 hop)</span>`;
+  } else if (nodeName === 'AuthService' || nodeName === 'TokenStore') {
+    document.getElementById('pt-client').classList.add('selected');
+    document.getElementById('pt-auth').classList.add('selected');
+    document.getElementById('pt-token').classList.add('selected');
+    document.getElementById('ar-1').classList.add('active');
+    document.getElementById('ar-2').classList.add('active');
+    document.getElementById('ar-3').classList.remove('active');
+    document.getElementById('pt-result').innerHTML = `Active Path: <strong>Client</strong> ➔ <strong>AuthService</strong> ➔ <strong>TokenStore</strong> <span style="color:var(--text-subtle);font-size:12px;">(Length: 2 hops)</span>`;
+  } else {
+    document.getElementById('pt-client').classList.add('selected');
+    document.getElementById('pt-auth').classList.add('selected');
+    document.getElementById('pt-token').classList.add('selected');
+    document.getElementById('pt-db').classList.add('selected');
+    document.getElementById('ar-1').classList.add('active');
+    document.getElementById('ar-2').classList.add('active');
+    document.getElementById('ar-3').classList.add('active');
+    document.getElementById('pt-result').innerHTML = `Active Path: <strong>Client</strong> ➔ <strong>AuthService</strong> ➔ <strong>TokenStore</strong> ➔ <strong>Database</strong> <span style="color:var(--text-subtle);font-size:12px;">(Length: 3 hops)</span>`;
+  }
 }
 </script>
 </body>

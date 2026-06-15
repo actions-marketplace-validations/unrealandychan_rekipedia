@@ -100,3 +100,8 @@ In the `architecture` page, add a section: **Module Coupling**
 - List tightly coupled module pairs (high bidirectional calls/imports)
 - List loosely coupled or isolated modules
 - Flag any circular dependencies if detected
+
+### Epistemic Relationship Scoring & Confidence
+Relationships carry a `confidence` score (0.0–1.0) and an `evidence_tag` (`EXTRACTED` / `INFERRED` / `AMBIGUOUS`).
+- High-priority wiki pages (e.g. `architecture`, `core-modules`) should highlight if major dependencies are statically `EXTRACTED` (100% verified) or `INFERRED` / `AMBIGUOUS`.
+- Mention confidence scores when discussing loose or uncertain couplings.

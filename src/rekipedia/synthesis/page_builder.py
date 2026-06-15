@@ -218,14 +218,22 @@ class PageBuilder:
         *,
         caller: LLMCaller | None = None,
         doc_type: str = "default",
+        persona: str = "senior-dev",
     ) -> None:
         self._client: LLMCaller = caller if caller is not None else LLMClient(llm_config)
         self._overrides = prompt_overrides or {}
         self._exclude = set(exclude_pages or [])
         self._wiki_dir = wiki_dir
+        
+        from rekipedia.synthesis.personas import persona_preamble as _persona_preamble
         preamble = _doc_type_preamble(doc_type)
+        p_preamble = _persona_preamble(persona)
+        if p_preamble:
+            preamble = p_preamble + "\n" + preamble
+            
         self._system = (preamble + "\n\n" + _SYSTEM_PROMPT).lstrip() if preamble else _SYSTEM_PROMPT
         self._doc_type = doc_type
+        self._persona = persona
 
     def build(self, combined: AnalysisResult) -> dict[str, tuple[str, str]]:
         """Return {slug: (title, markdown_content)} for each page."""
@@ -477,11 +485,30 @@ def _build_payload(combined: AnalysisResult, diagrams: dict | None = None) -> di
     # Build file role map so LLM can distinguish impl vs CI/test/config
     file_roles = {f: _classify_file_role(f) for f in combined.files_seen}
 
-    # Build a compact symbol index: name -> {file, line_start, line_end, kind, role}
+    # Retrieve frequently asked symbols from database
+    frequent_symbols: list[str] = []
+    try:
+        from rekipedia.storage.sqlite_store import SqliteStore
+        from pathlib import Path
+        db_path = Path(".rekipedia/store.db")
+        if not db_path.exists():
+            db_path = Path("..") / ".rekipedia" / "store.db"
+        if db_path.exists():
+            with SqliteStore(db_path) as store:
+                repo_path = str(Path.cwd().resolve())
+                frequent_symbols = store.get_frequent_symbols(repo_path)
+    except Exception:
+        pass
+    frequent_set = set(frequent_symbols)
+
+    # Prioritise frequently asked about symbols to the very front
+    freq_syms = [s for s in combined.symbols if s.name in frequent_set]
+    non_freq_syms = [s for s in combined.symbols if s.name not in frequent_set]
+
     # Prioritise impl symbols — they are far more useful than CI/test helpers
-    impl_symbols = [s for s in combined.symbols if file_roles.get(s.file, "impl") == "impl"]
-    other_symbols = [s for s in combined.symbols if file_roles.get(s.file, "impl") != "impl"]
-    ordered_symbols = impl_symbols + other_symbols
+    impl_symbols = [s for s in non_freq_syms if file_roles.get(s.file, "impl") == "impl"]
+    other_symbols = [s for s in non_freq_syms if file_roles.get(s.file, "impl") != "impl"]
+    ordered_symbols = freq_syms + impl_symbols + other_symbols
 
     symbol_index = {
         s.name: {
@@ -490,6 +517,7 @@ def _build_payload(combined: AnalysisResult, diagrams: dict | None = None) -> di
             "line_end": s.line_end,
             "kind": s.kind,
             "role": file_roles.get(s.file, "impl"),
+            "frequently_asked": s.name in frequent_set,
         }
         for s in ordered_symbols[:600]
     }
@@ -507,7 +535,7 @@ def _build_payload(combined: AnalysisResult, diagrams: dict | None = None) -> di
         "file_roles": file_roles,
         "entry_points": combined.entry_points,
         "symbols": [
-            {**s.model_dump(), "role": file_roles.get(s.file, "impl")}
+            {**s.model_dump(), "role": file_roles.get(s.file, "impl"), "frequently_asked": s.name in frequent_set}
             for s in ordered_symbols[:600]
         ],
         "symbol_index": symbol_index,

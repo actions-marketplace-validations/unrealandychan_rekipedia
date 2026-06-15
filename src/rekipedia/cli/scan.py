@@ -164,23 +164,9 @@ def scan_cmd(
         env_val = os.environ.get('REKIPEDIA_WORKERS', '0')
         workers = int(env_val) or min(4, os.cpu_count() or 4)
 
-    # ── Skip if already scanned (unless --force) ──────────────────────────────
-    if not force:
-        db_path = output_dir / "store.db"
-        if db_path.exists():
-            try:
-                from rekipedia.storage.sqlite_store import SqliteStore
-                with SqliteStore(db_path) as _store:
-                    _existing = _store.get_latest_run_id(str(repo))
-                if _existing:
-                    console.print(
-                        f"[bold yellow]⏭  Scan skipped[/bold yellow] — completed scan already exists "
-                        f"([dim]{db_path}[/dim])\n"
-                        f"  Use [bold]--force[/bold] / [bold]-f[/bold] to re-scan."
-                    )
-                    return
-            except Exception:
-                pass  # DB unreadable — proceed with scan
+    # ── Skip if already scanned (unless --force) ──
+    # We no longer skip early here, because run_digest will now handle
+    # incremental scan and skip automatically if no files have changed!
 
     cfg = _load_config(repo)
     llm_cfg_raw = cfg.get("llm", {})
@@ -257,6 +243,7 @@ def scan_cmd(
                 workers=workers,
                 publish_dir=publish_dir,
                 community_sharding=community_sharding,
+                force=force,
             )
         except Exception:
             console.print_exception(show_locals=True)
@@ -291,6 +278,7 @@ def scan_cmd(
                     workers=workers,
                     publish_dir=publish_dir,
                     community_sharding=community_sharding,
+                    force=force,
                 )
             except Exception as exc:
                 progress.stop()

@@ -578,3 +578,17 @@ class WritesMixin:
             )
         self._c.commit()
         return len(rows)
+
+    def save_qa_symbol_mentions(self, qa_id: int, symbol_names: list[str]) -> None:
+        """Save symbol mentions for a given Q&A ID."""
+        try:
+            for name in symbol_names:
+                self._c.execute(
+                    "INSERT OR IGNORE INTO qa_symbol_mentions (qa_id, symbol_name) VALUES (?, ?)",
+                    (qa_id, name),
+                )
+            self._c.commit()
+        except Exception as exc:
+            with contextlib.suppress(Exception):
+                self._c.execute("ROLLBACK")
+            raise RuntimeError(f"save_qa_symbol_mentions failed: {exc}") from exc

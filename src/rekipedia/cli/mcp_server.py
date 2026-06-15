@@ -222,12 +222,22 @@ def _handle_tool(name: str, args: dict, cache: _StoreCache) -> str:
                     frm  = r.get("from_", "") or r.get("from", "")
                     to   = r.get("to", "")
                     kind = r.get("kind", "")
+                    conf = r.get("confidence", 1.0)
+                    ev_tag = r.get("evidence_tag", "EXTRACTED")
                 else:
                     frm  = r.from_ or ""
                     to   = r.to or ""
                     kind = r.kind or ""
+                    conf = getattr(r, "confidence", 1.0)
+                    ev_tag = getattr(r, "evidence_tag", "EXTRACTED")
                 if frm in sym_name_set:
-                    file_rels.append({"from": frm, "to": to, "kind": kind})
+                    file_rels.append({
+                        "from": frm,
+                        "to": to,
+                        "kind": kind,
+                        "confidence": conf,
+                        "evidence_tag": ev_tag
+                    })
             return json.dumps({"symbols": sym_names[:50], "relationships": file_rels[:100]})
 
         elif name == "search_nodes":

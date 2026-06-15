@@ -139,3 +139,63 @@ def test_scan_and_update_quiet(mock_llm, tmp_path):
     ).strip()
     assert clean_output_update == ""
 
+
+def test_scan_incremental_skip_unchanged_files(mock_llm, tmp_path):
+    import shutil
+    from rekipedia.storage.sqlite_store import SqliteStore
+
+    # Copy fixture to tmp_path/repo
+    repo = tmp_path / "repo"
+    shutil.copytree(MINI_PY, repo)
+    output_dir = tmp_path / ".rekipedia"
+
+    # Track how many times get_runner().run is called
+    with patch("rekipedia.orchestrator.run_digest.get_runner") as mock_get_runner:
+        runner_instance = MagicMock()
+        runner_instance.run.side_effect = lambda shard, root: MagicMock(
+            shard_id=shard.shard_id,
+            files_seen=[f.path for f in shard.files],
+            entry_points=[],
+            symbols=[],
+            relationships=[],
+        )
+        mock_get_runner.return_value = runner_instance
+
+        # 1st scan - Full scan (since no previous run exists)
+        run_digest(
+            repo_root=repo,
+            output_dir=output_dir,
+            llm_config=LLMConfig(),
+            force_local=True,
+        )
+        
+        # Check first scan run status in DB
+        db = SqliteStore(output_dir / "store.db")
+        db.open()
+        runs = db.db.execute("SELECT id, status, started_at FROM scan_runs").fetchall()
+        print("\n=== RUNS IN DB BEFORE 2ND SCAN ===", runs)
+        db.close()
+
+        # Verify run was called (first scan gets sharded and runs)
+        assert runner_instance.run.call_count > 0
+        runner_instance.run.reset_mock()
+
+        # Mutate a file
+        (repo / "utils.py").write_text("# mutated\ndef helper(): pass\n", encoding="utf-8")
+
+        # 2nd scan - Incremental scan
+        run_digest(
+            repo_root=repo,
+            output_dir=output_dir,
+            llm_config=LLMConfig(),
+            force_local=True,
+        )
+        
+        # Verify run was called only on the changed file
+        assert runner_instance.run.call_count == 1
+        called_shard = runner_instance.run.call_args[0][0]
+        # Shard files should only contain 'utils.py'
+        called_paths = {f.path for f in called_shard.files}
+        assert called_paths == {"utils.py"}
+
+

@@ -11,6 +11,8 @@ from rekipedia.cli.domain import domain_cmd
 from rekipedia.cli.embed import embed_cmd
 from rekipedia.cli.export import export_cmd
 from rekipedia.cli.hook import hook_cmd
+from rekipedia.cli.hotspots import hotspots_cmd
+from rekipedia.cli.surprises import surprises_cmd
 from rekipedia.cli.impact import impact_cmd
 from rekipedia.cli.init import init_cmd
 from rekipedia.cli.mcp_cmd import mcp_cmd
@@ -33,7 +35,7 @@ from rekipedia.cli.watch import watch_cmd
 
 SECTIONS = [
     ("Core", ["scan", "ask", "mcp", "serve"]),
-    ("Analysis", ["hotspots", "diff", "impact", "refactor", "review"]),
+    ("Analysis", ["hotspots", "surprises", "diff", "impact", "refactor", "review"]),
     ("Team sync", ["publish", "export", "merge", "pull", "watch"]),
     ("Setup", ["init", "hook", "embed"]),
 ]
@@ -111,3 +113,5 @@ main.add_command(publish_cmd)
 main.add_command(merge_cmd)
 main.add_command(pull_cmd)
 main.add_command(merge_driver_cmd)
+main.add_command(hotspots_cmd)
+main.add_command(surprises_cmd)

@@ -256,3 +256,21 @@ class ReadsMixin:
             }
             for r in rows
         ]
+
+    def get_frequent_symbols(self, repo_path: str, limit: int = 20) -> list[str]:
+        """Return the most frequently asked symbol names for *repo_path*."""
+        if "qa_symbol_mentions" not in self._table_names():
+            return []
+        rows = self._c.execute(
+            """
+            SELECT symbol_name, COUNT(*) as count
+            FROM qa_symbol_mentions m
+            JOIN qa_history h ON m.qa_id = h.id
+            WHERE h.repo_path = ?
+            GROUP BY symbol_name
+            ORDER BY count DESC
+            LIMIT ?
+            """,
+            [repo_path, limit],
+        ).fetchall()
+        return [r[0] for r in rows]

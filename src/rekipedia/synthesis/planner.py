@@ -188,6 +188,7 @@ class PlannerAgent:
         combined: AnalysisResult,
         diagrams: dict | None = None,
         progress_cb: Callable[[str], None] | None = None,
+        persona: str = "senior-dev",
     ) -> WikiPlan:
         """Analyse *combined* and return a WikiPlan.
 
@@ -217,21 +218,24 @@ class PlannerAgent:
             def _heartbeat() -> None:
                 elapsed = 0.0
                 phases = [
-                    (10,  "📂 Reviewing repository structure…"),
-                    (30, "🔍 Identifying key components…"),
-                    (60, "🗂  Deciding page sections…"),
-                    (120, "✍️  Writing page focus instructions…"),
-                    (240, "📐 Finalising navigation order…"),
-                    (999, "⏳ Almost there…"),
+                    "Analysing dependencies…",
+                    "Clustering modules…",
+                    "Designing section hierarchy…",
+                    "Assigning file roles…",
+                    "Drafting page outlines…",
+                    "Checking for circular coupling…",
+                    "Refining summaries…",
+                    "Synthesising final JSON…",
                 ]
-                phase_idx = 0
-                while not _done.wait(0.5):
+                import time
+                while not _done.is_set():
+                    time.sleep(0.5)
                     elapsed += 0.5
-                    # Advance phase label when time threshold passed
-                    while phase_idx < len(phases) - 1 and elapsed >= phases[phase_idx][0]:
-                        phase_idx += 1
-                    label = phases[phase_idx][1]
-                    progress_cb(f"{label} ({elapsed:.0f}s)")
+                    idx = min(int(elapsed / 1.5), len(phases) - 1)
+                    progress_cb(
+                        f"🧠 PlannerAgent thinking ({elapsed:.1f}s): "
+                        f"{phases[idx]}"
+                    )
 
             t = threading.Thread(target=_heartbeat, daemon=True)
             t.start()
@@ -240,8 +244,16 @@ class PlannerAgent:
 
         # Planner generates a large structured JSON — give it extra time
         _PLANNER_TIMEOUT = int(os.environ.get("REKIPEDIA_PLANNER_TIMEOUT", "600"))
+        
+        from rekipedia.synthesis.personas import persona_preamble as _persona_preamble
         try:
-            raw = self._client.call(prompt, system=_SYSTEM_PROMPT, timeout=_PLANNER_TIMEOUT)
+            p_preamble = _persona_preamble(persona)
+        except ValueError:
+            p_preamble = ""
+        system = (_SYSTEM_PROMPT + "\n\n" + p_preamble).strip() if p_preamble else _SYSTEM_PROMPT
+        
+        try:
+            raw = self._client.call(prompt, system=system, timeout=_PLANNER_TIMEOUT)
         except Exception as exc:
             _done.set()
             if t:
