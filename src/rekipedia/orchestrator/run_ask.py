@@ -533,6 +533,7 @@ def run_ask(
     history: list[dict] | None = None,
     pinned_context: list[str] | None = None,
     brief: bool = False,
+    rlm: bool = False,
 ) -> str:
     """Answer *question* grounded in the knowledge store.
 
@@ -545,6 +546,7 @@ def run_ask(
         pinned_context: List of file[:symbol] strings to pin into context.
         brief: If True, use compact answer mode (~150 tokens, 1 paragraph + citations).
                Also activated by REKIPEDIA_BRIEF=1 env var.
+        rlm: If True, use Recursive Language Model (RLM) reasoning loop (Beta).
 
     Returns:
         The assistant's answer as a Markdown string.
@@ -553,6 +555,9 @@ def run_ask(
         RuntimeError: If no successful scan exists for the repo.
     """
     import os as _os
+    if rlm or _os.environ.get("REKIPEDIA_RLM_ASK", "0") == "1":
+        from rekipedia.orchestrator.rlm_ask import run_rlm_ask
+        return run_rlm_ask(question, repo_root, output_dir, llm_config, history)
     brief = brief or _os.environ.get("REKIPEDIA_BRIEF", "0") == "1"
     if _os.environ.get("REKIPEDIA_AGENT_ASK", "0") == "1":
         from rekipedia.orchestrator.agent_ask import agent_run_ask
@@ -572,6 +577,7 @@ def stream_ask(
     history: list[dict] | None = None,
     pinned_context: list[str] | None = None,
     brief: bool = False,
+    rlm: bool = False,
 ) -> Iterator[str]:
     """Answer *question* grounded in the knowledge store, streaming tokens.
 
@@ -579,6 +585,13 @@ def stream_ask(
     and yields text chunks instead of returning a single string.
     """
     import os as _os
+    if rlm or _os.environ.get("REKIPEDIA_RLM_ASK", "0") == "1":
+        def _rlm_generator() -> Iterator[str]:
+            from rekipedia.orchestrator.rlm_ask import run_rlm_ask
+            answer = run_rlm_ask(question, repo_root, output_dir, llm_config, history)
+            yield answer
+        return _rlm_generator()
+
     brief = brief or _os.environ.get("REKIPEDIA_BRIEF", "0") == "1"
     pinned_str = _load_pinned_context(pinned_context or [], repo_root)
     client, full_system = _prepare_ask(question, repo_root, output_dir, llm_config, history, pinned_context=pinned_str, brief=brief)
