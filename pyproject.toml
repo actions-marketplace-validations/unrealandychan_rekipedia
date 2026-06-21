@@ -142,3 +142,12 @@ dev = [
     "tree-sitter-java>=0.23.5",
     "tree-sitter-rust>=0.24.2",
 ]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    "ignore:builtin type SwigPyPacked has no __module__ attribute:DeprecationWarning",
+    "ignore:builtin type SwigPyObject has no __module__ attribute:DeprecationWarning",
+    "ignore:builtin type swigvarlink has no __module__ attribute:DeprecationWarning",
+    "ignore:install \"ipywidgets\" for Jupyter support:UserWarning",
+]

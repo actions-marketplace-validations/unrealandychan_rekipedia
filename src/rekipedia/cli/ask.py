@@ -136,6 +136,7 @@ def _answer_streaming(
     stream: bool = True,
     pinned_files: list[str] | None = None,
     brief: bool = False,
+    rlm: bool = False,
 ) -> str | None:
     """Run one Q&A turn: spinner while waiting, then stream tokens via rich.Live.
 
@@ -147,6 +148,7 @@ def _answer_streaming(
         history: Conversation history.
         stream: If True (default), stream tokens with rich.Live Markdown rendering.
                 If False, wait for full response then print at once.
+        rlm: If True, use Recursive Language Model (RLM) reasoning loop (Beta).
 
     Returns:
         The full answer string, or None on error.
@@ -159,7 +161,7 @@ def _answer_streaming(
 
     console.print(Rule("[bold bright_green]◆ Answer[/bold bright_green]", style="bright_green"))
 
-    if not stream:
+    if not stream or rlm:
         # ── Non-streaming mode: spinner → full response ────────────────
         spinner_text = Spinner("dots", text=Text(" Searching wiki & reasoning…", style="dim"))
         answer: str | None = None
@@ -173,6 +175,7 @@ def _answer_streaming(
                     history=history,
                     pinned_context=pinned_files,
                     brief=brief,
+                    rlm=rlm,
                 )
             except (RuntimeError, Exception) as exc:
                 console.print(f"[bold red]Error:[/bold red] {exc}")
@@ -192,6 +195,7 @@ def _answer_streaming(
             history=history,
             pinned_context=pinned_files,
             brief=brief,
+            rlm=rlm,
         )
     except (RuntimeError, Exception) as exc:
         console.print(f"[bold red]Error:[/bold red] {exc}")
@@ -268,6 +272,13 @@ def _answer_streaming(
         "Also controlled by REKIPEDIA_BRIEF=1 env var."
     ),
 )
+@click.option(
+    "--rlm",
+    is_flag=True,
+    default=False,
+    envvar="REKIPEDIA_RLM_ASK",
+    help="Enable Recursive Language Model (RLM) reasoning mode (Beta).",
+)
 def ask_cmd(
     question_arg: str | None,
     question: str | None,
@@ -281,6 +292,7 @@ def ask_cmd(
     no_stream: bool,
     pinned_files: tuple[str, ...],
     brief: bool,
+    rlm: bool,
 ) -> None:
     """Interactive grounded Q&A about the scanned repository.
 
@@ -372,14 +384,17 @@ def ask_cmd(
     if single_question:
         # Single-shot mode (no session save)
         _print_banner()
-        _answer_streaming(single_question, repo, output_dir, llm_config, history=[], stream=use_stream, pinned_files=list(pinned_files), brief=brief)
+        _answer_streaming(single_question, repo, output_dir, llm_config, history=[], stream=use_stream, pinned_files=list(pinned_files), brief=brief, rlm=rlm)
         return
 
     # Interactive REPL
     _print_banner()
 
     wiki_dir = output_dir / "wiki"
-    stream_label = "[dim]streaming[/dim]" if use_stream else "[dim]buffered[/dim]"
+    if rlm:
+        stream_label = "[dim]RLM (Beta)[/dim]"
+    else:
+        stream_label = "[dim]streaming[/dim]" if use_stream else "[dim]buffered[/dim]"
     panel_content = (
         f"[bold]Model[/bold]   [cyan]{llm_config.model}[/cyan]\n"
         f"[bold]Repo[/bold]    [cyan]{repo}[/cyan]\n"
@@ -420,6 +435,6 @@ def ask_cmd(
         if not no_history:
             _add_input_history(user_input)
 
-        answer = _answer_streaming(user_input, repo, output_dir, llm_config, history=list(history), stream=use_stream, pinned_files=list(pinned_files), brief=brief)
+        answer = _answer_streaming(user_input, repo, output_dir, llm_config, history=list(history), stream=use_stream, pinned_files=list(pinned_files), brief=brief, rlm=rlm)
         if answer:
             _append_history(user_input, answer)
