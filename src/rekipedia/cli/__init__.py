@@ -13,6 +13,7 @@ from rekipedia.cli.export import export_cmd
 from rekipedia.cli.hook import hook_cmd
 from rekipedia.cli.hotspots import hotspots_cmd
 from rekipedia.cli.surprises import surprises_cmd
+from rekipedia.cli.git_history import git_history_cmd
 from rekipedia.cli.impact import impact_cmd
 from rekipedia.cli.init import init_cmd
 from rekipedia.cli.mcp_cmd import mcp_cmd
@@ -35,7 +36,7 @@ from rekipedia.cli.watch import watch_cmd
 
 SECTIONS = [
     ("Core", ["scan", "ask", "mcp", "serve"]),
-    ("Analysis", ["hotspots", "surprises", "diff", "impact", "refactor", "review"]),
+    ("Analysis", ["hotspots", "surprises", "git-history", "diff", "impact", "refactor", "review"]),
     ("Team sync", ["publish", "export", "merge", "pull", "watch"]),
     ("Setup", ["init", "hook", "embed"]),
 ]
@@ -115,3 +116,4 @@ main.add_command(pull_cmd)
 main.add_command(merge_driver_cmd)
 main.add_command(hotspots_cmd)
 main.add_command(surprises_cmd)
+main.add_command(git_history_cmd, name="git-history")

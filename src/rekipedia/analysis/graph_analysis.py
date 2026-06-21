@@ -169,8 +169,19 @@ def get_hub_nodes(store: SqliteStore, run_id: str, top_n: int = 10) -> list[dict
     relationships = store.get_all_relationships(run_id)
     symbols = store.get_all_symbols(run_id)
     all_scored = _build_hub_nodes(relationships, symbols, top_n=top_n * 3)
+
+    from rekipedia.analysis.git_history import get_file_commit_counts
+    commit_counts = get_file_commit_counts(store, run_id)
+
     for n in all_scored:
-        n.setdefault("total_degree", n.get("score", n["in_degree"] + n["out_degree"]))
+        file_path = n.get("file", "")
+        commit_count = commit_counts.get(file_path, 0)
+        n["commit_count"] = commit_count
+        # Factoring commit frequency into the score
+        n["score"] = n.get("score", n["in_degree"] + n["out_degree"]) + commit_count
+        n["total_degree"] = n["score"]
+
+    all_scored.sort(key=lambda x: x["score"], reverse=True)
     return all_scored[:top_n]
 
 
@@ -179,10 +190,18 @@ def get_bridge_nodes(store: SqliteStore, run_id: str, top_n: int = 10) -> list[d
     relationships = store.get_all_relationships(run_id)
     symbols = store.get_all_symbols(run_id)
     all_scored = _build_hub_nodes(relationships, symbols, top_n=9999)
+
+    from rekipedia.analysis.git_history import get_file_commit_counts
+    commit_counts = get_file_commit_counts(store, run_id)
+
     bridges = [n for n in all_scored if n.get("is_bridge")]
-    bridges.sort(key=lambda x: x["in_degree"] * x["out_degree"], reverse=True)
     for b in bridges:
-        b["bridge_score"] = b["in_degree"] * b["out_degree"]
+        file_path = b.get("file", "")
+        commit_count = commit_counts.get(file_path, 0)
+        b["commit_count"] = commit_count
+        b["bridge_score"] = b["in_degree"] * b["out_degree"] + commit_count
+
+    bridges.sort(key=lambda x: x["bridge_score"], reverse=True)
     return bridges[:top_n]
 
 
