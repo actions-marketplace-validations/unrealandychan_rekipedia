@@ -565,7 +565,11 @@ def run_digest(
         from rekipedia.exporters.json_export import JsonExporter
         from rekipedia.exporters.markdown_export import MarkdownExporter
 
-        MarkdownExporter(output_dir).export(pages, diagrams)
+        _log("Exporting wiki...")
+        from rekipedia.exporters.json_export import JsonExporter
+        from rekipedia.exporters.markdown_export import MarkdownExporter
+
+        MarkdownExporter(output_dir, llm_client=None if no_llm else getattr(planner, "_client", None)).export(pages, diagrams, run_id=run_id, store=store)
         JsonExporter(output_dir).export(run_id, files, combined, pages, diagrams)
 
         # ── 7. Write scan_meta.json ───────────────────────────────────

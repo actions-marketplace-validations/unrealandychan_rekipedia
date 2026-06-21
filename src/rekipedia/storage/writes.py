@@ -167,6 +167,27 @@ class WritesMixin:
                 self._c.execute("ROLLBACK")
             raise RuntimeError(f"upsert_pages_batch failed: {exc}") from exc
 
+    def upsert_wiki_revision(self, slug: str, run_id: str, title: str, content: str) -> None:
+        """Save a wiki page revision to the database."""
+        now = _now()
+        try:
+            self._c.execute(
+                """
+                INSERT INTO wiki_revisions (slug, run_id, title, content, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(slug) DO UPDATE SET
+                    run_id=excluded.run_id,
+                    title=excluded.title,
+                    content=excluded.content,
+                    updated_at=excluded.updated_at
+                """,
+                (slug, run_id, title, content, now)
+            )
+            self._conn.commit()
+        except Exception as exc:
+            import logging
+            logging.getLogger("rekipedia.storage").warning(f"Failed to upsert wiki revision for {slug}: {exc}")
+
     def upsert_symbols(self, run_id: str, symbols: list[dict[str, Any]]) -> None:
         if not symbols:
             return
