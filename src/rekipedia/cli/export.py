@@ -132,7 +132,7 @@ def export_cmd(
             run_id = store.latest_run_id()
             symbols = store.get_all_symbols(run_id)
             rels = store.get_all_relationships(run_id)
-        written = export_obsidian(symbols, rels, obs_dir)
+        written = export_obsidian(symbols, rels, obs_dir, wiki_dir=wiki_dir, diagrams_dir=diagrams_dir)
         console.print(f"[green]✅ Obsidian vault: {len(written)} notes written to {obs_dir}[/green]")
         return
 

@@ -35,3 +35,33 @@ def test_obsidian_creates_files(tmp_path):
     content = (tmp_path / 'MyClass.md').read_text()
     assert '# MyClass' in content
     assert '[[my_func]]' in content
+
+
+def test_obsidian_with_wiki_and_diagrams(tmp_path):
+    wiki_dir = tmp_path / "mock_wiki"
+    wiki_dir.mkdir()
+    (wiki_dir / "onboarding.md").write_text("# Onboarding\n\nRead more at [Project Overview](index.md#summary).", encoding="utf-8")
+
+    diags_dir = tmp_path / "mock_diags"
+    diags_dir.mkdir()
+    (diags_dir / "flow.md").write_text("# Flow\n\nRefer to [Onboarding](../wiki/onboarding.md).", encoding="utf-8")
+
+    out_dir = tmp_path / "output_vault"
+    written = export_obsidian(SYMS, RELS, out_dir, wiki_dir=wiki_dir, diagrams_dir=diags_dir)
+
+    # Symbol files should be in "symbols" subdirectory when wiki_dir is provided
+    assert (out_dir / "symbols" / "MyClass.md").exists()
+    assert (out_dir / "symbols" / "my_func.md").exists()
+
+    # Wiki files should be copied to the root and converted
+    wiki_copied = out_dir / "onboarding.md"
+    assert wiki_copied.exists()
+    wiki_content = wiki_copied.read_text(encoding="utf-8")
+    assert "[[index#summary|Project Overview]]" in wiki_content
+
+    # Diagram files should be copied and converted
+    diag_copied = out_dir / "diagrams" / "flow.md"
+    assert diag_copied.exists()
+    diag_content = diag_copied.read_text(encoding="utf-8")
+    assert "[[onboarding|Onboarding]]" in diag_content
+
