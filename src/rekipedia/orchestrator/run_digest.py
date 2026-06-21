@@ -89,6 +89,7 @@ def run_digest(
     community_sharding: bool = False,
     force: bool = False,
     persona: str = "senior-dev",
+    preset: str | None = None,
 ) -> None:
     """Full scan pipeline.
 
@@ -485,7 +486,7 @@ def run_digest(
             _plan_progress_msgs.append(msg)
             _log(msg)
 
-        wiki_plan = planner.plan(combined_for_build, diagrams=diagrams, progress_cb=_plan_progress)
+        wiki_plan = planner.plan(combined_for_build, diagrams=diagrams, progress_cb=_plan_progress, persona=persona, preset=preset)
         _log(f"  Wiki plan: {wiki_plan}")
         _vlog(f"  Wiki plan: {wiki_plan}")
 

@@ -106,6 +106,11 @@ def _run_with_refactor(repo: Path, output_dir: Path, verbose: bool) -> None:
     help="Number of parallel workers for file extraction (default: min(4, cpu_count))")
 @click.option("--no-thumbnails", "no_thumbnails", is_flag=True, default=False, help="Skip PDF thumbnail generation even if enabled in config.")
 @click.option(
+    "--preset", "-p",
+    default=None,
+    help="Use a custom architecture preset YAML template from .rekipedia/templates/."
+)
+@click.option(
     "--community-sharding", "community_sharding",
     is_flag=True, default=False,
     help="Group related files by real import/call edges (from previous scan) before sharding. Improves wiki quality for tightly coupled subsystems. Falls back to default sharding on the first scan."
@@ -128,6 +133,7 @@ def scan_cmd(
     doc_type: str,
     workers: int | None,
     no_thumbnails: bool,
+    preset: str | None,
     community_sharding: bool,
     quiet: bool,
 ) -> None:
@@ -244,6 +250,7 @@ def scan_cmd(
                 publish_dir=publish_dir,
                 community_sharding=community_sharding,
                 force=force,
+                preset=preset,
             )
         except Exception:
             console.print_exception(show_locals=True)
@@ -279,6 +286,7 @@ def scan_cmd(
                     publish_dir=publish_dir,
                     community_sharding=community_sharding,
                     force=force,
+                    preset=preset,
                 )
             except Exception as exc:
                 progress.stop()

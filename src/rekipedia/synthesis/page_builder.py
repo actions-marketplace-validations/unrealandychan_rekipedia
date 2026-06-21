@@ -298,6 +298,10 @@ class PageBuilder:
             title = _extract_title(existing) or title_hint
             return (title, existing)
 
+        glob_pattern = spec.get("glob")
+        if glob_pattern:
+            payload_slice = _filter_payload_by_glob(payload_slice, glob_pattern)
+
         focus = self._overrides.get(slug) or spec.get("focus", f"Write a wiki page about {slug}.")
         nav_hint = ""
         if spec.get("tags"):
@@ -676,3 +680,35 @@ def _ensure_frontmatter(
         f"---\n\n"
     )
     return fm + body
+
+
+def _filter_payload_by_glob(payload: dict, glob_pattern: str) -> dict:
+    import fnmatch
+    import re
+
+    filtered = payload.copy()
+
+    def matches_glob(filepath: str, pattern: str) -> bool:
+        if not filepath:
+            return False
+        # Translate recursive ** to standard regex
+        regex_pattern = re.escape(pattern).replace(r'\*\*\/', '.*').replace(r'\*\*', '.*').replace(r'\*', '[^/]*').replace(r'\?', '.')
+        return bool(re.match(f"^{regex_pattern}$", filepath) or fnmatch.fnmatch(filepath, pattern))
+
+    if "files_seen" in payload:
+        filtered["files_seen"] = [f for f in payload["files_seen"] if matches_glob(f, glob_pattern)]
+    if "impl_files" in payload:
+        filtered["impl_files"] = [f for f in payload["impl_files"] if matches_glob(f, glob_pattern)]
+    if "test_files" in payload:
+        filtered["test_files"] = [f for f in payload["test_files"] if matches_glob(f, glob_pattern)]
+    if "ci_files" in payload:
+        filtered["ci_files"] = [f for f in payload["ci_files"] if matches_glob(f, glob_pattern)]
+
+    if "symbols" in payload:
+        filtered["symbols"] = [s for s in payload["symbols"] if matches_glob(s.get("file", ""), glob_pattern)]
+
+    if "symbol_index" in payload:
+        filtered_symbol_names = {s.get("name") for s in filtered.get("symbols", []) if s.get("name")}
+        filtered["symbol_index"] = {k: v for k, v in payload["symbol_index"].items() if k in filtered_symbol_names}
+
+    return filtered

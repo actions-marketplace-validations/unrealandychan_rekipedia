@@ -189,6 +189,7 @@ class PlannerAgent:
         diagrams: dict | None = None,
         progress_cb: Callable[[str], None] | None = None,
         persona: str = "senior-dev",
+        preset: str | None = None,
     ) -> WikiPlan:
         """Analyse *combined* and return a WikiPlan.
 
@@ -198,6 +199,27 @@ class PlannerAgent:
         """
         import os as _os
         import threading
+
+        if preset:
+            preset_data = self._load_preset(preset)
+            if preset_data:
+                if progress_cb:
+                    progress_cb(f"📋 Loaded custom architecture preset: {preset_data.get('name', preset)}")
+                
+                # Sanitize slugs
+                for page in preset_data.get("pages", []):
+                    if "slug" in page:
+                        page["slug"] = _sanitize_slug(page["slug"])
+                if "index_slug" in preset_data:
+                    preset_data["index_slug"] = _sanitize_slug(preset_data["index_slug"])
+                if "nav_order" in preset_data:
+                    preset_data["nav_order"] = [_sanitize_slug(s) for s in preset_data["nav_order"]]
+                    
+                return WikiPlan(preset_data)
+            else:
+                if progress_cb:
+                    progress_cb(f"⚠️  Preset '{preset}' not found or invalid, falling back to LLM planner")
+
         if _os.environ.get("REKIPEDIA_AGENT_PLANNER", "0") == "1":
             from rekipedia.synthesis.agent_planner import AgentPlanner
             ap = AgentPlanner(caller=self._client)
@@ -295,6 +317,25 @@ class PlannerAgent:
                 f"({section_names})"
             )
         return plan
+
+    def _load_preset(self, preset_name: str) -> dict | None:
+        import yaml
+        from pathlib import Path
+        
+        # Look for custom presets under .rekipedia/templates/<preset_name>.yml
+        custom_paths = [
+            Path(".rekipedia") / "templates" / f"{preset_name}.yml",
+            Path(".rekipedia") / "templates" / f"{preset_name}.yaml",
+            Path(preset_name),  # support direct file path
+        ]
+        for p in custom_paths:
+            if p.exists() and p.is_file():
+                try:
+                    with p.open(encoding="utf-8") as f:
+                        return yaml.safe_load(f)
+                except Exception as e:
+                    logger.warning("Failed to load preset from %s: %s", p, e)
+        return None
 
 
 def _classify_file_role(path: str) -> str:

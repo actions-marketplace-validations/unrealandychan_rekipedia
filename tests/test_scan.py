@@ -199,3 +199,47 @@ def test_scan_incremental_skip_unchanged_files(mock_llm, tmp_path):
         assert called_paths == {"utils.py"}
 
 
+def test_scan_with_preset_yaml(mock_llm, tmp_path):
+    preset_content = """
+name: "Clean Architecture Preset"
+description: "Preset for clean architecture"
+sections:
+  - id: "domain"
+    title: "Domain Layer"
+    pages: ["domain-entities"]
+pages:
+  - slug: "domain-entities"
+    title: "Domain Entities"
+    section: "domain"
+    importance: 90
+    focus: "Document domain entities."
+    glob: "**/math_helper.py"
+"""
+    preset_file = tmp_path / "custom_preset.yml"
+    preset_file.write_text(preset_content, encoding="utf-8")
+
+    output_dir = tmp_path / ".rekipedia"
+    run_digest(
+        repo_root=MINI_PY,
+        output_dir=output_dir,
+        llm_config=LLMConfig(),
+        force_local=True,
+        preset=str(preset_file),
+    )
+
+    # Only our custom page "domain-entities" should be generated
+    wiki_dir = output_dir / "wiki"
+    assert wiki_dir.exists()
+    pages = sorted(list(wiki_dir.glob("*.md")))
+    slugs = [p.stem for p in pages]
+    assert "domain-entities" in slugs
+    
+    # Read manifest to make sure it includes our custom sections and pages
+    manifest = output_dir / "exports" / "manifest.json"
+    assert manifest.exists()
+    import json
+    data = json.loads(manifest.read_text())
+    assert any(p["slug"] == "domain-entities" for p in data["pages"])
+
+
+
