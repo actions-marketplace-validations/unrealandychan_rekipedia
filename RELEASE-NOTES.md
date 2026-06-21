@@ -1,4 +1,33 @@
-     1|## v0.23.0 — Community Sharding & Graph Intelligence MCP Tools (2026-06-13)
+     1|## v0.25.0 — Spatio-Temporal Graph, Custom Presets, Obsidian & Wiki Self-Merge (2026-06-21)
+
+This major release introduces a series of powerful advanced features inspired by Hyper-Extract and OntoMem, completing the transformation of rekipedia into a multi-dimensional, self-consolidating codebase intelligence framework.
+
+### 🌟 Native Obsidian Export with Bidirectional [[wikilinks]] — closes #241
+You can now export your entire codebase wiki as a native, fully interlinked Obsidian vault! Open it in Obsidian to navigate and view your architecture as an interactive visual graph.
+- **`reki export . --format obsidian`** — now copies and converts all wiki pages, diagrams, and code symbols into a structured Obsidian vault.
+- **Link Conversion** — automatically translates relative Markdown links inside wiki articles (e.g. `[Overview](index.md#summary)`) into Obsidian-native `[[index#summary|Project Overview]]` links.
+- **Symbol Card Folders** — code symbols are organized under `symbols/` with YAML Frontmatter (tags like `codebase/symbol` and `codebase/class`), including **Incoming (Callers)** and **Outgoing (Callees)** backreferences.
+
+### 📋 Zero-Code Architecture Presets via YAML Templates — closes #242
+Define customized, static documentation structures using YAML templates. Perfect for generating tailored Wikis for specific frameworks (e.g. Django, NestJS, or Clean Architecture) without calling the dynamic LLM planner.
+- **`.rekipedia/templates/*.yml`** — load custom presets using `reki scan --preset <name>` (or `-p <name>`).
+- **Dynamic Glob Filtering** — each page can declare a `glob` pattern (e.g. `**/domain/entities/*.py`). The page builder uses a recursive glob-to-regex matcher to automatically strip the LLM context of unrelated files and symbols, saving up to 80% of token consumption.
+
+### 🏗 Spatio-Temporal Git-History Graph Analysis — closes #243
+Combine the spatial repository directory layout with the temporal commit history of Git to identify dynamic development hotspots.
+- **`reki git-history .`** — new command that runs quiet, safe subprocess commands to parse Git commit logs and file diff additions/deletions.
+- **Database Migration `008_git_history`** — adds `git_commits` and `git_file_changes` tables to SQLite.
+- **Dynamic Hotspot Scoring** — `reki hotspots` and `reki surprises` now factor in the **Commit Frequency** of files, mathematically combining spatial dependency degrees with temporal modification rates to flag actual high-risk maintenance hubs.
+
+### 🧠 Semantic-Level Wiki Consensus Merger — closes #244
+Incremental scans (`reki update`) now protect your custom developer annotations, ADRs, or warnings from being overwritten.
+- **Consensus Merge Loop** — instead of completely overwriting markdown pages on disk, an LLM-based three-way consensus merge preserves developer-added content while updating function parameters and directory structures.
+- **Database Migration `009_wiki_revisions`** — tracks page revisions to maintain idempotency.
+- **Safe Fallback** — automatically downgrades to clean overwriting if `--no-llm` is active or if the LLM call fails.
+
+---
+
+## v0.23.0 — Community Sharding & Graph Intelligence MCP Tools (2026-06-13)
 
 ### 🧩 Community-Aware Sharding (`--community-sharding`) — closes #229
 
