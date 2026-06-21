@@ -1,27 +1,19 @@
 {
-  "run_id": "ea92f8c4-6bc4-4170-8f65-bd91c57e8820",
-  "generated_at": "2026-06-14T05:43:36.392839+00:00",
-  "file_count": 378,
-  "symbol_count": 2425,
-  "relationship_count": 13184,
+  "run_id": "e018ec8e-6e68-4d14-b6b9-3f0f6713d6c0",
+  "generated_at": "2026-06-21T07:38:02.146065+00:00",
+  "file_count": 383,
+  "symbol_count": 2470,
+  "relationship_count": 13554,
   "nav_order": [
-    "cli-and-api",
-    "architecture",
     "index",
     "core-modules",
+    "architecture",
+    "cli-and-api",
     "installation-and-setup",
     "technical-debt",
     "testing"
   ],
   "pages": [
-    {
-      "slug": "cli-and-api",
-      "title": "CLI & API Reference"
-    },
-    {
-      "slug": "architecture",
-      "title": "Architecture"
-    },
     {
       "slug": "index",
       "title": "Project Overview"
@@ -29,6 +21,14 @@
     {
       "slug": "core-modules",
       "title": "Core Modules"
+    },
+    {
+      "slug": "architecture",
+      "title": "Architecture"
+    },
+    {
+      "slug": "cli-and-api",
+      "title": "CLI & API Reference"
     },
     {
       "slug": "installation-and-setup",
@@ -43,10 +43,7 @@
       "title": "Testing"
     }
   ],
-  "diagrams": [
-    "module-graph",
-    "class-hierarchy"
-  ],
+  "diagrams": [],
   "risks": [],
   "build_commands": [
     "uv build",
