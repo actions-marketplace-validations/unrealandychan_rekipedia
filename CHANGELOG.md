@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.27.0] — 2026-06-26
+
+### Features
+- `chat.db` isolated from `store.db` — chat history no longer pollutes the shared scan DB (#248)
+- `reki serve --title / --logo` — custom branding; `/api/config` + `/logo` endpoints (#238)
+- `detect_changes` MCP tool — git blast-radius analysis via MCP with risk tagging (#245)
+- `reki diff --graph-diff` — edge-level relationship diff between last two scan runs (#235)
+- `get_two_latest_run_ids()` on SqliteStore for cross-run comparison
+
+### Tests
+- 39 new tests across 4 test files (all passing)
+
 ## [0.26.0] — 2026-06-26
 
 ### Features
