@@ -21,9 +21,23 @@ _TEMPLATES_DIR = Path(__file__).parent / "templates"
 _STATIC_DIR    = Path(__file__).parent / "static"
 
 
-def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> FastAPI:
-    """Factory — returns a configured FastAPI app."""
-    app = FastAPI(title="rekipedia", docs_url=None, redoc_url=None)
+def create_app(
+    repo_root: Path,
+    output_dir: Path,
+    llm_config: LLMConfig,
+    custom_title: str | None = None,
+    custom_logo: Path | None = None,
+) -> FastAPI:
+    """Create the FastAPI application.
+
+    Args:
+        repo_root: Repository root directory.
+        output_dir: .rekipedia/ output directory.
+        llm_config: LLM configuration.
+        custom_title: Optional project title shown in the UI (overrides repo name).
+        custom_logo: Optional path to a custom logo image served as /logo.
+    """
+    app = FastAPI(title=custom_title or "rekipedia", docs_url=None, redoc_url=None)
 
     app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
@@ -328,6 +342,33 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
         from rekipedia.storage.chat_store import ChatStore
         with ChatStore(output_dir) as _cs:
             return JSONResponse(_cs.get_qa_history(str(repo_root)))
+
+    @app.get("/api/config", response_class=JSONResponse)
+    async def api_config():
+        """Return server-side branding config (title, logo availability)."""
+        return JSONResponse({
+            "title": custom_title or _project_name(),
+            "has_logo": custom_logo is not None and Path(custom_logo).exists(),
+        })
+
+    @app.get("/logo")
+    async def serve_logo():
+        """Serve the custom logo image, if one was configured."""
+        from fastapi.responses import FileResponse
+        if custom_logo and Path(custom_logo).exists():
+            logo_path = Path(custom_logo)
+            media_map = {
+                ".png": "image/png",
+                ".svg": "image/svg+xml",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+            }
+            media_type = media_map.get(logo_path.suffix.lower(), "application/octet-stream")
+            return FileResponse(str(logo_path), media_type=media_type)
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="No custom logo configured")
 
     @app.get("/api/wiki", response_class=JSONResponse)
     async def api_wiki_list():
