@@ -84,6 +84,30 @@ class ReadsMixin:
         ).fetchone()
         return row[0] if row else None
 
+    def get_two_latest_run_ids(self, repo_path: str) -> tuple[str | None, str | None]:
+        """Return (latest_run_id, previous_run_id) for *repo_path*.
+
+        Returns (latest, None) when only one run exists, (None, None) when none.
+
+        Args:
+            repo_path: Absolute path of the scanned repository.
+
+        Returns:
+            Tuple of (latest_run_id, previous_run_id).  Either may be None.
+        """
+        if "scan_runs" not in self._table_names():
+            return None, None
+        rows = self._c.execute(
+            "SELECT id FROM scan_runs WHERE repo_path = ? AND status = 'success'"
+            " ORDER BY started_at DESC LIMIT 2",
+            [repo_path],
+        ).fetchall()
+        if not rows:
+            return None, None
+        latest = rows[0][0]
+        previous = rows[1][0] if len(rows) > 1 else None
+        return latest, previous
+
     def latest_run_id(self) -> str | None:
         """Return the id of the most recent successful scan_run across all repos."""
         if "scan_runs" not in self._table_names():

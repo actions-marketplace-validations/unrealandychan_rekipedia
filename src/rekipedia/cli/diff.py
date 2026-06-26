@@ -4,10 +4,12 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
 from rich.rule import Rule
+from rich.table import Table
 
 console = Console()
 
@@ -53,6 +55,97 @@ def _risk_tier(total_affected: int) -> tuple[str, str]:
     return "LOW", "🟢"
 
 
+# ── graph-diff helpers ────────────────────────────────────────────────────────
+
+def _edge_key(rel: dict[str, Any]) -> tuple[str, str, str]:
+    """Canonical (from, to, kind) key for a relationship dict."""
+    return (
+        rel.get("from_") or rel.get("from") or "",
+        rel.get("to") or "",
+        rel.get("kind") or "",
+    )
+
+
+def compute_graph_diff(
+    old_rels: list[dict[str, Any]],
+    new_rels: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Compare two relationship snapshots and return an edge-level diff.
+
+    Args:
+        old_rels: Relationships from the previous scan run.
+        new_rels: Relationships from the current (latest) scan run.
+
+    Returns:
+        Dict with keys:
+            added   — list of edges present in new but not old
+            removed — list of edges present in old but not new
+            unchanged_count — number of edges present in both
+            summary — human-readable string
+    """
+    old_keys = {_edge_key(r): r for r in old_rels}
+    new_keys = {_edge_key(r): r for r in new_rels}
+
+    added_keys   = set(new_keys) - set(old_keys)
+    removed_keys = set(old_keys) - set(new_keys)
+    unchanged    = len(set(old_keys) & set(new_keys))
+
+    added   = [new_keys[k] for k in sorted(added_keys)]
+    removed = [old_keys[k] for k in sorted(removed_keys)]
+
+    summary = (
+        f"+{len(added)} edges added, -{len(removed)} edges removed, "
+        f"{unchanged} unchanged"
+    )
+    return {
+        "added":           added,
+        "removed":         removed,
+        "unchanged_count": unchanged,
+        "summary":         summary,
+    }
+
+
+def _print_graph_diff(diff: dict[str, Any]) -> None:
+    """Render graph diff to terminal in a Rich table."""
+    added   = diff["added"]
+    removed = diff["removed"]
+
+    console.print(f"\n📊  Graph Diff — {diff['summary']}\n")
+
+    if added:
+        t = Table(title=f"➕ Added edges ({len(added)})", show_lines=False)
+        t.add_column("From",  style="green")
+        t.add_column("→ To",  style="green")
+        t.add_column("Kind",  style="dim")
+        for e in added[:50]:
+            t.add_row(
+                e.get("from_") or e.get("from") or "",
+                e.get("to") or "",
+                e.get("kind") or "",
+            )
+        console.print(t)
+        if len(added) > 50:
+            console.print(f"  ... and {len(added) - 50} more added edges")
+
+    if removed:
+        t = Table(title=f"➖ Removed edges ({len(removed)})", show_lines=False)
+        t.add_column("From",  style="red")
+        t.add_column("→ To",  style="red")
+        t.add_column("Kind",  style="dim")
+        for e in removed[:50]:
+            t.add_row(
+                e.get("from_") or e.get("from") or "",
+                e.get("to") or "",
+                e.get("kind") or "",
+            )
+        console.print(t)
+        if len(removed) > 50:
+            console.print(f"  ... and {len(removed) - 50} more removed edges")
+
+    if not added and not removed:
+        console.print("  ✅ No graph changes — edge set identical between runs")
+
+
 @click.command("diff")
 @click.argument("repo", default=".", metavar="REPO")
 @click.option("--staged", is_flag=True, help="Staged changes only")
@@ -63,8 +156,16 @@ def _risk_tier(total_affected: int) -> tuple[str, str]:
     type=click.Choice(["text", "json"]),
     help="Output format",
 )
-def diff_cmd(repo: str, staged: bool, base: str | None, fmt: str) -> None:
-    """Show impact analysis for uncommitted changes."""
+@click.option(
+    "--graph-diff", "graph_diff", is_flag=True, default=False,
+    help="Show edge-level graph diff between the last two scan runs.",
+)
+def diff_cmd(repo: str, staged: bool, base: str | None, fmt: str, graph_diff: bool) -> None:
+    """Show impact analysis for uncommitted changes.
+
+    With --graph-diff: compare the relationship graph between the last two
+    scan runs and display added/removed edges.
+    """
     repo_path = Path(repo).resolve()
 
     # Check git repo
@@ -87,6 +188,32 @@ def diff_cmd(repo: str, staged: bool, base: str | None, fmt: str) -> None:
         console.print("❌ No scan found — run 'reki scan .' first")
         raise SystemExit(1)
 
+    from rekipedia.storage.sqlite_store import SqliteStore
+
+    # ── graph diff mode ──────────────────────────────────────────────────
+    if graph_diff:
+        with SqliteStore(db_path) as store:
+            latest, previous = store.get_two_latest_run_ids(str(repo_path))
+            if not latest:
+                console.print("❌ No scan runs found — run 'reki scan .' first")
+                raise SystemExit(1)
+            if not previous:
+                console.print("⚠️  Only one scan run found — need at least two runs to diff")
+                console.print(f"   Latest run: {latest}")
+                raise SystemExit(0)
+            new_rels = store.get_relationships_for_run(latest)
+            old_rels = store.get_relationships_for_run(previous)
+
+        diff = compute_graph_diff(old_rels, new_rels)
+
+        if fmt == "json":
+            click.echo(json.dumps(diff, indent=2))
+            return
+
+        _print_graph_diff(diff)
+        return
+
+    # ── file impact mode (default) ───────────────────────────────────────
     # Get changed files (filter out .rekipedia/ generated output)
     changed_files = [
         f for f in _get_changed_files(repo_path, staged, base)
@@ -99,8 +226,6 @@ def diff_cmd(repo: str, staged: bool, base: str | None, fmt: str) -> None:
     has_impact = _compute_transitive_impact is not None
 
     # Load store
-    from rekipedia.storage.sqlite_store import SqliteStore
-
     store = SqliteStore(db_path)
     with store:
         run_id = store.get_latest_run_id(str(repo_path))
