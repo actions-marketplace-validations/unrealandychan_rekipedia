@@ -61,6 +61,17 @@ TOOLS = [
      "inputSchema": {"type": "object",
        "properties": {"symbol": {"type": "string", "description": "Symbol name to look up"}},
        "required": ["symbol"]}},
+    {"name": "detect_changes",
+     "description": (
+         "Detect uncommitted git changes and return blast-radius impact for each changed file. "
+         "Returns {changed_files, impacts: [{file, symbols, risk, total_affected, affected_files}]}. "
+         "Use this before a code review to understand the blast radius of pending changes."
+     ),
+     "inputSchema": {"type": "object", "properties": {
+         "repo":   {"type": "string", "description": "Absolute path to the repo root (default: cwd)"},
+         "staged": {"type": "boolean", "description": "If true, only include staged changes (default: false)"},
+         "base":   {"type": "string",  "description": "Compare against this git ref, e.g. 'HEAD~3' (optional)"},
+     }}},
 ]
 
 
@@ -364,6 +375,98 @@ def _handle_tool(name: str, args: dict, cache: _StoreCache) -> str:
             cid = community_map[symbol]
             members = sorted(k for k, v in community_map.items() if v == cid)
             return json.dumps({"community_id": cid, "members": members})
+
+        elif name == "detect_changes":
+            import subprocess as _sp
+            repo_arg = args.get("repo") or str(Path.cwd())
+            staged   = bool(args.get("staged", False))
+            base     = args.get("base")
+
+            repo_path = Path(repo_arg).resolve()
+            # Verify git repo
+            chk = _sp.run(["git", "rev-parse", "--git-dir"],
+                          capture_output=True, text=True, cwd=repo_path)
+            if chk.returncode != 0:
+                return json.dumps({"error": "Not a git repository"})
+
+            def _git_changed(extra: list[str]) -> list[str]:
+                r = _sp.run(["git", "diff", "--name-only"] + extra,
+                            capture_output=True, text=True, cwd=repo_path)
+                return [f.strip() for f in r.stdout.splitlines() if f.strip()]
+
+            if base:
+                changed = _git_changed([base, "HEAD"])
+            elif staged:
+                changed = _git_changed(["--cached"])
+            else:
+                seen: set[str] = set()
+                changed = []
+                for f in _git_changed(["--cached"]) + _git_changed([]):
+                    if f not in seen:
+                        seen.add(f)
+                        changed.append(f)
+
+            # Filter generated files
+            changed = [f for f in changed if not f.startswith(".rekipedia/")]
+            if not changed:
+                return json.dumps({"changed_files": [], "impacts": [], "summary": "No uncommitted changes"})
+
+            # Build symbol-by-file index
+            sym_by_file: dict[str, list[str]] = {}
+            for s in cache.symbols:
+                d = _sym_to_dict(s)
+                f = d.get("file") or ""
+                n = d.get("name") or ""
+                if f and n:
+                    sym_by_file.setdefault(f, []).append(n)
+
+            def _risk(n: int) -> str:
+                return "HIGH" if n >= 5 else ("MEDIUM" if n >= 2 else "LOW")
+
+            try:
+                from rekipedia.analysis.impact import compute_transitive_impact as _cti
+                has_impact = True
+            except ImportError:
+                has_impact = False
+
+            impacts = []
+            for cf in changed:
+                syms = sym_by_file.get(cf, [])
+                if not syms or not has_impact:
+                    impacts.append({
+                        "file": cf,
+                        "symbols": syms,
+                        "risk": "LOW",
+                        "total_affected": 0,
+                        "affected_files": [],
+                    })
+                    continue
+                all_affected: set[str] = set()
+                all_affected_files: set[str] = set()
+                for sym in syms:
+                    res = _cti(sym, cache.rels, cache.symbols, depth=5, direction="both")
+                    callers = res.get("results", res.get("affected_symbols", []))
+                    for c in callers:
+                        if isinstance(c, dict):
+                            all_affected.add(c.get("symbol", ""))
+                            if c.get("file"):
+                                all_affected_files.add(c["file"])
+                        elif isinstance(c, str):
+                            all_affected.add(c)
+                impacts.append({
+                    "file": cf,
+                    "symbols": syms[:20],
+                    "risk": _risk(len(all_affected)),
+                    "total_affected": len(all_affected),
+                    "affected_files": sorted(all_affected_files)[:20],
+                })
+
+            impacts.sort(key=lambda x: x["total_affected"], reverse=True)
+            return json.dumps({
+                "changed_files": changed,
+                "impacts": impacts,
+                "summary": f"{len(changed)} changed file(s), highest risk: {impacts[0]['risk'] if impacts else 'NONE'}",
+            })
 
         return json.dumps({"error": f"Unknown tool: {name}"})
 
