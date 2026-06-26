@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.0] — 2026-06-26
+
+### Features
+- `reki export --format okf` — export wiki as an [OKF v0.1 Knowledge Bundle](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) (GoogleCloudPlatform compatible). Produces `wiki/`, `diagrams/`, `index.md`, and `log.md` with standard YAML frontmatter.
+- **`log.md` wiki changelog** — `.rekipedia/wiki/log.md` is written on every `reki scan` and `reki update`, recording timestamp, run ID, and list of pages changed. Newest entry prepended.
+- **Section index pages** — `index-<section>.md` files generated per section group after each scan for progressive disclosure (OKF §6 pattern). Pages sorted alphabetically within each section.
+
 ## [0.22.1] - 2026-06-10
 ### Added
 - `reki ask` arrow-key history — press ↑ / ↓ in interactive REPL to recall previous questions, just like a shell. History is persisted to `~/.rekipedia/ask_history` across sessions. Use `--no-history` to disable. Closes #224.
