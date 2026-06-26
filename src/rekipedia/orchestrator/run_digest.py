@@ -572,6 +572,17 @@ def run_digest(
         MarkdownExporter(output_dir, llm_client=None if no_llm else getattr(planner, "_client", None)).export(pages, diagrams, run_id=run_id, store=store)
         JsonExporter(output_dir).export(run_id, files, combined, pages, diagrams)
 
+        # Write per-section index pages with full metadata (OKF §6 progressive disclosure)
+        try:
+            import json as _json
+            from rekipedia.exporters.section_index import write_section_indexes
+            manifest_path = output_dir / "exports" / "manifest.json"
+            if manifest_path.exists():
+                manifest_data = _json.loads(manifest_path.read_text(encoding="utf-8"))
+                write_section_indexes(output_dir / "wiki", manifest_data.get("pages", []))
+        except Exception:
+            pass  # best-effort; never fail a scan over index generation
+
         # ── 7. Write scan_meta.json ───────────────────────────────────
         from rekipedia.rag.scan_meta import write_scan_meta
 
