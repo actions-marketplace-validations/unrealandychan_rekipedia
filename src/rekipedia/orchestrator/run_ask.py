@@ -501,22 +501,25 @@ def _prepare_ask(
 
 
 def _save_qa_and_mentions(question: str, answer: str, repo_root: Path, output_dir: Path, model_name: str) -> None:
+    """Save Q&A to chat.db (isolated from shared store.db) — see #248."""
     try:
-        db_path = output_dir / "store.db"
-        if db_path.exists():
-            with SqliteStore(db_path) as store:
-                qa_id = store.save_qa(str(repo_root), question, answer, model_name)
-                
-                # Retrieve all symbols in the repository
+        from rekipedia.storage.chat_store import ChatStore
+        with ChatStore(output_dir) as cs:
+            qa_id = cs.save_qa(str(repo_root), question, answer, model_name)
+
+            # Best-effort: record which symbols were mentioned in the answer
+            try:
                 symbols_path = output_dir / "exports" / "symbols.json"
                 if symbols_path.exists():
-                    symbols_data = json.loads(symbols_path.read_text(encoding="utf-8"))
+                    import json as _json
+                    symbols_data = _json.loads(symbols_path.read_text(encoding="utf-8"))
                     symbol_names = {s.get("name") for s in symbols_data if s.get("name")}
-                    
                     text = (question + " " + answer).lower()
                     mentioned = [name for name in symbol_names if name.lower() in text]
                     if mentioned:
-                        store.save_qa_symbol_mentions(qa_id, mentioned)
+                        cs.save_qa_symbol_mentions(qa_id, mentioned)
+            except Exception:
+                pass
     except Exception:
         pass
 

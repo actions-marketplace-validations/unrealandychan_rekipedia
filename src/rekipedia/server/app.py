@@ -254,15 +254,15 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
         async def _event_gen() -> AsyncIterator[str]:
             try:
                 # Load conversation history for multi-turn context
-                db_path = output_dir / "store.db"
+                # Uses chat.db (separate from shared store.db) — see #248
+                from rekipedia.storage.chat_store import ChatStore
                 chat_history: list[dict] = []
-                if db_path.exists():
-                    with SqliteStore(db_path) as _hs:
-                        raw_hist = _hs.get_qa_history(str(repo_root), limit=20)
-                    # get_qa_history returns newest-first; LLM needs oldest-first
-                    for _h in reversed(raw_hist):
-                        chat_history.append({"role": "user", "content": _h["question"]})
-                        chat_history.append({"role": "assistant", "content": _h["answer"]})
+                with ChatStore(output_dir) as _cs:
+                    raw_hist = _cs.get_qa_history(str(repo_root), limit=20)
+                # get_qa_history returns newest-first; LLM needs oldest-first
+                for _h in reversed(raw_hist):
+                    chat_history.append({"role": "user", "content": _h["question"]})
+                    chat_history.append({"role": "assistant", "content": _h["answer"]})
 
                 gen = stream_ask(
                     question=question,
@@ -282,12 +282,12 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
 
                 yield "data: [DONE]\n\n"
 
-                # Persist full answer to history
+                # Persist full answer to chat.db (not store.db) — see #248
                 answer_text = "".join(full_answer)
-                db_path = output_dir / "store.db"
-                if db_path.exists() and answer_text:
-                    with SqliteStore(db_path) as store:
-                        store.save_qa(str(repo_root), question, answer_text, llm_config.model)
+                if answer_text:
+                    from rekipedia.storage.chat_store import ChatStore
+                    with ChatStore(output_dir) as _cs:
+                        _cs.save_qa(str(repo_root), question, answer_text, llm_config.model)
             except RuntimeError as exc:
                 yield f"data: [ERROR] {exc}\n\n"
             except Exception as exc:
@@ -316,20 +316,18 @@ def create_app(repo_root: Path, output_dir: Path, llm_config: LLMConfig) -> Fast
         except Exception as exc:
             return JSONResponse({"error": str(exc)}, status_code=500)
 
-        db_path = output_dir / "store.db"
-        if db_path.exists():
-            with SqliteStore(db_path) as store:
-                store.save_qa(str(repo_root), question, answer, llm_config.model)
+        # Save to chat.db (not store.db) — see #248
+        from rekipedia.storage.chat_store import ChatStore
+        with ChatStore(output_dir) as _cs:
+            _cs.save_qa(str(repo_root), question, answer, llm_config.model)
 
         return JSONResponse({"answer": answer})
 
     @app.get("/api/history", response_class=JSONResponse)
     async def api_history():
-        db_path = output_dir / "store.db"
-        if not db_path.exists():
-            return JSONResponse([])
-        with SqliteStore(db_path) as store:
-            return JSONResponse(store.get_qa_history(str(repo_root)))
+        from rekipedia.storage.chat_store import ChatStore
+        with ChatStore(output_dir) as _cs:
+            return JSONResponse(_cs.get_qa_history(str(repo_root)))
 
     @app.get("/api/wiki", response_class=JSONResponse)
     async def api_wiki_list():
