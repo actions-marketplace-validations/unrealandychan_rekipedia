@@ -20,7 +20,7 @@ from rich.console import Console
 
 console = Console()
 
-_FORMAT_CHOICES = click.Choice(["md", "zip", "json", "html", "graphml", "cypher", "obsidian", "bundle"], case_sensitive=False)
+_FORMAT_CHOICES = click.Choice(["md", "zip", "json", "html", "graphml", "cypher", "obsidian", "bundle", "okf"], case_sensitive=False)
 
 
 @click.command("export")
@@ -102,6 +102,21 @@ def export_cmd(
 
     doc_title = title or repo.name
     fmt = fmt.lower()
+
+    if fmt == "okf":
+        from rekipedia.exporters.okf_export import OkfExporter
+
+        okf_dir = Path(output) if output else out_dir / "okf-bundle"
+        okf_dir.mkdir(parents=True, exist_ok=True)
+        exporter = OkfExporter(wiki_dir, diagrams_dir, repo)
+        summary = exporter.export(okf_dir, pages_meta=pages_meta)
+        console.print(
+            f"[green]✅ OKF bundle exported:[/] {okf_dir}\n"
+            f"   pages   : {len(summary['pages'])}\n"
+            f"   diagrams: {len(summary['diagrams'])}\n"
+            f"   format  : Open Knowledge Format v0.1"
+        )
+        return
 
     if fmt == "bundle":
         from rekipedia.exporters.bundle_export import BundleExporter
