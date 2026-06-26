@@ -76,9 +76,10 @@ def test_api_history_after_save(wiki_env):
     repo, output_dir = wiki_env
     app = create_app(repo, output_dir, LLMConfig())
     with TestClient(app, raise_server_exceptions=False) as c:
-        db = output_dir / "store.db"
-        with SqliteStore(db) as store:
-            store.save_qa(str(repo), "What is this?", "A test repo.", "test-model")
+        # #248: history is now stored in chat.db, not store.db
+        from rekipedia.storage.chat_store import ChatStore
+        with ChatStore(output_dir) as cs:
+            cs.save_qa(str(repo), "What is this?", "A test repo.", "test-model")
         res = c.get("/api/history")
         assert res.status_code == 200
         data = res.json()
